@@ -4,8 +4,11 @@ MEASUREMENT_GUIDANCE = """
 For a photo-based repair that needs several dimensions, help the user see how to measure.
 Create one to three simple instructional sketches with native image generation before
 requesting the measurements. Prefer one clear sheet with two or three views when that
-explains the task. Use the actual photos as visual reference; sketches are measurement
-instructions, not measured geometry or a finished CAD design. Label each measurement
+explains the task. Use simple technical line sketches on a plain background, not a
+photorealistic reconstruction or restyling of the uploaded photo. The other acceptable
+approach is adding measurement marks to the actual original photo while preserving
+its underlying pixels. For the mug sample, prefer labelled schematic views. These are
+measurement instructions, not measured geometry or a finished CAD design. Label each measurement
 A, B, C, etc. Show correct inside/outside caliper jaws or depth-rod placement and the
 two contact surfaces. Depths should identify their reference plane. Never invent numbers,
 scale, hidden dimensions, threads, or fit. Say not to scale where useful. Match each sketch

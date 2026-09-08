@@ -88,7 +88,7 @@ async def test_measurement_guides_are_scoped_mapped_and_retained(settings):
         service = app.state.service
         sid = (await client.post("/api/agent/sessions")).json()["session"]["id"]
         source = service.store.add_image(sid, png(), "Original mug", "upload")
-        guide = service.store.add_image(sid, png(), "Caliper placement A–B", "generated")
+        guide = service.store.add_image(sid, png("blue"), "Caliper placement A–B", "generated")
         other = service.store.create_session()["id"]
         foreign = service.store.add_image(other, png(), "Other guide", "generated")
         form = {"title": "Measure with the sketch", "image_ids": [source["id"]],
