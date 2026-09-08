@@ -19,7 +19,16 @@ export interface ToolCallRecord {
   readonly rawOutput?: unknown;
 }
 
-export type HistoryRecord = MessageRecord | ToolCallRecord;
+/** Reasoning text explicitly supplied by the adapter, separate from assistant replies. */
+export interface ThoughtRecord {
+  readonly type: "thought";
+  readonly id: string;
+  readonly text: string;
+  readonly turnId: string;
+  readonly streaming?: boolean;
+}
+
+export type HistoryRecord = MessageRecord | ThoughtRecord | ToolCallRecord;
 
 export interface ChatModel {
   readonly id: string;
@@ -29,6 +38,11 @@ export interface ChatModel {
 }
 
 export interface MessageItem extends MessageRecord {}
+
+export interface ThoughtItem extends ThoughtRecord {
+  readonly title: string;
+  readonly summary: string;
+}
 
 interface ToolItemBase {
   readonly id: string;
@@ -59,4 +73,4 @@ export interface GenericToolItem extends ToolItemBase {
   readonly type: "tool";
 }
 
-export type HistoryItem = MessageItem | CameraItem | ImageItem | ModelItem | GenericToolItem;
+export type HistoryItem = MessageItem | ThoughtItem | CameraItem | ImageItem | ModelItem | GenericToolItem;

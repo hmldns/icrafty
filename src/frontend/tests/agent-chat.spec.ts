@@ -23,7 +23,7 @@ async function harness(page: Page) {
     if (kind === "session") state.session = payload;
     if (kind === "asset") state.assets.push(payload);
     if (kind === "record") {
-      const key = (item: AgentRecord) => item.type === "message" ? item.id : item.toolCallId;
+      const key = (item: AgentRecord) => item.type === "tool_call" ? item.toolCallId : item.id;
       const index = state.records.findIndex(item => key(item) === key(payload));
       if (index < 0) state.records.push(payload); else state.records[index] = payload;
     }
@@ -193,12 +193,15 @@ test("session switches preserve drafts, isolate events, and offer actual permiss
   await page.getByRole("textbox").fill("Work on the handle");
   await page.getByRole("button", { name: "Send", exact: true }).click();
   await expect(page.getByRole("button", { name: "Stop", exact: true })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Codex is working…" })).toBeVisible();
   const state = app.states.get("b")!.session;
   app.emit("b", "session", { ...state, turnStatus: "waiting_permission", permissions: [{ id: "permission", toolCall: { title: "Read local image" },
     options: [{ optionId: "reject", name: "Deny this action", kind: "reject_once" }] }] });
   await expect(page.getByRole("button", { name: "Deny this action", exact: true })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Waiting for your approval" })).toBeVisible();
   await page.getByRole("button", { name: "Deny this action", exact: true }).click();
   await expect(page.getByRole("button", { name: "Stop", exact: true })).toHaveCount(0);
+  await expect(page.locator(".agent-activity")).toHaveCount(0);
   expect(app.commands.find(c => c.action === "permissions")!.body.optionId).toBe("reject");
   await choose(page, "Mug repair");
   await expect(page.getByRole("textbox")).toHaveValue("Keep this draft");
@@ -206,6 +209,45 @@ test("session switches preserve drafts, isolate events, and offer actual permiss
   await page.getByRole("button", { name: "Send", exact: true }).click();
   await page.getByRole("button", { name: "Stop", exact: true }).click();
   expect(app.commands.at(-1)?.action).toBe("cancel");
+});
+
+test("thoughts and replies stream Markdown in compact expandable blocks with running animation", async ({ page }) => {
+  const app = await harness(page);
+  await page.goto("/debug/agent");
+  await page.getByRole("textbox").fill("Design the cap");
+  await page.getByRole("button", { name: "Send", exact: true }).click();
+  await expect(page.getByText("Codex is working…", { exact: true })).toBeVisible();
+  expect(await page.locator(".agent-working-dots i").first().evaluate(el => getComputedStyle(el).animationName)).toBe("agent-working");
+  const turnId = app.states.get("a")!.session.activeTurnId!;
+  app.emit("a", "record", { type: "thought", id: "thinking", turnId, text: "**Checking fit**" });
+  const thoughts = page.getByRole("article", { name: "Thinking", exact: true });
+  await expect(thoughts.locator("strong").filter({ hasText: "Checking fit" })).toBeVisible();
+  await expect(thoughts).toHaveAttribute("data-streaming", "true");
+  expect((await thoughts.getByRole("button").boundingBox())!.height).toBeLessThan(48);
+  const fullThought = "**Checking fit**\n\n- Measure the rim\n- Use `calipers`\n\n[Measurement notes](https://example.test/notes)";
+  app.emit("a", "record", { type: "thought", id: "thinking", turnId, text: fullThought });
+  await expect(thoughts.getByRole("listitem")).toHaveCount(2);
+  await expect(thoughts.locator("code")).toHaveText("calipers");
+  await thoughts.getByRole("button").click();
+  app.emit("a", "record", { type: "thought", id: "thinking", turnId, text: fullThought + "\n\nKeep clearance." });
+  await expect(thoughts.getByRole("button")).toHaveAttribute("aria-expanded", "false");
+  await page.getByRole("button", { name: "Expand items", exact: true }).click();
+  await expect(thoughts.getByRole("link", { name: "Measurement notes" })).toHaveAttribute("href", "https://example.test/notes");
+  app.emit("a", "record", { type: "message", id: "reply", author: "crafty", origin: "agent", text: "## Fit\n\nUse **calipers**.\n\n```python\nclearance = 0.2\n```\n\n| Part | Size |\n| --- | --- |\n| Rim | 80 mm |\n\n<script>alert(1)</script>", imageIds: [] });
+  const reply = history(page).getByRole("article", { name: "Live message from icrafty" });
+  await expect(reply.getByRole("heading", { name: "Fit" })).toBeVisible();
+  await expect(reply.locator("pre code")).toHaveText("clearance = 0.2\n");
+  await expect(reply.getByRole("cell", { name: "80 mm" })).toBeVisible();
+  await expect(reply.locator("script")).toHaveCount(0);
+  await expect(thoughts).not.toHaveAttribute("data-streaming", "true");
+  app.finish("a");
+  await expect(page.locator(".agent-activity")).toHaveCount(0);
+  await page.reload();
+  await expect(thoughts.getByRole("button")).toHaveAttribute("aria-expanded", "false");
+  await thoughts.getByRole("button").click();
+  await expect(thoughts.getByText("Keep clearance.", { exact: true })).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
 });
 
 test("reconnect continues after durable cursor without duplicating history or opening ACP", async ({ page }) => {

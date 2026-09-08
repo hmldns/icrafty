@@ -189,3 +189,15 @@ then dispatches immutable references. Retry uses the same selected bytes and
 command identity. Session switches preserve unsent edits during the mounted app's
 lifetime; page reload persistence of drafts and backend drawing lineage are later
 work. Earlier submitted references remain unchanged.
+
+**M-ACP-24 — Thoughts, Markdown, and activity.** Persist the text explicitly
+exposed by ACP `agent_thought_chunk` as separate ordered thought records, merging
+chunks by the current turn and segment. Do not mix them into assistant replies
+or reconstruct missing thoughts from local runtime files. Render messages and
+thoughts with the shared React Markdown component, including lists, code, links,
+and GitHub-style tables. Thought sections expand while streaming and can be
+collapsed without later chunks reopening them; saved thoughts remain inspectable
+after reload or cancellation. Use compact tool/thought headers, bounded thought
+content, and a visible running animation above the composer, including the wait
+before text arrives. Permission waits use a distinct status; completion and Stop
+settlement remove the running state. Honor reduced-motion preferences.

@@ -12,6 +12,7 @@ import { projectAgentSnapshot } from "./projection";
 import type { AgentDraft, AgentImage, AgentSession } from "./types";
 import { useAgentSession } from "./useAgentSession";
 import { useDraftPhotos } from "./useDraftPhotos";
+import { AgentActivity } from "./AgentActivity";
 
 /** Real application component. The route supplies the client and selected session. */
 export function AgentConversation({ client, id, draft, onDraftChange, onSessionChange }: {
@@ -108,6 +109,7 @@ export function AgentConversation({ client, id, draft, onDraftChange, onSessionC
         <div className="row"><Button size="small" onClick={() => setLibrary(true)}>Add a photo</Button><Button size="small" variant="ghost"
           onClick={() => onDraftChange(current => ({ ...current, text: "Generate a simple concept sketch of a replacement mug cap and publish the image here." }))}>Start with a cap sketch</Button></div></div>}
       <ChatHistory items={items} itemRenderer={chatItemRenderer} actions={actions} />
+      {busy && <AgentActivity status={state?.turnStatus} />}
       <ChatComposer text={draft.text} attachments={photos} disabled={busy || sending || uploading || controlling || !!editingImage}
         hint={busy ? "You can prepare your next message while Codex works" : uploading ? "Saving images…" : "Images are sent to Codex · Shift + Enter for a new line"}
         onTextChange={text => onDraftChange(current => ({ ...current, text }))}

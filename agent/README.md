@@ -34,6 +34,13 @@ undo marks. **Send** submits the selected saved pixels. Unsent drafts survive
 switching chats in the current page, but not a page reload. The shared editor
 accepts images up to 12 MB, 16 megapixels, and 8,192 pixels per side.
 
+Messages and ACP-provided thoughts render as Markdown. **Thinking** opens the
+reasoning text the adapter supplies; it streams independently of the final reply.
+Thought and tool headers stay compact and expandable. Animated dots above the
+composer show that a turn is running, even before the first text arrives; a
+permission request changes this to **Waiting for your approval**. Earlier chats
+created before thought capture was implemented have no stored thoughts to show.
+
 `make agent-install` installs `uv.lock` and the pinned npm adapter lockfile.
 The adapter is `@agentclientprotocol/codex-acp` 1.10.0. Its packaged Codex binary
 is the default; `CRAFTY_CODEX_PATH` can select an explicitly tested native binary.
@@ -122,7 +129,9 @@ A prompt body is small and independent of local paths:
 Snapshots contain `schemaVersion: 1`, `session`, ordered `records`, `assets`,
 `interactions`, and `cursor`. Events contain `seq`, `kind`, and `payload`; kinds
 are `session`, `record`, `asset`, and `interaction`. Permission history lives in
-interactions, with pending choices also projected onto the session. Camera
+interactions. Record types are `message`, `thought`, and `tool_call`; thought
+records contain `id`, `turnId`, and `text`, and use the same durable event cursor.
+Permission choices are also projected onto the session. Camera
 interaction status is independent of its completed tool call. Input, generated
 image, and camera bytes share the same immutable ingestion boundary. This first
 stage ingests flattened annotations as new image assets; backend editable mark lineage

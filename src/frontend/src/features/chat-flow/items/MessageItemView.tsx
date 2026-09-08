@@ -1,5 +1,6 @@
 import { defineItemRenderer, type ItemActions } from "../ItemRendererRegistry";
 import { PhotoStrip } from "../PhotoStrip";
+import { ChatMarkdown } from "../ChatMarkdown";
 import type { MessageItem } from "../historyTypes";
 
 function MessageItemView({ item, actions }: { item: MessageItem; actions: ItemActions }) {
@@ -16,7 +17,7 @@ function MessageItemView({ item, actions }: { item: MessageItem; actions: ItemAc
         {item.streaming && <span className="chat-streaming-label">Writing…</span>}
       </div>
       <div className="chat-message-body">
-        {item.text && <p className="chat-message-text">{item.text}{item.streaming && <span className="chat-streaming-caret" aria-hidden="true" />}</p>}
+        {item.text && <ChatMarkdown text={item.text} streaming={item.streaming} />}
         {item.attachments.length > 0 && (
           <PhotoStrip photos={item.attachments} label="Submitted image versions" onInspect={actions.inspect} />
         )}

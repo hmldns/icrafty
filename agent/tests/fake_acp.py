@@ -35,8 +35,11 @@ for line in sys.stdin:
         text = " ".join(block.get("text", "") for block in params["prompt"])
         if text == "crash":
             os._exit(3)
-        if text in {"slow", "permission", "stream"}:
+        if text in {"slow", "permission", "stream", "thinking"}:
             pending = rid
+            if text == "thinking":
+                update({"sessionUpdate": "agent_thought_chunk", "messageId": "reasoning-one", "content": {"type": "text", "text": "**Check fit**"}})
+                update({"sessionUpdate": "agent_thought_chunk", "messageId": "reasoning-one", "content": {"type": "text", "text": " with calipers."}})
             if text == "stream":
                 update({"sessionUpdate": "agent_message_chunk", "content": {"type": "text", "text": "First chunk"}})
             if text == "permission":
@@ -55,6 +58,10 @@ for line in sys.stdin:
         reply(rid, {"stopReason": "end_turn"})
     elif method == "test/continue" and pending:
         update({"sessionUpdate": "agent_message_chunk", "content": {"type": "text", "text": ", then more."}})
+        reply(pending, {"stopReason": "end_turn"})
+        pending = None
+    elif method == "test/answer" and pending:
+        update({"sessionUpdate": "agent_message_chunk", "content": {"type": "text", "text": "Measure the rim."}})
         reply(pending, {"stopReason": "end_turn"})
         pending = None
     elif method == "session/cancel" and pending:

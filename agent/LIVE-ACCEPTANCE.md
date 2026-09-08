@@ -69,3 +69,26 @@ evidence. Provider-native permission escalation was not forced during live
 acceptance; its offered-option flow is covered deterministically. Real camera
 request creation was verified; capture used browser test media. This stage does
 not claim Docker sandboxing, CAD handoff, or production account management.
+
+**LIVE-8 — Streaming, thoughts, and composer follow-up.** On 2026-09-08 the
+backend changed from 250 ms event polling to subscriber notification after
+persistence, yielding between buffered ACP frames. A real 600-word reply produced
+678 text updates over 27 seconds before completion. In a second dedicated
+session, `7919e261d9f14ee3b1e66b98e21c1027`, the adapter supplied two thought
+records before a 239-update Markdown reply. The first thought arrived after
+24.9 seconds and the reply after 32.8 seconds; provider latency remains visible
+as running activity. A browser observer recorded 43 distinct rendered states
+before completion, with the writing and activity states clearing at turn end.
+The page occupied 1,920 px with 32 px outer content margins; thought headers
+measured 39.25 px. Evidence is in ignored `agent/runs/stream-*.jsonl`.
+
+**LIVE-9 — Follow-up regression checks.** Thirteen Python tests passed, including
+real WebSocket delivery before completion, multiple subscribers, disconnect
+cleanup, cursor replay, separate thought records, cancellation, and native
+resume. Seventeen chat/projection browser tests passed for Markdown, thought
+disclosures, activity animation, permissions, pasted-image editing, saved-pixel
+submission, and mobile rendering. Thirty-three browser checks passed when
+combining composer editing with the current collection save/copy implementation.
+Source bytes and earlier submitted attachments stayed unchanged; editable marks
+and Undo survived chat switches. The production build passed. Browser scenarios
+use an explicit application-API fixture; the real-provider results are in LIVE-8.

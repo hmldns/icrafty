@@ -48,13 +48,14 @@ export function ChatHistory({ items, itemRenderer, actions }: {
             const renderer = itemRenderer(item);
             if (!renderer) return <li key={item.id}>This item has no registered view.</li>;
             const content = renderer.render(item, actions);
+            const isExpanded = expanded[item.id] ?? (item.type === "thought" ? !!item.streaming : renderer.initiallyExpanded);
             return (
               <li key={item.id} className={`chat-entry chat-entry--${renderer.variant}`}>
-                {renderer.variant === "interaction" && "tool" in item ? (
+                {renderer.variant === "interaction" && item.type !== "message" ? (
                   <InteractionItemFrame
                     item={item} icon={renderer.icon} label={renderer.label}
-                    expanded={expanded[item.id] ?? renderer.initiallyExpanded}
-                    onToggle={() => setExpanded((current) => ({ ...current, [item.id]: !(current[item.id] ?? renderer.initiallyExpanded) }))}
+                    expanded={isExpanded}
+                    onToggle={() => setExpanded((current) => ({ ...current, [item.id]: !isExpanded }))}
                   >{content}</InteractionItemFrame>
                 ) : content}
               </li>

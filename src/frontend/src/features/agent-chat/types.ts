@@ -1,4 +1,4 @@
-import type { ToolCallRecord } from "../chat-flow/historyTypes";
+import type { ThoughtRecord, ToolCallRecord } from "../chat-flow/historyTypes";
 import type { EditHistory, SourceImage } from "../images/types";
 
 export interface AgentImage {
@@ -42,7 +42,7 @@ export interface AgentMessage {
   imageRefs?: { assetId: string; versionId: string }[];
 }
 
-export type AgentRecord = AgentMessage | ToolCallRecord;
+export type AgentRecord = AgentMessage | ThoughtRecord | ToolCallRecord;
 export interface AgentInteraction {
   id: string;
   kind: "camera" | "permission";

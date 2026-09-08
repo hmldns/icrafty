@@ -89,7 +89,9 @@ export function projectHistory(records: readonly HistoryRecord[], catalog: Proje
   for (const record of records) {
     const item = record.type === "message"
       ? { ...record, id: `message-${record.id}` }
-      : projectToolCall(record, catalog);
+      : record.type === "thought"
+        ? { ...record, id: `thought-${record.id}`, title: "Thinking", summary: record.streaming ? "Live" : "Thoughts" }
+        : projectToolCall(record, catalog);
     items.set(item.id, item);
   }
   return [...items.values()];

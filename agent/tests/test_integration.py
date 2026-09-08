@@ -155,6 +155,38 @@ async def test_http_contract_and_origin(settings):
 
 
 @pytest.mark.asyncio
+async def test_thoughts_stream_separately_and_survive_stop_and_resume(settings):
+    service = AgentService(settings, "http://127.0.0.1:1")
+    sid = service.store.create_session()["id"]
+    try:
+        turn = await service.prompt(sid, "thinking-one", "thinking", [])
+        async with asyncio.timeout(5):
+            while not any(r.get("text") == "**Check fit** with calipers." for r in service.store.records(sid)):
+                await asyncio.sleep(0.01)
+        thoughts = [r for r in service.store.records(sid) if r["type"] == "thought"]
+        assert len(thoughts) == 1 and thoughts[0]["turnId"] == turn["id"]
+        updates = [e["payload"]["text"] for e in service.store.events(sid, 0)
+                   if e["kind"] == "record" and e["payload"]["type"] == "thought"]
+        assert updates == ["**Check fit**", "**Check fit** with calipers."]
+        await service.runtime(sid).connection.notify("test/answer", {})
+        snapshot = await settled(service, sid)
+        assert [r["type"] for r in snapshot["records"]] == ["message", "thought", "message"]
+        assert snapshot["records"][-1]["text"] == "Measure the rim."
+        await service.prompt(sid, "thinking-two", "thinking", [])
+        async with asyncio.timeout(5):
+            while len([r for r in service.store.records(sid) if r["type"] == "thought"]) < 2:
+                await asyncio.sleep(0.01)
+        await service.cancel(sid)
+        before = service.store.records(sid)
+        assert len({r["id"] for r in before if r["type"] == "thought"}) == 2
+        await service.stop(sid)
+        await service.open(sid)
+        assert service.store.records(sid) == before
+    finally:
+        await service.close()
+
+
+@pytest.mark.asyncio
 async def test_websocket_streams_before_completion_and_replays_after_reconnect(settings):
     app = create_app(settings)
     listener = socket.socket()

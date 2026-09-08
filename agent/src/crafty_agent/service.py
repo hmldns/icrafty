@@ -51,6 +51,8 @@ class Runtime:
         self.permissions: dict[str, asyncio.Future] = {}
         self.segment = 0
         self.message_id: str | None = None
+        self.thought_id: str | None = None
+        self.thought_source: str | None = None
         self.cancelled = False
         self.recovering = False
 
@@ -151,19 +153,33 @@ class Runtime:
         kind = update.get("sessionUpdate")
         if not state["activeTurnId"]:
             return
-        if kind == "agent_message_chunk":
+        if kind in {"agent_message_chunk", "agent_thought_chunk"}:
             content = update.get("content", {})
-            if content.get("type") != "text":
+            delta = content.get("text")
+            if content.get("type") != "text" or not isinstance(delta, str) or not delta:
                 return
-            if self.message_id is None:
-                self.segment += 1
-                self.message_id = f'{state["activeTurnId"]}:assistant:{self.segment}'
-            previous = self.owner.store.record(self.sid, self.message_id)
-            record = previous or {"type": "message", "id": self.message_id, "author": "crafty", "origin": "agent", "text": "", "imageIds": []}
-            record["text"] = (record["text"] + content.get("text", ""))[:250_000]
+            if kind == "agent_thought_chunk":
+                self.message_id = None
+                if self.thought_id is None or self.thought_source != update.get("messageId"):
+                    if not delta.strip(): return
+                    self.segment += 1
+                    self.thought_id = f'{state["activeTurnId"]}:thought:{self.segment}'
+                    self.thought_source = update.get("messageId")
+                record_id = self.thought_id
+                initial = {"type": "thought", "id": record_id, "text": "", "turnId": state["activeTurnId"]}
+            else:
+                self.thought_id = None
+                if self.message_id is None:
+                    self.segment += 1
+                    self.message_id = f'{state["activeTurnId"]}:assistant:{self.segment}'
+                record_id = self.message_id
+                initial = {"type": "message", "id": record_id, "author": "crafty", "origin": "agent", "text": "", "imageIds": [],
+                           "turnId": state["activeTurnId"]}
+            record = self.owner.store.record(self.sid, record_id) or initial
+            record["text"] = (record["text"] + delta)[:250_000]
             self.owner.store.put_record(self.sid, record)
         elif kind in {"tool_call", "tool_call_update"} and update.get("toolCallId"):
-            self.message_id = None
+            self.message_id, self.thought_id = None, None
             previous = self.owner.store.record(self.sid, update["toolCallId"])
             record = merge_tool(previous, update)
             record.update(turnId=state["activeTurnId"], generation=self.generation)
@@ -215,7 +231,7 @@ class Runtime:
                 future.set_result(None)
 
     async def run_turn(self, turn: dict):
-        self.message_id, self.segment = None, 0
+        self.message_id, self.thought_id, self.thought_source, self.segment = None, None, None, 0
         status, error, reason = "failed", None, None
         try:
             state = self.owner.store.session(self.sid)

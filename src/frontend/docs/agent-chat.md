@@ -53,6 +53,13 @@ components. Unknown tools retain expandable details. Local tool titles are
 shortened in the conversation while the original record remains inspectable.
 Text events update the same visible message as they arrive, with a writing
 indicator until that segment ends. The live route uses the available page width.
+Adapter-provided thought records use compact **Thinking** disclosures, separate
+from assistant reply records. They expand while streaming unless the user closes
+them, and remain available after a reload. `ChatMarkdown` uses
+[`react-markdown`](https://github.com/remarkjs/react-markdown) with `remark-gfm`
+for messages and thoughts, without enabling raw HTML. `AgentActivity` shows
+animated dots while the turn runs, including before its first output; permission
+waits have a distinct label. Reduced-motion settings disable the dot animation.
 Browser camera permission is requested only after Start camera; collapse, close,
 navigation, and session switch release media tracks.
 

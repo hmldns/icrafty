@@ -34,8 +34,12 @@ MCP publication from completing a newer turn.
 **ACP-STATE-5 — Ordered history.** Persist user messages, streamed assistant
 messages, and normalized tool calls as records with stable IDs and creation order.
 Updates replace the same record without moving it. Streamed text appends to the
-active message segment; tool activity can separate message segments. ACP replay
-during recovery does not duplicate already persisted application history.
+active message segment; tool activity can separate message segments. ACP thought
+chunks become separate `type: "thought"` records with stable IDs, turn IDs, and
+text. Switching between thoughts, replies, and tools creates distinct segments;
+thought records never become user-facing reply text. The current turn and last
+record determine live presentation, without an invented completion event. ACP
+replay during recovery does not duplicate already persisted application history.
 
 **ACP-STATE-6 — Image identity.** Every accepted image has an immutable asset and
 version reference, validated media type, dimensions, byte size, digest, origin,

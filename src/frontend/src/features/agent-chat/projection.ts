@@ -22,9 +22,9 @@ export function projectAgentSnapshot(snapshot: AgentSnapshot) {
       const image = snapshot.assets.find(asset => asset.id === ref.assetId && asset.versionId === ref.versionId);
       return image ? [attachment(image)] : [];
     }) }
-    : record);
+    : record.type === "thought" ? { ...record, streaming: record === last && record.turnId === snapshot.session.activeTurnId } : record);
   return projectHistory(records, { assets, models: [] }).map(item => {
-    if (item.type === "message") return item;
+    if (item.type === "message" || item.type === "thought") return item;
     // Keep original tool details in the record inspector; use domain titles in chat.
     if (item.type === "image") return { ...item, title: item.photo.assetTitle };
     if (item.type === "camera") return { ...item, title: "Camera request" };
@@ -49,6 +49,6 @@ export function applyAgentEvent(snapshot: AgentSnapshot, event: AgentEvent): Age
     case "session": return { ...next, session: event.payload };
     case "asset": return { ...next, assets: upsert(snapshot.assets, event.payload, image => image.id) };
     case "interaction": return { ...next, interactions: upsert(snapshot.interactions ?? [], event.payload, item => item.id) };
-    case "record": return { ...next, records: upsert(snapshot.records, event.payload, record => record.type === "message" ? record.id : record.toolCallId) };
+    case "record": return { ...next, records: upsert(snapshot.records, event.payload, record => record.type === "tool_call" ? record.toolCallId : record.id) };
   }
 }
