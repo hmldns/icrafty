@@ -31,6 +31,7 @@ export function useCamera(
   const [error, setError] = useState("");
   const [capturing, setCapturing] = useState(false);
   const [count, setCount] = useState(0);
+  const [shutter, setShutter] = useState(0);
   const generation = useRef(0);
   const alive = useRef(true);
   const captureLock = useRef(false);
@@ -47,6 +48,7 @@ export function useCamera(
   }, []);
   const stop = useCallback(() => {
     release();
+    setShutter(0);
     setStream(null);
     setPhase("off");
     setError("");
@@ -78,6 +80,7 @@ export function useCamera(
   const start = useCallback(
     async (selectedDevice = deviceId) => {
       release();
+      setShutter(0);
       setStream(null);
       setError("");
       if (!navigator.mediaDevices?.getUserMedia) {
@@ -198,6 +201,7 @@ export function useCamera(
         canvas.width,
         canvas.height,
       );
+      setShutter(current => current + 1);
       const blob = await canvasBlob(canvas);
       const source = await prepareImage(
         blob,
@@ -231,6 +235,7 @@ export function useCamera(
     error,
     capturing,
     count,
+    shutter,
     capture,
     stop,
     start,
