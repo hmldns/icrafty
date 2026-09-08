@@ -16,6 +16,7 @@ from .acp import AcpConnection, AcpError
 from .config import Settings
 from .normalize import compact, merge_tool
 from .store import Store, encode, identifier, now
+from .cad_service import CadService, CONVERSATION_INSTRUCTIONS
 
 
 class BusyError(ValueError):
@@ -80,7 +81,7 @@ class Runtime:
             if not auth.exists() and settings.auth_source and settings.auth_source.is_file():
                 shutil.copyfile(settings.auth_source, auth)
                 auth.chmod(0o600)
-            (self.workspace / "AGENTS.md").write_text(INSTRUCTIONS)
+            (self.workspace / "AGENTS.md").write_text(INSTRUCTIONS + CONVERSATION_INSTRUCTIONS)
             self.generation = state["generation"] + 1
             self.token = secrets.token_urlsafe(32)
             self.owner.store.update_session(self.sid, runtime="starting", generation=self.generation, error=None)
@@ -116,6 +117,7 @@ class Runtime:
                               "CRAFTY_MCP_GENERATED_ROOT": str(codex_state / "generated_images")}.items()]}
                 params = {"cwd": str(self.workspace), "mcpServers": [server]}
                 method = "session/new"
+                params["mcpServers"].append(self.owner.cad.mcp_server(self.sid, self.token, self.workspace))
                 if state["acpSessionId"]:
                     self.recovering = True
                     params["sessionId"] = state["acpSessionId"]
@@ -258,7 +260,10 @@ class Runtime:
             status, error = "cancelled" if self.cancelled else "failed", str(failure)[:1000]
         finally:
             self.resolve_permissions()
+            if status in {"cancelled", "failed", "interrupted"}:
+                await self.owner.cad.cancel_session(self.sid, turn["id"])
             self.owner.store.finish_turn(self.sid, turn["id"], status, error, reason)
+            self.owner.cad.refresh_permissions(self.sid)
 
     async def cancel(self):
         self.cancelled = True
@@ -292,6 +297,7 @@ class Runtime:
         self.resolve_permissions()
         state = self.owner.store.session(self.sid)
         if state["activeTurnId"]:
+            await self.owner.cad.cancel_session(self.sid, state["activeTurnId"])
             self.owner.store.finish_turn(self.sid, state["activeTurnId"], "interrupted", "Codex disconnected. Reopen the session before continuing.")
         self.owner.store.update_session(self.sid, runtime="failed", error="Codex runtime disconnected")
 
@@ -309,6 +315,7 @@ class AgentService:
             raise RuntimeError("Agent data root is already owned by another backend or cannot be opened") from None
         self.store.recover()
         self.runtimes: dict[str, Runtime] = {}
+        self.cad = CadService(self)
 
     def runtime(self, sid: str) -> Runtime:
         self.store.session(sid)
@@ -325,11 +332,15 @@ class AgentService:
     async def cancel(self, sid: str):
         runtime = self.runtime(sid)
         async with runtime.commands:
+            runtime.cancelled = True
+            await self.cad.cancel_session(sid)
             await runtime.cancel()
 
     async def stop(self, sid: str):
         runtime = self.runtime(sid)
         async with runtime.commands:
+            runtime.cancelled = True
+            await self.cad.stop_session(sid)
             await runtime.cancel()
             await runtime.stop_process()
 
@@ -383,5 +394,6 @@ class AgentService:
     async def close(self):
         for runtime in self.runtimes.values():
             await self.stop(runtime.sid)
+        await self.cad.close()
         self.store.close()
         self._lease.close()

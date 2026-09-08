@@ -1,0 +1,139 @@
+{
+  "type": "tool_call",
+  "toolCallId": "cad:operation-example",
+  "turnId": "turn-example",
+  "name": "cad.result",
+  "server": "crafty_cad",
+  "tool": "operation",
+  "title": "Cylinder 20 \u00d7 20 mm",
+  "status": "completed",
+  "completionSource": "application",
+  "rawInput": {
+    "operationId": "operation-example"
+  },
+  "rawOutput": {
+    "schema_version": 1,
+    "view": "cad",
+    "operationId": "operation-example",
+    "operationVersion": 4,
+    "operationKind": "model",
+    "status": "completed",
+    "phase": "published",
+    "title": "Cylinder 20 \u00d7 20 mm",
+    "revision": {
+      "id": "revision-example",
+      "number": 1,
+      "parentRevisionId": null,
+      "sourceDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "buildKey": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "geometry": {
+      "id": "geometry-example",
+      "digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "snapshotId": "snapshot-example",
+      "availability": "live",
+      "units": "mm",
+      "frame": "right-handed-z-up"
+    },
+    "evaluationId": "evaluation-example",
+    "publicationId": "publication-example",
+    "requestedOutputs": [
+      {
+        "id": "iso",
+        "kind": "png",
+        "parts": [
+          "body"
+        ],
+        "annotations": {
+          "json": true,
+          "inline": true
+        },
+        "view": {
+          "preset": "isometric",
+          "width": 1024,
+          "height": 768
+        }
+      }
+    ],
+    "outputs": [
+      {
+        "id": "iso",
+        "kind": "png",
+        "status": "ready",
+        "image": {
+          "assetId": "image-example",
+          "versionId": "1"
+        },
+        "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "sizeBytes": 43210,
+        "mediaType": "image/png",
+        "views": [],
+        "annotations": {
+          "status": "ready",
+          "inline": true,
+          "file": {
+            "id": "annotations-example",
+            "url": "/api/agent/sessions/session-example/cad/artifacts/annotations-example",
+            "downloadUrl": "/api/agent/sessions/session-example/cad/artifacts/annotations-example?download=true",
+            "filename": "iso.annotations.json",
+            "format": "json",
+            "mediaType": "application/json",
+            "sizeBytes": 3210,
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          }
+        }
+      }
+    ],
+    "images": [
+      {
+        "assetId": "image-example",
+        "versionId": "1"
+      }
+    ],
+    "model": null,
+    "downloads": [],
+    "metrics": [
+      {
+        "id": "body.width",
+        "kind": "bbox_extent",
+        "axis": "x",
+        "target": {
+          "part": "body"
+        },
+        "unit": "mm",
+        "frame": "world",
+        "method": "bbox_extent@1",
+        "value": 20.0,
+        "criterion": {
+          "equals": 20,
+          "absolute_tolerance": 0.001
+        },
+        "difference": 0.0,
+        "status": "pass",
+        "evidence_artifact_ids": [
+          "iso"
+        ]
+      }
+    ],
+    "interpretation": "The delivered cylinder measures 20 mm across. STEP was not requested.",
+    "error": null,
+    "budget": {
+      "evaluations": 1,
+      "maxEvaluations": 8,
+      "elapsedSeconds": 32.0,
+      "maxSeconds": 1200
+    },
+    "reuse": {
+      "sourceExecutions": 1,
+      "builds": 1,
+      "loads": 1,
+      "restores": 0,
+      "queries": 1
+    },
+    "presentation": {
+      "messageMode": "together",
+      "index": 0,
+      "count": 1
+    }
+  }
+}
