@@ -55,5 +55,18 @@ test("production emits and loads real STEP, module worker and WASM without the d
   expect((await pngPixels(page, source.base64)).foreground).toBeGreaterThan(
     2000,
   );
+  await page.getByRole("button", { name: "Close Annotate image" }).click();
+  await page
+    .getByLabel("Model source", { exact: true })
+    .selectOption("solid-demo");
+  await ready(page);
+  expect(assets.some((url) => /\/assets\/solid-block-.+\.stl$/.test(url))).toBe(
+    true,
+  );
+  await primary.getByLabel("Show section planes").uncheck();
+  const demo = await canvasPixels(page, primary);
+  expect(demo.colors.x).toBeGreaterThan(1000);
+  expect(demo.colors.z).toBeGreaterThan(1000);
+  expect(demo.colors.reference).toBeGreaterThan(500);
   expect(errors).toEqual([]);
 });

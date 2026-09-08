@@ -65,12 +65,25 @@ and [upstream repository](https://github.com/kovacsv/occt-import-js). Three.js u
 its upstream MIT license. Keep these upstream notices with redistributed bundles;
 the viewer does not replace either dependency's license terms.
 
-## STL fixture and embedding example
+## STL fixtures and embedding example
 
 [`bracket.stl`](models/bracket.stl) is a synthetic asymmetric L-bracket, generated
 locally in millimeters/Z-up for deterministic visual tests. Its 30 × 24 × 10 bounds
 and 20 triangles exercise real binary STL loading. This fixture is not a verified
-repair part or a FreeCAD evaluator output. Reproduce it with:
+repair part or a FreeCAD evaluator output.
+
+[`solid-block.stl`](models/solid-block.stl) is a centered 50 × 40 × 36 mm block
+with 12 triangles. The **Solid block + inner sphere demo** gallery choice loads
+this real STL and adds a separately labeled, gold, 10 mm radius reference sphere.
+The initial X/Z planes expose filled cut faces. The sphere is rendered by Three.js
+and recorded as supplemental snapshot geometry; its bytes are not in the STL.
+This small demo fixture is bundled for production alongside the real STEP sample.
+
+[`sleeve.stl`](models/sleeve.stl) is a closed hollow sleeve with outer radius 18 mm,
+inner radius 9 mm and height 16 mm, centered at the origin. Its 768 triangles
+exercise a real through-hole: a filled Z section must be a ring, not a disk.
+Both new fixtures are synthetic visual checks, not evaluator-produced evidence.
+Reproduce all three STLs with:
 
 ```sh
 node tooling/generate-stl.mjs

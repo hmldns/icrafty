@@ -43,4 +43,8 @@
   --text-label: 0.75rem;
   --color-model-background: #eeeee5;
   --color-model-surface: #87a89b;
+  --color-section-x: #c14e46;
+  --color-section-y: #388266;
+  --color-section-z: #466dbb;
+  --color-model-reference: #d49724;
 }

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button, Field } from "../../components/ui/primitives";
-import type { Axis, SectionPlane } from "./types";
+import type { Axis, SectionAppearance, SectionPlane } from "./types";
 
 export type ModelBounds = Record<Axis, { min: number; max: number }>;
 
@@ -47,10 +47,14 @@ export function SectionControls({
   sections,
   bounds,
   onChange,
+  appearance,
+  onAppearanceChange,
 }: {
   sections: SectionPlane[];
   bounds: ModelBounds;
   onChange: (sections: SectionPlane[]) => void;
+  appearance: SectionAppearance;
+  onAppearanceChange: (appearance: SectionAppearance) => void;
 }) {
   const update = (axis: Axis, change: Partial<SectionPlane>) =>
     onChange(
@@ -86,15 +90,48 @@ export function SectionControls({
         </div>
       </div>
       <p className="small">
-        Visual cuts have open surfaces, without caps. Positions are in viewer
-        millimeters; mesh bounds are not verified CAD measurements.
+        Colored cut faces fill closed meshes. Open or inconsistent meshes can
+        show artifacts. Positions are in viewer millimeters; these are visual
+        sections, not verified CAD measurements.
       </p>
+      <div className="row section-display-options">
+        <label>
+          <input
+            type="checkbox"
+            checked={appearance.guides}
+            onChange={(event) =>
+              onAppearanceChange({
+                ...appearance,
+                guides: event.target.checked,
+              })
+            }
+          />{" "}
+          Show section planes
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={appearance.caps}
+            onChange={(event) =>
+              onAppearanceChange({ ...appearance, caps: event.target.checked })
+            }
+          />{" "}
+          Fill cut faces
+        </label>
+      </div>
       {sections.map((section) => {
         const label = section.axis.toUpperCase();
         const { min, max } = bounds[section.axis];
         return (
-          <fieldset className="model-section-row" key={section.axis}>
-            <legend>{label} plane</legend>
+          <fieldset
+            className="model-section-row"
+            key={section.axis}
+            data-axis={section.axis}
+          >
+            <legend>
+              <span className="section-color" aria-hidden="true" />
+              {label} plane
+            </legend>
             <label className="row">
               <input
                 type="checkbox"

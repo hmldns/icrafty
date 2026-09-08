@@ -12,14 +12,19 @@ import {
   MeshStandardMaterial,
   OrthographicCamera,
   PerspectiveCamera,
-  Plane,
   Scene,
   Sphere,
+  SphereGeometry,
   Vector3,
   WebGLRenderer,
 } from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { canvasBlob } from "../images/imageIO";
+import {
+  SectionVisuals,
+  type SolidMesh,
+  type SectionColors,
+} from "./sectionVisuals";
 import {
   STEP_SETTINGS,
   type CameraState,
@@ -29,6 +34,8 @@ import {
   type ModelSource,
   type Projection,
   type SectionPlane,
+  type SectionAppearance,
+  type ReferenceSphere,
   type Vector3Tuple,
   type ViewPreset,
 } from "./types";
@@ -54,6 +61,10 @@ export class ModelScene {
   private observer: ResizeObserver;
   private disposed = false;
   private sections: SectionPlane[] = [];
+  private sectionAppearance: SectionAppearance = { guides: true, caps: true };
+  private sectionVisuals = new SectionVisuals();
+  private sectionColors: SectionColors;
+  private referenceObjects: ReferenceSphere[] = [];
   private radius = 1;
   private orthoHeight = 2;
   private imported?: ImportedModel;
@@ -71,17 +82,29 @@ export class ModelScene {
       canvas,
       antialias: true,
       preserveDrawingBuffer: false,
+      stencil: true,
     });
     this.renderer.localClippingEnabled = true;
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     const styles = getComputedStyle(canvas);
+    this.sectionColors = {
+      x: new Color(
+        styles.getPropertyValue("--color-section-x").trim() || "#c14e46",
+      ),
+      y: new Color(
+        styles.getPropertyValue("--color-section-y").trim() || "#388266",
+      ),
+      z: new Color(
+        styles.getPropertyValue("--color-section-z").trim() || "#466dbb",
+      ),
+    };
     this.scene.background = new Color(
       styles.getPropertyValue("--color-model-background").trim() || "#eeeee5",
     );
     this.scene.add(new AmbientLight(0xffffff, 2));
     const light = new DirectionalLight(0xffffff, 3);
     light.position.set(1, -2, 3);
-    this.scene.add(light, this.group);
+    this.scene.add(light, this.group, this.sectionVisuals.group);
     this.camera = new PerspectiveCamera(40, 1, 0.01, 1000);
     this.camera.up.set(0, 0, 1);
     this.camera.position.set(3, -3, 3);
@@ -310,25 +333,47 @@ export class ModelScene {
 
   setSections(sections: SectionPlane[]) {
     this.sections = structuredClone(sections);
-    const planes = sections
-      .filter((plane) => plane.enabled)
-      .map((plane) => {
-        const sign = plane.flipped ? -1 : 1;
-        const normal = new Vector3(
-          plane.axis === "x" ? sign : 0,
-          plane.axis === "y" ? sign : 0,
-          plane.axis === "z" ? sign : 0,
-        );
-        return new Plane(normal, -plane.position * sign);
-      });
-    this.group.children.forEach((child) => {
-      if (child instanceof Mesh) {
-        const material = child.material as MeshStandardMaterial;
-        material.clippingPlanes = planes;
-        material.needsUpdate = true;
-      }
-    });
+    this.sectionVisuals.rebuild(
+      this.group.children as SolidMesh[],
+      this.bounds,
+      this.sections,
+      this.sectionAppearance,
+      this.sectionColors,
+    );
     this.render();
+  }
+
+  setSectionAppearance(appearance: SectionAppearance) {
+    this.sectionAppearance = { ...appearance };
+    this.setSections(this.sections);
+  }
+
+  addReferenceObjects(objects: readonly ReferenceSphere[]) {
+    this.referenceObjects = objects.map((object) => structuredClone(object));
+    for (const object of objects) {
+      if (
+        !(object.radius > 0) ||
+        !Number.isFinite(object.radius) ||
+        !object.center.every(Number.isFinite)
+      )
+        throw new Error(
+          "Reference sphere coordinates and radius must be finite, with a positive radius.",
+        );
+      const geometry = new SphereGeometry(object.radius, 48, 32);
+      geometry.translate(...object.center);
+      const material = new MeshStandardMaterial({
+        color:
+          getComputedStyle(this.canvas)
+            .getPropertyValue("--color-model-reference")
+            .trim() || "#d49724",
+        roughness: 0.65,
+        side: DoubleSide,
+      });
+      const mesh = new Mesh(geometry, material);
+      mesh.name = object.label;
+      mesh.userData.reference = true;
+      this.group.add(mesh);
+    }
   }
 
   private cameraState(): CameraState {
@@ -378,7 +423,9 @@ export class ModelScene {
       sha256: this.imported.sha256,
       byteLength: this.imported.byteLength,
       importer: this.imported.importer,
-      ...(source.format === "step" ? { tessellation: { ...STEP_SETTINGS } } : {}),
+      ...(source.format === "step"
+        ? { tessellation: { ...STEP_SETTINGS } }
+        : {}),
       coordinates: {
         sourceUnits:
           source.format === "step"
@@ -395,6 +442,10 @@ export class ModelScene {
       },
       camera: this.cameraState(),
       sections: structuredClone(this.sections),
+      sectionAppearance: { ...this.sectionAppearance },
+      ...(this.referenceObjects.length
+        ? { referenceObjects: structuredClone(this.referenceObjects) }
+        : {}),
       capture: {
         width: frozen.width,
         height: frozen.height,
@@ -411,6 +462,7 @@ export class ModelScene {
     this.canvas.removeEventListener("webglcontextlost", this.contextLost);
     this.controls.removeEventListener("change", this.render);
     this.controls.dispose();
+    this.sectionVisuals.clear();
     this.group.children.forEach((child) => {
       if (child instanceof Mesh) {
         child.geometry.dispose();

@@ -87,6 +87,7 @@ test("independent section planes move, flip, disable, remove and survive camera 
     .getByLabel("Model source", { exact: true })
     .selectOption("folder:bracket.stl");
   const primary = await ready(page);
+  await primary.getByLabel("Show section planes").uncheck();
   const original = await canvasPixels(page, primary);
   await primary.getByRole("button", { name: "Add X plane" }).click();
   const cut = await canvasPixels(page, primary);
@@ -216,24 +217,35 @@ test("two viewers keep cameras, materials and sections independent through peer 
   await page.getByLabel("Compare independent viewers").check();
   const primary = await ready(page);
   const second = await ready(page, "Comparison viewer");
+  await second.getByRole("button", { name: "Add X plane" }).click();
+  await second.getByRole("button", { name: "Left", exact: true }).click();
   const untouched = await canvasPixels(page, second);
+  expect(untouched.colors.x).toBeGreaterThan(1000);
   await primary.getByRole("button", { name: "Add X plane" }).click();
+  await primary.getByLabel("Fill cut faces").uncheck();
+  await primary.getByLabel("Show section planes").uncheck();
   await primary.getByLabel("Projection").selectOption("orthographic");
   await primary.getByRole("button", { name: "Top", exact: true }).click();
   expect((await canvasPixels(page, second)).digest).toBe(untouched.digest);
   await expect(
     second.getByRole("button", { name: "Add X plane" }),
-  ).toBeEnabled();
+  ).toBeDisabled();
   await expect(second.getByLabel("Projection")).toHaveValue("perspective");
+  await expect(second.getByLabel("Fill cut faces")).toBeChecked();
+  await expect(second.getByLabel("Show section planes")).toBeChecked();
   await captureModel(page, "Comparison viewer");
   const frozen = (await modelSources(page))[0]!;
-  expect(frozen.model?.sections).toEqual([]);
+  expect(frozen.model?.sections).toMatchObject([
+    { axis: "x", enabled: true, flipped: false },
+  ]);
+  expect(frozen.model?.sectionAppearance).toEqual({ caps: true, guides: true });
   expect(frozen.model?.camera.projection).toBe("perspective");
   await page.getByRole("button", { name: "Close Annotate image" }).click();
   await page.getByRole("button", { name: "Hide primary viewer" }).click();
   await expect(primary).toHaveCount(0);
-  await second.getByRole("button", { name: "Right", exact: true }).click();
-  expect((await canvasPixels(page, second)).foreground).toBeGreaterThan(5000);
+  await second.getByRole("button", { name: "Add Z plane" }).click();
+  await second.getByRole("button", { name: "Bottom", exact: true }).click();
+  expect((await canvasPixels(page, second)).colors.z).toBeGreaterThan(1000);
   await expect(second).toHaveAttribute("data-state", "ready");
   await page.getByRole("button", { name: "Show primary viewer" }).click();
   await ready(page);

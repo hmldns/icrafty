@@ -14,6 +14,8 @@ import type {
   ModelSource,
   Projection,
   SectionPlane,
+  SectionAppearance,
+  ReferenceSphere,
   ViewPreset,
 } from "./types";
 
@@ -23,6 +25,8 @@ export interface ModelViewerProps {
   onSnapshot?: (snapshot: ModelSnapshot) => void | Promise<void>;
   snapshotDisabled?: boolean;
   snapshotLabel?: string;
+  initialSections?: readonly SectionPlane[];
+  referenceObjects?: readonly ReferenceSphere[];
 }
 
 const presets: ViewPreset[] = [
@@ -41,11 +45,16 @@ export function ModelViewer({
   onSnapshot,
   snapshotDisabled = false,
   snapshotLabel = "Snapshot",
+  initialSections,
+  referenceObjects,
 }: ModelViewerProps) {
   const canvasHost = useRef<HTMLDivElement>(null);
   const scene = useRef<ModelScene | null>(null);
   const [retry, setRetry] = useState(0);
-  const generation = useMemo(() => ({}), [source, retry]);
+  const generation = useMemo(
+    () => ({}),
+    [source, retry, label, initialSections, referenceObjects],
+  );
   const activeGeneration = useRef(generation);
   activeGeneration.current = generation;
   const helpId = useId();
@@ -57,6 +66,10 @@ export function ModelViewer({
   const [capturing, setCapturing] = useState(false);
   const [projection, setProjection] = useState<Projection>("perspective");
   const [sections, setSections] = useState<SectionPlane[]>([]);
+  const [appearance, setAppearance] = useState<SectionAppearance>({
+    guides: true,
+    caps: true,
+  });
   const [bounds, setBounds] = useState<ModelBounds | null>(null);
   const [triangles, setTriangles] = useState(0);
 
@@ -65,7 +78,8 @@ export function ModelViewer({
     setError("");
     setCaptureError("");
     setCapturing(false);
-    setSections([]);
+    setSections(initialSections?.map((section) => ({ ...section })) ?? []);
+    setAppearance({ guides: true, caps: true });
     setBounds(null);
     setProjection("perspective");
     if (!source || !canvasHost.current) {
@@ -102,6 +116,10 @@ export function ModelViewer({
         .then((model) => {
           if (controller.signal.aborted || scene.current !== current) return;
           current.setModel(model, source);
+          current.addReferenceObjects(referenceObjects ?? []);
+          current.setSections(
+            initialSections?.map((section) => ({ ...section })) ?? [],
+          );
           setBounds({
             x: { min: current.bounds.min.x, max: current.bounds.max.x },
             y: { min: current.bounds.min.y, max: current.bounds.max.y },
@@ -131,7 +149,7 @@ export function ModelViewer({
       canvas.remove();
       if (scene.current === runtime) scene.current = null;
     };
-  }, [source, generation, label, helpId]);
+  }, [source, generation, label, helpId, initialSections, referenceObjects]);
 
   const capture = async () => {
     if (!scene.current || !onSnapshot || capturing) return;
@@ -274,6 +292,11 @@ export function ModelViewer({
         <SectionControls
           sections={sections}
           bounds={bounds}
+          appearance={appearance}
+          onAppearanceChange={(next) => {
+            scene.current?.setSectionAppearance(next);
+            setAppearance(next);
+          }}
           onChange={(next) => {
             scene.current?.setSections(next);
             setSections(next);

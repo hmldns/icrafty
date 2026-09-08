@@ -94,6 +94,27 @@
     padding: var(--space-4) var(--space-5);
     border-top: 1px solid var(--color-line);
   }
+  .section-display-options {
+    margin-top: var(--space-3);
+    gap: var(--space-5);
+  }
+  .section-color {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-right: var(--space-2);
+    border-radius: 50%;
+    background: var(--section-color);
+  }
+  .model-section-row[data-axis="x"] {
+    --section-color: var(--color-section-x);
+  }
+  .model-section-row[data-axis="y"] {
+    --section-color: var(--color-section-y);
+  }
+  .model-section-row[data-axis="z"] {
+    --section-color: var(--color-section-z);
+  }
   .model-section-row {
     border: 1px solid var(--color-line);
     border-radius: var(--radius-sm);

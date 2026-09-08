@@ -32,6 +32,14 @@ export async function pngPixels(page: Page, base64: string) {
     const background = Array.from(pixels.slice(0, 4));
     let foreground = 0;
     let red = 0;
+    const colors = { x: 0, y: 0, z: 0, reference: 0 };
+    // Flat cap colors from the design tokens; tolerate only antialiasing edges.
+    const targets = {
+      x: [193, 78, 70],
+      y: [56, 130, 102],
+      z: [70, 109, 187],
+      reference: [212, 151, 36],
+    };
     for (let i = 0; i < pixels.length; i += 4) {
       // Ignore the compositor's rounded crop border; the model stays well inside it.
       const x = (i / 4) % canvas.width;
@@ -47,7 +55,24 @@ export async function pngPixels(page: Page, base64: string) {
         foreground++;
       if (pixels[i]! > 140 && pixels[i + 1]! < 100 && pixels[i + 2]! < 100)
         red++;
+      for (const key of Object.keys(targets) as (keyof typeof targets)[]) {
+        if (
+          targets[key].every(
+            (value, channel) => Math.abs(pixels[i + channel]! - value) < 4,
+          )
+        )
+          colors[key]++;
+      }
     }
+    const centerOffset =
+      (Math.floor(canvas.height / 2) * canvas.width +
+        Math.floor(canvas.width / 2)) *
+      4;
+    const centerDistance = [0, 1, 2].reduce(
+      (sum, channel) =>
+        sum + Math.abs(pixels[centerOffset + channel]! - background[channel]!),
+      0,
+    );
     const digest = Array.from(
       new Uint8Array(await crypto.subtle.digest("SHA-256", pixels)),
       (v) => v.toString(16).padStart(2, "0"),
@@ -57,6 +82,8 @@ export async function pngPixels(page: Page, base64: string) {
       height: canvas.height,
       foreground,
       red,
+      colors,
+      centerDistance,
       digest,
     };
   }, base64);

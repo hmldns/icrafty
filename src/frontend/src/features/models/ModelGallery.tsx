@@ -12,8 +12,22 @@ import {
 import { imageFromModelSnapshot } from "../images/modelSnapshot";
 import { errorMessage } from "../images/imageIO";
 import { ModelViewer } from "./ModelViewer";
-import type { ModelSource } from "./types";
+import type { ModelSource, ReferenceSphere, SectionPlane } from "./types";
 import sampleUrl from "../../../tooling/models/rounded-cube.step?url";
+import blockUrl from "../../../tooling/models/solid-block.stl?url&no-inline";
+
+const demoReferences: ReferenceSphere[] = [
+  {
+    kind: "sphere",
+    label: "Inner sphere (demo reference)",
+    center: [0, 0, 0],
+    radius: 10,
+  },
+];
+const demoSections: SectionPlane[] = [
+  { axis: "x", position: 0, enabled: true, flipped: true },
+  { axis: "z", position: 0, enabled: true, flipped: true },
+];
 
 interface Entry {
   path: string;
@@ -74,6 +88,17 @@ function GalleryIntake({ addImage, loading }: ImageWorkspaceIntake) {
     return () => request.current?.abort();
   }, [refresh]);
   const source = useMemo<ModelSource>(() => {
+    if (selected === "solid-demo")
+      return {
+        data: blockUrl,
+        format: "stl",
+        identity: {
+          id: "synthetic:solid-block-with-reference",
+          name: "Solid block + inner sphere demo",
+        },
+        stlUnits: "mm",
+        upAxis: "z",
+      };
     if (selected === "file" && file)
       return {
         data: file,
@@ -119,6 +144,7 @@ function GalleryIntake({ addImage, loading }: ImageWorkspaceIntake) {
             onChange={(event) => setSelected(event.target.value)}
           >
             <option value="sample">Supplied STEP sample · rounded cube</option>
+            <option value="solid-demo">Solid block + inner sphere demo</option>
             {file && <option value="file">Chosen file · {file.name}</option>}
             {entries.map((entry) => (
               <option key={entry.path} value={`folder:${entry.path}`}>
@@ -168,6 +194,14 @@ function GalleryIntake({ addImage, loading }: ImageWorkspaceIntake) {
         </p>
         {catalogError && <Notice>{catalogError}</Notice>}
         {fileError && <Notice tone="error">{fileError}</Notice>}
+        {selected === "solid-demo" && (
+          <Notice>
+            The gold sphere is a demo reference inside the solid block. Move the
+            X/Z planes to inspect its filled cross-sections. Turn off Fill cut
+            faces to see its curved surface. Reference geometry is recorded with
+            snapshots.
+          </Notice>
+        )}
         <details>
           <summary>Gallery tools</summary>
           <p className="small">
@@ -206,6 +240,12 @@ function GalleryIntake({ addImage, loading }: ImageWorkspaceIntake) {
         {showPrimary && (
           <ModelViewer
             source={source}
+            referenceObjects={
+              selected === "solid-demo" ? demoReferences : undefined
+            }
+            initialSections={
+              selected === "solid-demo" ? demoSections : undefined
+            }
             label="Model viewer"
             snapshotLabel="Snapshot & annotate"
             snapshotDisabled={loading}
@@ -217,6 +257,12 @@ function GalleryIntake({ addImage, loading }: ImageWorkspaceIntake) {
         {compare && (
           <ModelViewer
             source={source}
+            referenceObjects={
+              selected === "solid-demo" ? demoReferences : undefined
+            }
+            initialSections={
+              selected === "solid-demo" ? demoSections : undefined
+            }
             label="Comparison viewer"
             snapshotLabel="Snapshot & annotate"
             snapshotDisabled={loading}
