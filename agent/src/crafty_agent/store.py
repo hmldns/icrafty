@@ -227,6 +227,14 @@ class Store:
         turn = {**previous, "status": status, "finishedAt": now(), "error": error, "stopReason": stop_reason}
         with self.db:
             self.db.execute("UPDATE turns SET body=? WHERE id=?", (encode(turn), turn_id))
+            if status in {"cancelled", "failed", "interrupted"}:
+                for record in self.records(sid):
+                    if (record.get("turnId") == turn_id and record.get("type") == "tool_call"
+                            and record.get("status") in {"pending", "in_progress"}):
+                        record.update(status="failed", terminationReason=status, completionSource="application")
+                        self.db.execute("UPDATE records SET body=? WHERE session=? AND id=?",
+                                        (encode(record), sid, record["toolCallId"]))
+                        self._event(sid, "record", record)
             session = self.session(sid)
             if session["activeTurnId"] == turn_id:
                 session.update(activeTurnId=None, turnStatus=status, error=error, permissions=[], updatedAt=now())
