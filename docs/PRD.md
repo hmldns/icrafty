@@ -260,3 +260,13 @@ the first product build.
 **PRD-47 — Annotation interface reference.** **Open.** The user has reference
 images for a drawing and annotation tool. Review those references when designing
 the image editor and its controls within the capture and feedback flows.
+
+## Immediate frontend milestone
+
+**PRD-48 — Annotation downloads for evaluation.** **Confirmed.** The nearest
+camera-feature goal is to collect images from the camera, files, or the web,
+annotate them, and download the current annotated image directly from the editor
+for use in an evaluation loop. Download includes unsaved marks and keeps the
+editor open for further edits and downloads. Preserve the original image and
+editable annotations. This local preparation flow can precede agent and backend
+integration.
