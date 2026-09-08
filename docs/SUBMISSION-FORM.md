@@ -14,7 +14,7 @@ annotations to show what needs fixing or changing. Refine the idea in a saved
 conversation and answer measurement questions to make the intended fit explicit.
 The first demonstration focuses on a replacement mug cap.
 
-The prototype combines live Codex chat, live camera capture, editable annotations,
+The app combines live Codex chat, live camera capture, editable annotations,
 inline measurement forms, and an interactive STEP/STL viewer. Its separate FreeCAD
 evaluator builds and checks basic part geometry, produces visual and numerical
 evidence, and exports STEP files. Connecting the CAD agent to the conversation is
