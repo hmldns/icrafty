@@ -45,6 +45,7 @@ feature needs it.
 
 Provide npm scripts for development, type checking, production builds, and tests,
 with a committed lockfile. Use port 5187 for local development, 4187 for preview,
-and 5287 for isolated browser tests; require strict ports. `make mf` at the repo
-root starts the frontend. Test meaningful camera cleanup, image intake, annotation
-history/export, and route behavior; browser tests should use fake media devices.
+and 5287 for isolated browser tests; require strict ports. `make frontend-dev` at
+the repo root starts the frontend; within this package, use `make dev`. Test
+meaningful camera cleanup, image intake, annotation history/export, and route
+behavior; browser tests should use fake media devices.

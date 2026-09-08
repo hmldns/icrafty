@@ -70,9 +70,10 @@ canonical requirements instead of copying them into every module.
 
 ## Development and validation
 
-From the repository root, `make mf` starts the frontend; `make frontend-check`,
-`make frontend-build`, and `make frontend-test` run its checks. `make diagrams`
-renders the architecture and `make diagrams-check` validates PlantUML syntax.
+From the repository root, `make frontend-dev` starts the frontend.
+`make frontend-check`, `make frontend-build`, and `make frontend-test` run its
+checks. `make diagrams` renders the architecture and `make diagrams-check`
+validates PlantUML syntax.
 Use `make -C cad sync` to prepare the locked CAD environment. Its README documents
 the working evaluator commands, verification suites, and pinned Docker runtime.
 

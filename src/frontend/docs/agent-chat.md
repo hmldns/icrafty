@@ -97,7 +97,8 @@ For a sample MCP inspection, send `Call crafty_images.list_images.`, expand
 **List chat images**, and open **Tool details**. Use
 `Call crafty_images.request_camera.` to inspect an interactive camera result.
 
-Run the backend with `make agent-dev` and frontend with `make mf` from the root.
+Run the backend with `make agent-dev` and frontend with `make frontend-dev` from
+the repository root.
 Vite proxies HTTP and WebSocket `/api/agent` to localhost:8787, configurable with
 `CRAFTY_AGENT_URL`. Browser tests explicitly fake that application API:
 

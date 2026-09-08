@@ -10,10 +10,12 @@ agent-test:
 agent-live:
 	$(MAKE) -C agent live
 
-.PHONY: mf dev frontend-install frontend-build frontend-check frontend-test frontend-preview diagrams architecture diagrams-svg diagrams-png diagrams-check diagrams-clean
+.PHONY: frontend-dev dev frontend-install frontend-build frontend-check frontend-test frontend-preview diagrams architecture diagrams-svg diagrams-png diagrams-check diagrams-clean
 
-mf dev:
+frontend-dev:
 	$(MAKE) -C src/frontend dev
+
+dev: frontend-dev
 
 frontend-install:
 	$(MAKE) -C src/frontend install

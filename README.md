@@ -18,8 +18,11 @@ make agent-dev
 In another terminal:
 
 ```bash
-make mf
+make frontend-dev
 ```
+
+The root `frontend-dev` target starts the frontend; `make dev` is an alias.
+From `src/frontend/`, use the package-local `make dev` command.
 
 Open <http://127.0.0.1:5187>. The server uses a strict port: a collision fails
 clearly instead of silently selecting another port.
@@ -49,8 +52,8 @@ and importing it locally also works.
 ## Live Codex chat
 
 The [agent module](agent/README.md) runs the first real ACP/image/MCP integration.
-Run `make agent-install`, then `make agent-dev` alongside `make mf`, and open
-<http://localhost:5187/>. Chats and images are saved locally; submitted
+Run `make agent-install`, then `make agent-dev` alongside `make frontend-dev`,
+and open <http://localhost:5187/>. Chats and images are saved locally; submitted
 messages and images are sent to Codex using the configured login. The independent
 `/debug/chat` route remains the interaction rehearsal.
 

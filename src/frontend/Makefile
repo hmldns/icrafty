@@ -1,6 +1,6 @@
-.PHONY: mf dev install build check typecheck test preview
+.PHONY: dev install build check typecheck test preview
 
-mf dev:
+dev:
 	npm run dev
 
 install:

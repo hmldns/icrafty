@@ -144,7 +144,7 @@ cases, intended negatives, unexpected failures, missing prerequisites, and
 interruption truthfully. Preserve direct CLI exit codes and JSON-only stdout;
 captured output must have a useful plain summary. Missing capabilities or an
 empty selection cannot be green. These commands must work as `make -C cad TARGET`
-from the root; root `make mf` remains the frontend command.
+from the root; root `make frontend-dev` starts the frontend.
 
 **CAD-RUN-14 — Separate correction trial.** After the local evaluator works,
 prepare `trial-cap` and a fixed wrong-cap task under M-CAD-22. The director

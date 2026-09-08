@@ -42,17 +42,20 @@ explain the distinction from CAD geometry operations.
 
 ## Run
 
-Use Node.js 22.12 or newer and npm. From `src/frontend/`:
+Use Node.js 22.12 or newer and npm. From the repository root:
 
 ```sh
-npm ci
-npm run dev
+make frontend-install
+make frontend-dev
 ```
+
+Within `src/frontend/`, `make install` runs `npm ci`, and `make dev` runs
+`npm run dev`.
 
 Development listens on `http://127.0.0.1:5187`. `npm run preview` serves the
 production build on `http://127.0.0.1:4187`. Both commands require their assigned
-ports to be free. This package also provides `make mf`, `make dev`, `make install`,
-`make check`, `make typecheck`, `make build`, `make test`, and `make preview`.
+ports to be free. Other package-local targets are `make check`, `make typecheck`,
+`make build`, `make test`, and `make preview`.
 
 ## Validate
 

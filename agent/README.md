@@ -20,7 +20,7 @@ make frontend-install
 make agent-dev
 ```
 
-In another terminal run `make mf`, then open
+In another terminal run `make frontend-dev` from the repository root, then open
 <http://localhost:5187/>. The backend binds to `127.0.0.1:8787`.
 Select **New repair**, attach a PNG/JPEG/WebP with **Photos**, and send a message,
 or choose **Try the mug cap** to submit the four supplied sample photographs.
