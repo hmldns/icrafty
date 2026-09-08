@@ -10,6 +10,7 @@ export const ROUTES = {
   gallery: "/debug/gallery",
   models: "/debug/models",
   chat: "/debug/chat",
+  agent: "/debug/agent",
 } as const;
 
 const redirects: Readonly<Record<string, string>> = {

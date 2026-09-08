@@ -1,0 +1,7 @@
+.venv/
+.uv-cache/
+.state/
+node_modules/
+runs/
+.pytest_cache/
+__pycache__/

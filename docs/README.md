@@ -6,6 +6,8 @@ reviewable design, not a claim that a service exists.
 
 - [PRD.md](PRD.md) — product behavior, user flow, and outcomes.
 - [TRD.md](TRD.md) — system implementation, isolation, state, and integration gates.
+- [M-ACP.md](M-ACP.md) — reusable Codex ACP/image/MCP integration and live debug stage.
+- [ACP-AGENT-STATE.md](ACP-AGENT-STATE.md) — session, turn, history, image, and replay ownership.
 - [M-CAD.md](M-CAD.md) — CAD module: deterministic file input/output contract,
   verification capabilities, fixture progression, and implementation outcomes.
 - [CAD-IMPLEMENTATION.md](CAD-IMPLEMENTATION.md) — prepared director handoff:
@@ -15,6 +17,16 @@ reviewable design, not a claim that a service exists.
 - [IDEA.md](IDEA.md) — preserved original idea; [TODO.md](TODO.md) — working backlog.
 - [Repository guidance](../AGENTS.md) and [development workflow](../WORKFLOW.md) —
   structure, conventions, and delegated development.
+
+## Review ACP integration
+
+Start with [M-ACP.md](M-ACP.md), especially M-ACP-1–7 for module/configuration
+boundaries, M-ACP-10–16 for images and MCP components, and M-ACP-19–20 for proof.
+Then read [ACP-AGENT-STATE.md](ACP-AGENT-STATE.md) for identities, history,
+permissions, and restart/reconnect semantics. The
+[interaction schematic](architecture/rendered/acp-integration.svg) shows the
+complete local chain. [Existing protocol notes](architecture/ACP.md) and the
+[container lifecycle](architecture/rendered/sessions.svg) describe the wider target.
 
 ## Review CAD only
 

@@ -4,7 +4,7 @@ export interface MessageRecord extends ChatInput {
   readonly type: "message";
   readonly id: string;
   readonly author: "you" | "crafty";
-  readonly origin: "fixture" | "local";
+  readonly origin: "fixture" | "local" | "agent";
 }
 
 /** Small presentation input for a future adapter, not an ACP/session implementation. */

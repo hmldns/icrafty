@@ -1,0 +1,60 @@
+"""Operator configuration, never model/browser-supplied launch parameters."""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+import json
+import os
+import shutil
+import tomllib
+
+
+@dataclass(frozen=True)
+class Settings:
+    data: Path
+    adapter: tuple[str, ...]
+    auth_source: Path | None
+    codex_path: str | None = None
+    model: str | None = None
+    reasoning: str | None = None
+    startup_timeout: float = 90
+    turn_timeout: float = 600
+    cancel_timeout: float = 8
+    max_image_bytes: int = 20 * 1024 * 1024
+    max_pixels: int = 25_000_000
+    max_frame_bytes: int = 48 * 1024 * 1024
+    origins: tuple[str, ...] = tuple(f"http://{host}:{port}" for host in ("localhost", "127.0.0.1") for port in (5187, 5217, 5287, 5317, 4187, 4217))
+
+    def __post_init__(self):
+        if min(self.startup_timeout, self.turn_timeout, self.cancel_timeout, self.max_image_bytes, self.max_pixels, self.max_frame_bytes) <= 0:
+            raise ValueError("Agent time and size limits must be positive")
+
+    @classmethod
+    def from_env(cls) -> Settings:
+        root = Path(__file__).resolve().parents[2]
+        operator_home = Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex")))
+        preferences = {}
+        try:
+            preferences = tomllib.loads((operator_home / "config.toml").read_text())
+        except (OSError, tomllib.TOMLDecodeError):
+            pass
+        local = root / "node_modules/.bin/codex-acp"
+        command = os.environ.get("CRAFTY_ACP_COMMAND")
+        configured = json.loads(command) if command else [str(local) if local.exists() else shutil.which("codex-acp") or "codex-acp"]
+        if not isinstance(configured, list) or not configured or not all(isinstance(arg, str) and arg for arg in configured):
+            raise ValueError("CRAFTY_ACP_COMMAND must be a JSON array of command arguments")
+        return cls(
+            data=Path(os.environ.get("CRAFTY_AGENT_DATA", str(root / ".state"))).expanduser().resolve(),
+            adapter=tuple(configured),
+            auth_source=Path(os.environ.get("CRAFTY_CODEX_AUTH_SOURCE", str(operator_home / "auth.json"))).expanduser(),
+            codex_path=os.environ.get("CRAFTY_CODEX_PATH"),
+            model=os.environ.get("CRAFTY_AGENT_MODEL") or preferences.get("model"),
+            reasoning=os.environ.get("CRAFTY_AGENT_REASONING") or preferences.get("model_reasoning_effort"),
+            startup_timeout=float(os.environ.get("CRAFTY_AGENT_STARTUP_TIMEOUT", "90")),
+            turn_timeout=float(os.environ.get("CRAFTY_AGENT_TURN_TIMEOUT", "600")),
+            cancel_timeout=float(os.environ.get("CRAFTY_AGENT_CANCEL_TIMEOUT", "8")),
+            max_image_bytes=int(os.environ.get("CRAFTY_AGENT_IMAGE_LIMIT", str(20 * 1024 * 1024))),
+            max_pixels=int(os.environ.get("CRAFTY_AGENT_PIXEL_LIMIT", "25000000")),
+            max_frame_bytes=int(os.environ.get("CRAFTY_AGENT_FRAME_LIMIT", str(48 * 1024 * 1024))),
+            origins=tuple(value.strip() for value in os.environ["CRAFTY_AGENT_ORIGINS"].split(",")) if "CRAFTY_AGENT_ORIGINS" in os.environ else cls.origins,
+        )

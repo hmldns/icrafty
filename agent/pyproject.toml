@@ -1,0 +1,17 @@
+[project]
+name = "crafty-agent"
+version = "0.1.0"
+description = "Composable local Codex ACP sessions, image assets, and MCP interactions."
+requires-python = ">=3.11"
+dependencies = ["fastapi>=0.115,<1", "uvicorn>=0.34,<1", "websockets>=15,<17", "mcp>=1.12,<2", "pillow>=11,<13"]
+
+[dependency-groups]
+dev = ["pytest>=8,<10", "pytest-asyncio>=1,<2", "httpx>=0.28,<1", "rich>=14,<16"]
+
+[build-system]
+requires = ["uv_build>=0.11.16,<0.12"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

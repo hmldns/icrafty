@@ -20,12 +20,18 @@ throughout design. The first possible example is a replacement mug cap.
 - [src/frontend/](src/frontend/README.md) contains the React/TypeScript app and
   the implemented browser-local capture, annotation, and download flow. Read its
   [local guidance](src/frontend/AGENTS.md) before editing it.
+- [agent/](agent/README.md) is the Python/uv local Codex ACP integration, with
+  private session workspaces, durable state, image ingestion, and sample MCP tools.
+  Read its [guidance](agent/AGENTS.md), [module spec](docs/M-ACP.md), and
+  [state contract](docs/ACP-AGENT-STATE.md). `/debug/agent` mounts its real React
+  consumer; `/debug/chat` remains the independent interaction rehearsal.
 - [workflow/](workflow/README.md) contains development-worker coordination,
   launchers, role instructions, and tests. `./builders` forwards to
   `./workflow/builders`. `.builders/` and `.worktrees/` are ignored runtime state.
-- The root [Makefile](Makefile) provides frontend and diagram shortcuts. Backend,
-  product-session orchestration, and MCP integration are design work; do not
-  describe them as implemented services.
+- The root [Makefile](Makefile) provides frontend, agent, and diagram shortcuts.
+  The agent backend runs locally; per-session Docker orchestration and CAD-agent
+  handoff remain subsequent work. Do not describe local process separation as
+  container isolation.
 
 ## Architecture boundaries
 

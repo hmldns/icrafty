@@ -16,6 +16,7 @@ they do not represent running application services. The
 - [Per-session containers and recovery](rendered/sessions.svg) · [PlantUML](sessions.puml) · [PNG](rendered/sessions.png)
 - [Turn cancellation and recovery](rendered/turns.svg) · [PlantUML](turns.puml) · [PNG](rendered/turns.png)
 - [ACP implementation notes and first integration checks](ACP.md)
+- [Live ACP module and debug consumer](rendered/acp-integration.svg) · [PlantUML](acp-integration.puml) · [Module contract](../M-ACP.md) · [State contract](../ACP-AGENT-STATE.md)
 
 ## CAD review
 

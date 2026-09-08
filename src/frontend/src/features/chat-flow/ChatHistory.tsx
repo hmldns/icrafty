@@ -19,9 +19,9 @@ export function ChatHistory({ items, itemRenderer, actions }: {
   };
   useEffect(() => {
     const latest = items.at(-1);
-    if (latest?.id !== lastId.current && latest?.type === "message" && latest.origin === "local") jumpToEnd();
+    if (!awayFromEnd || (latest?.id !== lastId.current && latest?.type === "message" && latest.author === "you")) jumpToEnd();
     lastId.current = latest?.id;
-  }, [items]);
+  }, [items, awayFromEnd]);
 
   function expandAll(value: boolean) {
     setExpanded(Object.fromEntries(items.map((item) => [item.id, value])));
