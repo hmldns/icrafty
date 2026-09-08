@@ -13,8 +13,9 @@ import {
   LIMITS,
   type CollectionImage,
   type EditHistory,
+  type ImageSave,
+  type ImageSaveMode,
   type Mark,
-  type Revision,
 } from "../images/types";
 import { AnnotationCanvas, type Tool } from "./AnnotationCanvas";
 import { AnnotationToolbar } from "./AnnotationToolbar";
@@ -26,6 +27,7 @@ import {
   undoHistory,
   withModelOutline,
 } from "./geometry";
+import "./AnnotationEditor.css";
 
 export function AnnotationEditor({
   image,
@@ -35,15 +37,21 @@ export function AnnotationEditor({
   pending,
   storageError,
   mode = "collection",
+  initialMessage = "",
 }: {
   image: CollectionImage;
   onClose: () => void;
   onChange: (sourceId: string, history: EditHistory) => void;
-  onSave: (revision: Revision) => Promise<void>;
+  onSave: (
+    input: ImageSave,
+    mode: ImageSaveMode,
+    signal: AbortSignal,
+  ) => Promise<CollectionImage>;
   pending: boolean;
   storageError: string;
   /** Composer attachments are edited in place, without the collection inventory. */
   mode?: "collection" | "attachment";
+  initialMessage?: string;
 }) {
   const [history, setHistory] = useState(image.draft.history);
   const historyRef = useRef(history);
@@ -54,11 +62,11 @@ export function AnnotationEditor({
   const [fontSize, setFontSize] = useState(40);
   const [zoom, setZoom] = useState<"fit" | number>("fit");
   const [ready, setReady] = useState(false);
-  const [busy, setBusy] = useState<"download" | "save" | "restore" | null>(
-    null,
-  );
+  const [busy, setBusy] = useState<
+    "download" | ImageSaveMode | "restore" | null
+  >(null);
   const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(initialMessage);
   const [revisionId, setRevisionId] = useState("");
   const operation = useRef<AbortController | null>(null);
   useEffect(() => () => operation.current?.abort(), []);
@@ -117,7 +125,7 @@ export function AnnotationEditor({
     return () => window.removeEventListener("keydown", keydown);
   }, [busy, redo, undo]);
 
-  const perform = async (kind: "save" | "download" | "restore") => {
+  const perform = async (kind: ImageSaveMode | "download" | "restore") => {
     if (operation.current) return;
     const controller = new AbortController();
     operation.current = controller;
@@ -129,15 +137,19 @@ export function AnnotationEditor({
         const revision = await getRevision(revisionId);
         if (controller.signal.aborted) return;
         if (!revision)
-          throw new Error("That revision is no longer in this browser.");
+          throw new Error("That saved image is no longer in this browser.");
         update(commitMarks(historyRef.current, revision.marks));
         setMessage(
           "Saved marks restored. Undo returns to your previous draft.",
         );
       } else {
-        // Snapshot the current editable marks; saved revisions never gate downloads.
-        const marks = historyRef.current.present;
-        const png = await flattenImage(image.source, marks, controller.signal);
+        // Both save choices and downloads use the same original plus editable marks.
+        const snapshot = historyRef.current;
+        const png = await flattenImage(
+          image.source,
+          snapshot.present,
+          controller.signal,
+        );
         if (controller.signal.aborted) return;
         if (kind === "download") {
           downloadPng(png, image.source.name);
@@ -145,19 +157,21 @@ export function AnnotationEditor({
             "PNG downloaded. Keep marking up this image for your next version.",
           );
         } else {
-          const revision: Revision = {
-            id: crypto.randomUUID(),
-            sourceId: image.source.id,
-            createdAt: new Date().toISOString(),
-            marks,
-            png,
-          };
-          await onSave(revision);
+          const saved = await onSave(
+            {
+              sourceId: image.source.id,
+              history: snapshot,
+              png,
+            },
+            kind,
+            controller.signal,
+          );
           if (!controller.signal.aborted) {
-            setRevisionId(revision.id);
-            setMessage(
-              `Revision ${image.revisions.length + 1} saved in this browser.`,
-            );
+            setRevisionId(saved.saved?.id ?? "");
+            if (kind === "update")
+              setMessage(
+                "Image updated in this browser. Previous saves are kept in history.",
+              );
           }
         }
       }
@@ -272,18 +286,24 @@ export function AnnotationEditor({
         )}
         {mode === "collection" && <details className="revision-details">
           <summary>
-            Source & saved revisions <span>{image.revisions.length}</span>
+            Source & saved history <span>{image.revisions.length}</span>
           </summary>
           <div className="revision-content">
             <dl>
               <div>
-                <dt>Original source ID</dt>
+                <dt>Image ID</dt>
                 <dd data-testid="source-id">{image.source.id}</dd>
               </div>
               <div>
                 <dt>Saved in this browser</dt>
                 <dd>{new Date(image.source.createdAt).toLocaleString()}</dd>
               </div>
+              {image.source.lineage && (
+                <div>
+                  <dt>Copied from image</dt>
+                  <dd>{image.source.lineage.parentSourceId}</dd>
+                </div>
+              )}
             </dl>
             {image.source.model && (
               <ModelSourceContext model={image.source.model} />
@@ -291,14 +311,14 @@ export function AnnotationEditor({
             {image.revisions.length ? (
               <div className="revision-picker">
                 <SelectField
-                  label="Saved revision"
+                  label="Saved image history"
                   value={revisionId}
                   onChange={(event) => setRevisionId(event.target.value)}
                 >
-                  <option value="">Choose a revision</option>
+                  <option value="">Choose a saved image</option>
                   {image.revisions.map((revision, index) => (
                     <option key={revision.id} value={revision.id}>
-                      Revision {index + 1} ·{" "}
+                      Save {index + 1} ·{" "}
                       {new Date(revision.createdAt).toLocaleTimeString()}
                     </option>
                   ))}
@@ -315,10 +335,21 @@ export function AnnotationEditor({
               </div>
             ) : (
               <p>
-                No saved revisions yet. Your editable draft is saved
-                automatically. Download at any time.
+                No saved changes yet. Your draft is kept automatically. Save a
+                new image, update this image, or download at any time.
               </p>
             )}
+            <Button
+              disabled={disabled || history.present.length === 0}
+              onClick={() => {
+                update(commitMarks(historyRef.current, []));
+                setMessage(
+                  "Original pixels restored to your draft. Undo brings back the marks.",
+                );
+              }}
+            >
+              Restore original
+            </Button>
           </div>
         </details>}
       </div>
@@ -331,20 +362,30 @@ export function AnnotationEditor({
                 ? "Saving draft…"
                 : "Draft saved locally"}
           </Badge>
-          <p>{mode === "attachment" ? "Save replaces this attachment in your message" : "Original preserved · PNG includes your current marks"}</p>
+          <p>{mode === "attachment" ? "Save replaces this attachment in your message" : "Drafts stay local. Save to change the gallery image."}</p>
         </div>
-        <div className="editor-actions">
-          <Button variant={mode === "attachment" ? "primary" : "secondary"} onClick={() => void perform("save")} disabled={disabled}>
-            {busy === "save" ? "Saving…" : mode === "attachment" ? "Save image" : "Save revision"}
-          </Button>
-          {mode === "collection" && <Button
+        <div className="editor-actions image-save-actions">
+          {mode === "attachment" ? <Button variant="primary" onClick={() => void perform("update")} disabled={disabled}>
+            {busy === "update" ? "Saving…" : "Save image"}
+          </Button> : <>
+          <Button
             variant="primary"
+            onClick={() => void perform("copy")}
+            disabled={disabled}
+          >
+            {busy === "copy" ? "Saving copy…" : "Save as new image"}
+          </Button>
+          <Button onClick={() => void perform("update")} disabled={disabled}>
+            {busy === "update" ? "Updating…" : "Update this image"}
+          </Button>
+          <Button
             icon="download"
             onClick={() => void perform("download")}
             disabled={disabled}
           >
             {busy === "download" ? "Exporting…" : "Download PNG"}
-          </Button>}
+          </Button>
+          </>}
         </div>
       </footer>
     </Dialog>

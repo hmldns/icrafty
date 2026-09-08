@@ -3,9 +3,13 @@ import {
   LIMITS,
   type CollectionImage,
   type ImageDraft,
+  type ImageSave,
+  type ImageSaveMode,
   type Revision,
+  type SavedImageResult,
   type SourceImage,
 } from "./types";
+import { checkCancelled } from "./imageIO";
 
 const DB_NAME = "crafty-workspace";
 type StoreName = "sources" | "drafts" | "revisions";
@@ -67,9 +71,13 @@ async function transaction<T>(
   stores: StoreName[],
   mode: IDBTransactionMode,
   work: (tx: IDBTransaction) => Promise<T>,
+  signal?: AbortSignal,
 ): Promise<T> {
   const db = await database();
+  checkCancelled(signal);
   const tx = db.transaction(stores, mode);
+  const cancel = () => tx.abort();
+  signal?.addEventListener("abort", cancel, { once: true });
   const completed = new Promise<void>((resolve, reject) => {
     tx.oncomplete = () => resolve();
     tx.onabort = () =>
@@ -93,7 +101,34 @@ async function transaction<T>(
     }
     await completed.catch(() => undefined);
     throw error;
+  } finally {
+    signal?.removeEventListener("abort", cancel);
   }
+}
+
+function collectionImage(
+  source: SourceImage,
+  draft: ImageDraft | undefined,
+  revisions: Revision[],
+): CollectionImage {
+  const history = revisions
+    .filter((revision) => revision.sourceId === source.id)
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  const saved = history.at(-1) ?? null;
+  return {
+    source,
+    draft: draft ?? {
+      sourceId: source.id,
+      history: { ...emptyHistory(), present: saved?.marks ?? [] },
+      updatedAt: saved?.createdAt ?? source.createdAt,
+    },
+    saved,
+    revisions: history.map(({ id, sourceId, createdAt }) => ({
+      id,
+      sourceId,
+      createdAt,
+    })),
+  };
 }
 
 export function loadCollection(): Promise<CollectionImage[]> {
@@ -108,18 +143,13 @@ export function loadCollection(): Promise<CollectionImage[]> {
       ]);
       return sources
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-        .map((source) => ({
-          source,
-          draft: drafts.find((draft) => draft.sourceId === source.id) ?? {
-            sourceId: source.id,
-            history: emptyHistory(),
-            updatedAt: source.createdAt,
-          },
-          revisions: revisions
-            .filter((revision) => revision.sourceId === source.id)
-            .map(({ id, sourceId, createdAt }) => ({ id, sourceId, createdAt }))
-            .sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
-        }));
+        .map((source) =>
+          collectionImage(
+            source,
+            drafts.find((draft) => draft.sourceId === source.id),
+            revisions,
+          ),
+        );
     },
   );
 }
@@ -161,7 +191,7 @@ export function addSource(source: SourceImage): Promise<CollectionImage> {
         result(tx.objectStore("sources").add(source)),
         result(tx.objectStore("drafts").add(draft)),
       ]);
-      return { source, draft, revisions: [] };
+      return { source, draft, revisions: [], saved: null };
     },
   );
 }
@@ -176,20 +206,99 @@ export function putDraft(draft: ImageDraft): Promise<void> {
   });
 }
 
-export function addRevision(revision: Revision): Promise<void> {
-  return transaction(["sources", "revisions"], "readwrite", async (tx) => {
-    const { sources, revisions } = await checkBudget(tx, revision.png.size);
-    if (!sources.some((source) => source.id === revision.sourceId))
-      throw new Error("The original image was removed. Reload the workspace.");
-    if (
-      revisions.filter((item) => item.sourceId === revision.sourceId).length >=
-      LIMITS.revisions
-    )
-      throw new Error(
-        "This image has 20 saved revisions. You can still edit and download its current PNG.",
+function copyName(name: string, sources: SourceImage[]): string {
+  const base = name.replace(/\.[^.]+$/, "").slice(0, 120);
+  let candidate = `${base} annotated.png`;
+  let number = 2;
+  while (sources.some((source) => source.name === candidate))
+    candidate = `${base} annotated (${number++}).png`;
+  return candidate;
+}
+
+/** Every explicit save is atomic; previously saved PNGs and marks stay immutable. */
+export function saveImage(
+  input: ImageSave,
+  mode: ImageSaveMode,
+  signal?: AbortSignal,
+): Promise<SavedImageResult> {
+  return transaction(
+    ["sources", "drafts", "revisions"],
+    "readwrite",
+    async (tx) => {
+      const parent = await result<SourceImage | undefined>(
+        tx.objectStore("sources").get(input.sourceId),
       );
-    await result(tx.objectStore("revisions").add(revision));
-  });
+      if (!parent)
+        throw new Error(
+          "The original image was removed. Reload the workspace.",
+        );
+      const { sources, revisions } = await checkBudget(
+        tx,
+        input.png.size + (mode === "copy" ? parent.blob.size : 0),
+      );
+      const current = collectionImage(parent, undefined, revisions);
+      if (mode === "copy" && sources.length >= LIMITS.images)
+        throw new Error(
+          "This workspace holds up to 40 images. Update this image or delete an image before saving a copy.",
+        );
+      if (mode === "update" && current.revisions.length >= LIMITS.revisions)
+        throw new Error(
+          "This image has 20 saved versions. Save as a new image or download its current PNG.",
+        );
+      // Keep ordering deterministic even if two explicit saves occur in one millisecond.
+      const previousTime = current.saved
+        ? Date.parse(current.saved.createdAt)
+        : 0;
+      const createdAt = new Date(
+        Math.max(Date.now(), previousTime + 1),
+      ).toISOString();
+      const source: SourceImage =
+        mode === "copy"
+          ? {
+              ...parent,
+              id: crypto.randomUUID(),
+              name: copyName(parent.name, sources),
+              createdAt,
+              lineage: {
+                rootSourceId: parent.lineage?.rootSourceId ?? parent.id,
+                parentSourceId: parent.id,
+                parentRevisionId: current.saved?.id,
+              },
+            }
+          : parent;
+      const draft: ImageDraft = {
+        sourceId: source.id,
+        history: input.history,
+        updatedAt: createdAt,
+      };
+      const revision: Revision = {
+        id: crypto.randomUUID(),
+        sourceId: source.id,
+        createdAt,
+        marks: input.history.present,
+        png: input.png,
+      };
+      let parentDraft: ImageDraft | undefined;
+      if (mode === "copy") {
+        parentDraft = {
+          sourceId: parent.id,
+          history: { ...emptyHistory(), present: current.saved?.marks ?? [] },
+          updatedAt: createdAt,
+        };
+        await result(tx.objectStore("sources").add(source));
+        await result(tx.objectStore("drafts").put(parentDraft));
+      }
+      // Await each request before issuing the next: a synchronous storage failure
+      // must not leave another request promise unobserved when the transaction aborts.
+      await result(tx.objectStore("drafts").put(draft));
+      await result(tx.objectStore("revisions").add(revision));
+      return {
+        image: collectionImage(source, draft, [...revisions, revision]),
+        parentDraft,
+      };
+    },
+    signal,
+  );
 }
 
 export function getRevision(id: string): Promise<Revision | undefined> {

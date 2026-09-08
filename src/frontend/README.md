@@ -66,6 +66,8 @@ storage failures, object URL cleanup, and downloads. Download tests decode PNG
 bytes and assert original dimensions, marked pixels, unchanged source bytes,
 distinct filenames, and an editor that stays open. The compact-viewport check
 asserts that Download PNG is visible before scrolling to it.
+The [image-save acceptance notes](docs/image-save-validation.md) record the
+new-copy/update checks, decoded pixels, and retained screenshot evidence.
 
 The viewer tests import real STEP and binary STL, inspect rendered pixels, exercise
 views/sections, independent instances, source replacement, context-loss recovery,
@@ -96,24 +98,43 @@ Ctrl/Command+Z and Ctrl/Command+Shift+Z. Shortcuts do not intercept text editing
 Clear marks is undoable.
 
 Download PNG exports the current marks immediately, including marks that have
-not been saved as a revision. Each download gets a distinct descriptive filename
-and keeps the editor open. Save revision creates a separate snapshot containing
-editable marks and flattened PNG bytes. Saved marks can be restored without
-changing the original; restoration is also undoable.
+not been explicitly saved. Each download gets a distinct descriptive filename
+and keeps the editor open without creating another gallery item.
+
+**Save as new image** is the primary save action. It creates a separate image with
+a distinct name and ID, then keeps the editor open on that copy. The working draft
+moves to the copy; the source returns to its last saved marks. The copy retains
+the original pixels, editable history, parent lineage, and any model/view metadata.
+**Update this image** keeps the selected image identity and saves its current
+appearance, retaining earlier saves for recovery. Neither action overwrites an
+earlier saved PNG. Source & saved history lets you restore earlier marks or the
+original pixels into an undoable draft.
+
+Collection thumbnails show the last explicitly saved image, including its marks.
+A **Draft changes** badge identifies further edits; drafts do not create extra
+assets or alter saved thumbnails. Thumbnail decoding is limited to two concurrent
+operations and 384 pixels on the longest side. Failed previews show an error
+instead of silently displaying an unmarked original.
 
 Each collection card also has a Download PNG button. It downloads the image with
 its current draft marks, or the untouched image if there are no marks, without
-opening the editor or saving a new revision. Downloads keep the source resolution
+opening the editor or saving another image. Downloads keep the source resolution
 and get distinct filenames. Failed exports can be retried from the same card.
 
 ## Storage and limits
 
 IndexedDB stores original blobs in `sources`, editable history in `drafts`, and
 saved snapshots in `revisions`. Sources and revisions have stable UUIDs; every
-draft and revision points to its source ID. Original bytes are never replaced.
+draft and revision points to its source ID. The latest explicit save supplies the
+current thumbnail. Existing v1 records remain readable without migration; old
+revisions appear in saved history and the newest supplies the thumbnail. Original
+bytes are never replaced or flattened into the editable source, so reopening a
+copy does not draw its marks twice.
 Draft edits persist automatically. The UI reports storage failures and still
 allows downloading in-memory edits. Deleting an image deletes its draft and
-all revisions.
+all its saved history. Separately saved copies retain their own original pixels
+and remain usable even after the parent is deleted. Each copy records parent and
+root image IDs, plus its parent's saved version when available.
 
 The camera/annotation workspace is independent of the live chat backend.
 Its images are local to the browser profile **and origin**, including the port.
@@ -121,9 +142,12 @@ Browser data clearing, private-session closure, or storage eviction can remove
 them; download important work. Live synchronization between tabs is not provided.
 Keep one editing tab open for a given collection.
 
-Limits are 12 MB per input, 16 megapixels, 8,192 pixels per side, 40 source images,
-20 saved revisions per source, and 250 MB of original/revision blobs. Each image
-supports 300 marks, up to 2,048 points per pen stroke, and 30 undo steps. Editing
+Limits are 12 MB per input, 16 megapixels, 8,192 pixels per side, 40 images including
+copies, 20 saved versions per image, and 250 MB of original/saved PNG blobs. Copies
+count their own original and saved PNG toward that budget. At the image limit,
+Update this image remains available; at the saved-version limit, save a new copy
+or download. A failed save leaves both the collection and previous saves intact.
+Each image supports 300 marks, up to 2,048 points per pen stroke, and 30 undo steps. Editing
 and export use a decoded still frame, including for animated PNG/WebP inputs.
 The browser must be able to decode the image. URL imports require host CORS
 permission, omit credentials, have a 20-second timeout, and enforce the byte

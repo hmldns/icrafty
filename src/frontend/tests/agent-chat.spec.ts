@@ -150,7 +150,7 @@ test("pasted attachments edit in place, retain Undo across chats, and send the s
   const editor = page.getByRole("dialog", { name: "Annotate image" });
   await expect(editor.getByRole("button", { name: "Save image", exact: true })).toBeEnabled();
   await expect(page.getByRole("list", { name: "Saved chat images" })).toHaveCount(0);
-  await expect(editor.getByText("Source & saved revisions")).toHaveCount(0);
+  await expect(editor.locator(".revision-details")).toHaveCount(0);
   await drawLine(page);
   await editor.getByRole("button", { name: "Save image", exact: true }).click();
   await expect(editor).toHaveCount(0);

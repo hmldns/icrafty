@@ -68,10 +68,12 @@ test("collection downloads current draft marks after reload, including changes n
   const original = await uploadImage(page);
   await drawLine(page);
   await page
-    .getByRole("button", { name: "Save revision", exact: true })
+    .getByRole("button", { name: "Update this image", exact: true })
     .click();
   await expect(
-    page.getByText("Revision 1 saved in this browser."),
+    page.getByText(
+      "Image updated in this browser. Previous saves are kept in history.",
+    ),
   ).toBeVisible();
   await page.getByRole("button", { name: "Text", exact: true }).click();
   await page.getByRole("radio", { name: "Blue", exact: true }).check();

@@ -3,7 +3,7 @@ import { Dialog } from "../../components/ui/Dialog";
 import { LoadingState, Notice } from "../../components/ui/primitives";
 import { AnnotationEditor } from "../annotation/AnnotationEditor";
 import { prepareImage } from "../images/imageIO";
-import { emptyHistory, type SourceImage } from "../images/types";
+import { emptyHistory, type CollectionImage, type SourceImage } from "../images/types";
 import type { AgentImage, DraftImageEdit } from "./types";
 
 /** Owns just the clicked attachment; unsaved changes never alter chat history. */
@@ -35,11 +35,15 @@ export function DraftImageEditor({ image, edit, onSave, onClose }: {
   if (!source) return <Dialog title="Annotate image" description={image.title} onClose={onClose} wide>
     {error ? <Notice tone="error">{error}</Notice> : <LoadingState>Opening image…</LoadingState>}
   </Dialog>;
+  const collectionImage: CollectionImage = {
+    source, draft: { sourceId: source.id, history: history.current, updatedAt: source.createdAt }, revisions: [], saved: null,
+  };
   return <AnnotationEditor mode="attachment" pending={false} storageError="" onClose={onClose}
-    image={{ source, draft: { sourceId: source.id, history: history.current, updatedAt: source.createdAt }, revisions: [] }}
+    image={collectionImage}
     onChange={(_, next) => { history.current = next; }}
-    onSave={async revision => {
-      onSave({ id: revision.id, source, history: history.current, png: revision.png });
+    onSave={async input => {
+      onSave({ id: crypto.randomUUID(), source, history: input.history, png: input.png });
       onClose();
+      return collectionImage;
     }} />;
 }
