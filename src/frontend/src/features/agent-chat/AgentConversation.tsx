@@ -84,6 +84,7 @@ export function AgentConversation({ client, id, draft, onDraftChange, onSessionC
     attachments: photos,
     measurementsBusy: busy || sending || controlling,
     answerMeasurements: async (requestId, commandId, answers) => { await client.answerMeasurements(id, requestId, commandId, answers); },
+    cancelCad: async operationId => { await client.cancelCad(id, operationId); },
     inspect: ref => { setSelectedImage(ref.assetId); setLibrary(true); },
     attach: photo => { const image = images.find(item => item.id === photo.assetId); if (image) attach(image); },
     capture: async (item, image) => {
@@ -93,7 +94,15 @@ export function AgentConversation({ client, id, draft, onDraftChange, onSessionC
         attach(asset);
       } catch (error) { flow.setError(error instanceof Error ? error.message : String(error)); throw error; }
     },
-    snapshot: async () => { flow.setError("CAD model publication is a later integration."); },
+    snapshot: async (item, snapshot) => {
+      setUploading(true); flow.setError(null);
+      try {
+        const title = `${item.model.name} · ${item.caption} · view`;
+        const asset = await client.upload(id, snapshot.png, title);
+        attach(asset);
+      } catch (error) { flow.setError(error instanceof Error ? error.message : "Could not attach the model view."); }
+      finally { setUploading(false); }
+    },
   };
   if (!flow.snapshot) return <Card className="agent-conversation">{flow.error
     ? <Notice tone="error" title="Could not open chat" action={<Button onClick={flow.reload}>Retry</Button>}>{flow.error}</Notice>

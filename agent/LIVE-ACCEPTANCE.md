@@ -124,3 +124,13 @@ bytes remain in the isolated data root; `agent/runs/repair-main.png` records the
 real main-surface form before submission. Application checks cover same-command
 retry, atomic rollback, cross-session rejection, missing/nonfinite values, actual
 sample file digests, hidden-form draft retention, mobile layout and reload.
+
+**LIVE-12 — Main review repair.** On 2026-09-08, after main deployment, the product
+sample button created fresh session `b79e3b8b6aa44c608a15cb53737fdc0a` in the existing
+main data root. Actual Codex inspected the four supplied photos and published
+“Replacement mug cap: key measurements and fit”, containing five number fields in
+mm, two fit/use questions, caliper hints and all four image references. The turn
+completed and all seven inputs were left blank. Review it through
+`/?repair=b79e3b8b6aa44c608a15cb53737fdc0a`. The full-height main layout was verified
+with the sidebar logo and composer at the viewport bottom. No test measurement
+was submitted and no existing repair was changed.

@@ -1,4 +1,5 @@
 import { snapshotVersion, type ChatAsset, type VersionRef } from "./types";
+import { projectCad } from "../cad-chat/projectCad";
 import type {
   ChatModel, DimensionField, HistoryItem, HistoryRecord, ToolCallRecord,
 } from "./historyTypes";
@@ -26,6 +27,7 @@ function imageRef(value: unknown): VersionRef | null {
 }
 
 export interface ProjectionCatalog {
+  readonly sessionId?: string;
   readonly assets: readonly ChatAsset[];
   readonly models: readonly ChatModel[];
 }
@@ -43,6 +45,7 @@ const base = (call: ToolCallRecord) => ({
 });
 
 const toolProjectors: Readonly<Record<string, ToolProjector>> = {
+  "cad.result": projectCad,
   "measurements.request": (call, result, catalog) => {
     if (result.view !== "measurements" || typeof result.requestId !== "string" || typeof result.title !== "string"
       || typeof result.caption !== "string" || !Array.isArray(result.fields) || !Array.isArray(result.photos)

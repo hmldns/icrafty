@@ -1,4 +1,7 @@
 import { expect, test, type Page, type WebSocketRoute } from "@playwright/test";
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import { cadRecord, cadResult, checkFixture } from "./cad-fixture";
 import type { AgentEvent, AgentImage, AgentRecord, AgentSnapshot } from "../src/features/agent-chat/types";
 import { drawLine, instrumentCamera, makeImage, trackStates } from "./helpers";
 
@@ -97,6 +100,111 @@ async function harness(page: Page) {
 
 const history = (page: Page) => page.getByRole("list", { name: "Chat history", exact: true });
 const choose = (page: Page, title: string) => page.getByRole("complementary", { name: "Chats" }).getByRole("list").getByRole("button", { name: new RegExp(title) }).click();
+
+test("CAD progress stays in place, preserves failed checks and resolves late image references", async ({ page }) => {
+  const app = await harness(page);
+  const image = await makeImage(page);
+  await page.goto("/");
+  const card = page.getByRole("article", { name: "Cylinder evidence", exact: true });
+  app.emit("a", "record", cadRecord(cadResult()));
+  await expect(card.getByText("Rendering view…", { exact: true })).toBeVisible();
+  const ref = { assetId: "cad-image", versionId: "1" };
+  const completed = cadResult({ operationVersion: 3, status: "completed", phase: "published", publicationId: "publication-1",
+    outputs: [{ id: "iso", kind: "png", status: "ready", image: ref }, { id: "top", kind: "png", status: "error", reason: { code: "render_failed", message: "Top view could not render" } }],
+    images: [ref], metrics: [checkFixture], interpretation: "**Adjust the width** before using this draft." });
+  app.emit("a", "record", cadRecord(completed));
+  await expect(card).toHaveCount(1);
+  await expect(card.getByText("Loading image reference…", { exact: true })).toBeVisible();
+  await expect(card.locator('[data-check-status="fail"]')).toContainText("19.7 mm");
+  await expect(card.getByText("Top view could not render", { exact: true })).toBeVisible();
+  await expect(card.getByRole("link", { name: /Download STEP/ })).toHaveCount(0);
+  app.bytes.set(ref.assetId, image.buffer);
+  app.emit("a", "asset", { id: ref.assetId, versionId: "1", title: "Cylinder iso", origin: "cad", width: 800, height: 600,
+    mimeType: "image/png", size: image.buffer.length, digest: "test-image", url: `/api/agent/sessions/a/images/${ref.assetId}` });
+  await expect(card.getByRole("img", { name: "Cylinder iso" })).toBeVisible();
+  await expect(card.locator('.cad-interpretation strong')).toHaveText("Adjust the width");
+  await card.getByRole("button", { name: "Attach view", exact: true }).click();
+  await expect(page.getByRole("list", { name: "Selected attachments", exact: true }).getByRole("img")).toHaveCount(1);
+  await page.reload();
+  await expect(card.getByRole("img", { name: "Cylinder iso" })).toBeVisible();
+  app.emit("a", "record", cadRecord(cadResult({ operationVersion: 2 })));
+  await expect(card.locator('.cad-result')).toHaveAttribute("data-operation-status", "completed");
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+});
+
+test("CAD STEP preview uses recorded bytes, survives progress, downloads and releases on collapse", async ({ page }) => {
+  const app = await harness(page);
+  const bytes = await readFile("tooling/models/rounded-cube.step");
+  const file = { id: "step-1", url: "/api/agent/sessions/a/cad/artifacts/step-1", downloadUrl: "/api/agent/sessions/a/cad/artifacts/step-1?download=true",
+    filename: "part.step", format: "step", mediaType: "model/step", sizeBytes: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex") };
+  let loads = 0;
+  await page.route("**/cad/artifacts/step-1*", route => {
+    loads++;
+    return route.fulfill({ body: bytes, contentType: "model/step", headers: route.request().url().includes("download=true") ? { "Content-Disposition": 'attachment; filename="part.step"' } : {} });
+  });
+  const result = cadResult({ status: "completed", phase: "published", outputs: [{ id: "solid", kind: "step", status: "ready", file }],
+    requestedOutputs: [{ id: "solid", kind: "step", parts: ["body"] }], downloads: [file],
+    model: { ...file, revisionId: "revision-1", geometryDigest: "c".repeat(64), units: "mm", frame: "right-handed-z-up" } });
+  app.emit("a", "record", cadRecord(result));
+  await page.goto("/");
+  const card = page.getByRole("article", { name: "Cylinder evidence", exact: true });
+  expect(loads).toBe(0);
+  await card.getByRole("button", { name: "Open 3D preview", exact: true }).click();
+  await expect(card.locator('.chat-inline-model')).toHaveAttribute("data-state", "ready", { timeout: 30_000 });
+  const initialLoads = loads; // React StrictMode may abort and remount the initial effect.
+  await card.locator('canvas').evaluate(canvas => canvas.setAttribute('data-retained', 'yes'));
+  app.emit("a", "record", cadRecord({ ...result, operationVersion: 2, interpretation: "Added a note." }));
+  await expect(card.getByText("Added a note.", { exact: true })).toBeVisible();
+  await expect(card.locator('canvas')).toHaveAttribute("data-retained", "yes");
+  expect(loads).toBe(initialLoads);
+  await card.getByRole("button", { name: "Attach this view", exact: true }).click();
+  await expect(page.getByRole("list", { name: "Selected attachments", exact: true }).getByRole("img")).toHaveCount(1);
+  // Download navigations bypass page routing in Chromium. Native byte delivery is
+  // covered by backend/live checks; verify this link and its identical bytes here.
+  await expect(card.getByRole("link", { name: /Download STEP/ })).toHaveAttribute("href", file.downloadUrl);
+  await expect(card.getByRole("link", { name: /Download STEP/ })).toHaveAttribute("download", "part.step");
+  const downloadHash = await page.evaluate(async url => {
+    const data = await (await fetch(url)).arrayBuffer();
+    return Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", data)), value => value.toString(16).padStart(2, "0")).join("");
+  }, file.downloadUrl);
+  expect(downloadHash).toBe(file.sha256);
+  await card.locator('.chat-interaction-toggle').click();
+  await expect(card.locator('canvas')).toHaveCount(0);
+});
+
+test("per-image CAD publication keeps distinct cards and cancellation uses its operation", async ({ page }) => {
+  const app = await harness(page);
+  const image = await makeImage(page);
+  for (const aid of ["iso", "top"]) {
+    app.bytes.set(aid, image.buffer);
+    app.emit("a", "asset", { id: aid, versionId: "1", title: aid, origin: "cad", width: 800, height: 600,
+      mimeType: "image/png", size: image.buffer.length, digest: "test-image", url: `/api/agent/sessions/a/images/${aid}` });
+  }
+  const outputs = ["iso", "top"].map(id => ({ id, kind: "png", status: "ready", image: { assetId: id, versionId: "1" } }));
+  const result = cadResult({ status: "completed", phase: "published", outputs, images: [outputs[0]!.image],
+    presentation: { messageMode: "per_image", index: 0, count: 2 } });
+  app.emit("a", "record", cadRecord(result));
+  app.emit("a", "record", cadRecord({ ...result, images: [outputs[1]!.image], presentation: { messageMode: "per_image", index: 1, count: 2 } }, ":1"));
+  let cancelled = false;
+  await page.route("**/cad/operations/cancellable/cancel", async route => {
+    cancelled = true;
+    app.emit("a", "record", cadRecord(cadResult({ operationId: "cancellable", status: "cancelled", phase: "cancelled", title: "Another part" })));
+    await route.fulfill({ json: {} });
+  });
+  await page.goto("/");
+  const cards = page.getByRole("article", { name: "Cylinder evidence", exact: true });
+  await expect(cards).toHaveCount(2);
+  await expect(cards.nth(0).getByRole("img")).toHaveCount(1);
+  await expect(cards.nth(1).getByRole("img")).toHaveCount(1);
+  await expect(cards.nth(0).getByRole("img")).toHaveAttribute("alt", "iso");
+  await expect(cards.nth(1).getByRole("img")).toHaveAttribute("alt", "top");
+  app.emit("a", "record", cadRecord(cadResult({ operationId: "cancellable", title: "Another part" })));
+  const active = page.getByRole("article", { name: "Another part", exact: true });
+  await active.getByRole("button", { name: "Stop CAD", exact: true }).click();
+  await expect(active.locator('.cad-result')).toHaveAttribute("data-operation-status", "cancelled");
+  expect(cancelled).toBe(true);
+});
 
 test("main repair surface sends sample photos and measurement answers in the real components", async ({ page }) => {
   const app = await harness(page);

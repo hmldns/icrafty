@@ -19,7 +19,7 @@ export interface ImageVersion {
 }
 
 export type AssetSource =
-  | { readonly kind: "upload" | "generated" }
+  | { readonly kind: "upload" | "generated" | "cad" }
   | { readonly kind: "camera"; readonly runId: string; readonly capture: number }
   | { readonly kind: "saved-copy"; readonly from: VersionRef }
   | {

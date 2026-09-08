@@ -13,6 +13,7 @@ export interface ItemActions {
   snapshot: (item: ModelItem, snapshot: ModelSnapshot) => void;
   answerMeasurements?: (requestId: string, clientMessageId: string, answers: Record<string, string>) => Promise<void>;
   measurementsBusy?: boolean;
+  cancelCad?: (operationId: string) => Promise<void>;
 }
 
 export interface ItemRendererEntry {

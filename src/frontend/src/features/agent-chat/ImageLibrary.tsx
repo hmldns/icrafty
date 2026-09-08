@@ -26,7 +26,7 @@ export function ImageLibrary({ images, selected, attached, uploading, onSelect, 
         </ul>
         <section className="agent-image-detail" aria-label="Selected image">
           <h3>{image.title}</h3><img src={image.url} alt={image.title} />
-          <p>{image.width} × {image.height} · {image.origin === "generated" ? "Published by Codex" : "Uploaded image"} · v{image.versionId}</p>
+          <p>{image.width} × {image.height} · {image.origin === "cad" ? "CAD render" : image.origin === "generated" ? "Published by Codex" : "Uploaded image"} · v{image.versionId}</p>
           <div className="row">
             <Button variant="primary" disabled={attached.includes(image.id)} onClick={() => { onAttach(image); onClose(); }}>{attached.includes(image.id) ? "Attached" : "Attach image"}</Button>
             <a className="button button--secondary" href={`${image.url}?download=true`} download>Download image</a>

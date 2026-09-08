@@ -18,6 +18,7 @@ export class AgentClient {
   open = (id: string) => this.request<AgentSnapshot>(`/sessions/${id}/open`, { method: "POST" });
   stop = (id: string) => this.request<AgentSnapshot>(`/sessions/${id}/stop`, { method: "POST" });
   cancel = (id: string) => this.request<AgentSnapshot>(`/sessions/${id}/cancel`, { method: "POST" });
+  cancelCad = (id: string, operationId: string) => this.request(`/sessions/${id}/cad/operations/${encodeURIComponent(operationId)}/cancel`, { method: "POST" });
 
   send(id: string, clientMessageId: string, text: string, imageIds: string[]) {
     return this.request(`/sessions/${id}/messages`, { method: "POST", headers: { "Content-Type": "application/json" },

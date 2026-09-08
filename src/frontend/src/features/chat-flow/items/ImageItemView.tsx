@@ -4,7 +4,7 @@ import { defineItemRenderer, type ItemActions } from "../ItemRendererRegistry";
 import type { ImageItem } from "../historyTypes";
 import { sameVersion } from "../types";
 
-function ImagePreview({ src, alt }: { src: string; alt: string }) {
+export function ImagePreview({ src, alt }: { src: string; alt: string }) {
   const [status, setStatus] = useState<"loading" | "ready" | "failed">("loading");
   return <span className="chat-image-preview" data-state={status} aria-busy={status === "loading"}>
     <img src={src} alt={alt} width="640" height="480"

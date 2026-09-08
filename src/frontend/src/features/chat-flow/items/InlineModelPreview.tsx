@@ -19,14 +19,15 @@ export function InlineModelPreview({ model, onSnapshot }: {
   const [capturing, setCapturing] = useState(false);
   const source = useMemo<ModelSource>(() => ({
     data: model.url, format: model.format,
-    identity: { id: model.id, name: model.name }, upAxis: "z", stlUnits: "mm",
-  }), [model]);
+    identity: { id: model.id, name: model.name, uri: model.url, artifactId: model.id,
+      revisionId: model.revisionId, evaluationId: model.evaluationId }, upAxis: "z", stlUnits: "mm",
+  }), [model.url, model.format, model.id, model.name, model.revisionId, model.evaluationId]);
 
   useEffect(() => {
     const controller = new AbortController();
     const canvas = document.createElement("canvas");
     canvas.tabIndex = 0;
-    canvas.setAttribute("aria-label", "Cap preview 3D canvas");
+    canvas.setAttribute("aria-label", "Model preview 3D canvas");
     canvas.setAttribute("aria-describedby", helpId);
     host.current!.replaceChildren(canvas);
     setState("loading");
@@ -47,6 +48,9 @@ export function InlineModelPreview({ model, onSnapshot }: {
       const runtime = current;
       void importModel(source, controller.signal).then((imported) => {
         if (controller.signal.aborted) return;
+        if ((model.sha256 && imported.sha256 !== model.sha256) || (model.sizeBytes !== undefined && imported.byteLength !== model.sizeBytes)) {
+          throw new Error("The model bytes do not match this saved CAD result. Reload the chat and retry.");
+        }
         runtime.setModel(imported, source);
         runtime.zoom(1.3);
         setState("ready");
@@ -58,7 +62,7 @@ export function InlineModelPreview({ model, onSnapshot }: {
       canvas.remove();
       scene.current = null;
     };
-  }, [source, retry, helpId]);
+  }, [source, retry, helpId, model.sha256, model.sizeBytes]);
 
   async function snapshot() {
     const current = scene.current;
@@ -82,11 +86,11 @@ export function InlineModelPreview({ model, onSnapshot }: {
     <div className="chat-inline-model" data-state={state}>
       <div className="chat-model-viewport">
         <div className="chat-model-canvas" ref={host} />
-        {state === "loading" && <p className="chat-model-overlay" role="status">Opening the cap…</p>}
+        {state === "loading" && <p className="chat-model-overlay" role="status">Opening the model…</p>}
       </div>
       {error && <Notice tone="error" action={<Button size="small" onClick={() => setRetry((value) => value + 1)}>Reopen preview</Button>}>{error}</Notice>}
       <div className="chat-model-controls">
-        <div className="row" aria-label="Cap views">
+        <div className="row" aria-label="Model views">
           {views.map((view) => <Button key={view.value} size="small" disabled={!ready} onClick={() => scene.current?.setView(view.value)}>{view.label}</Button>)}
         </div>
         <Button size="small" icon="camera" disabled={!ready || capturing} onClick={() => void snapshot()}>{capturing ? "Saving view…" : "Attach this view"}</Button>
