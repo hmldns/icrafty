@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ModelSourceContext } from "./ModelSourceContext";
 import { Dialog } from "../../components/ui/Dialog";
 import {
   Badge,
@@ -275,6 +276,9 @@ export function AnnotationEditor({
                 <dd>{new Date(image.source.createdAt).toLocaleString()}</dd>
               </div>
             </dl>
+            {image.source.model && (
+              <ModelSourceContext model={image.source.model} />
+            )}
             {image.revisions.length ? (
               <div className="revision-picker">
                 <SelectField

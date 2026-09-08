@@ -12,13 +12,17 @@
     "check": "npm run typecheck",
     "build": "npm run typecheck && vite build",
     "preview": "vite preview --host 127.0.0.1 --port 4187 --strictPort",
-    "test": "PLAYWRIGHT_BROWSERS_PATH=./playwright/.cache playwright test",
-    "test:server": "vite --host 127.0.0.1 --port 5287 --strictPort",
-    "test:install": "PLAYWRIGHT_BROWSERS_PATH=./playwright/.cache playwright install chromium --only-shell"
+    "test": "PLAYWRIGHT_BROWSERS_PATH=${PLAYWRIGHT_BROWSERS_PATH:-./playwright/.cache} playwright test",
+    "test:server": "node tooling/test-server.mjs",
+    "test:install": "PLAYWRIGHT_BROWSERS_PATH=./playwright/.cache playwright install chromium --only-shell",
+    "test:production": "PLAYWRIGHT_BROWSERS_PATH=${PLAYWRIGHT_BROWSERS_PATH:-./playwright/.cache} playwright test --config playwright.production.config.ts",
+    "sample:download": "uv run --cache-dir tooling/.uv-cache --script tooling/download-sample.py"
   },
   "dependencies": {
+    "occt-import-js": "^0.0.23",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "three": "^0.186.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
@@ -26,6 +30,7 @@
     "@types/node": "^26.5.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
+    "@types/three": "^0.185.4",
     "@vitejs/plugin-react": "^6.1.1",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",

@@ -8,6 +8,7 @@ export const ROUTES = {
   directory: "/debug",
   camera: "/debug/camera",
   gallery: "/debug/gallery",
+  models: "/debug/models",
 } as const;
 
 const redirects: Readonly<Record<string, string>> = {

@@ -1,10 +1,15 @@
-import { useEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
 import { Icon } from "./components/ui/Icon";
 import { Link, ROUTES, usePathname } from "./router";
 import { DirectoryPage } from "./pages/DirectoryPage";
 import { CameraPage } from "./pages/CameraPage";
 import { GalleryPage } from "./pages/GalleryPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
+const ModelGalleryPage = lazy(() =>
+  import("./pages/ModelGalleryPage").then((module) => ({
+    default: module.ModelGalleryPage,
+  })),
+);
 
 export function App() {
   const path = usePathname();
@@ -17,7 +22,9 @@ export function App() {
           ? "Camera & annotation"
           : path === ROUTES.gallery
             ? "Component gallery"
-            : "Page not found";
+            : path === ROUTES.models
+              ? "Model gallery"
+              : "Page not found";
     document.title = `icrafty · ${pageTitle}`;
     main.current?.focus({ preventScroll: true });
   }, [path]);
@@ -57,6 +64,12 @@ export function App() {
             >
               UI gallery
             </Link>
+            <Link
+              href={ROUTES.models}
+              aria-current={path === ROUTES.models ? "page" : undefined}
+            >
+              Models
+            </Link>
           </nav>
           <span className="header-note">
             <span />
@@ -71,6 +84,10 @@ export function App() {
           <CameraPage />
         ) : path === ROUTES.gallery ? (
           <GalleryPage />
+        ) : path === ROUTES.models ? (
+          <Suspense fallback={<p role="status">Opening the model gallery…</p>}>
+            <ModelGalleryPage />
+          </Suspense>
         ) : (
           <NotFoundPage />
         )}
