@@ -43,11 +43,11 @@ export function PhotoStrip({
               icon="close"
               aria-label={`Remove ${photo.assetTitle}, v${photo.versionNumber}`}
               onClick={(event) => {
-                // Keep keyboard focus in the strip, or on its heading when it becomes empty.
+                // Keep keyboard focus in the strip, or return to the message field.
                 const item = event.currentTarget.closest("li");
                 const next = item?.nextElementSibling ?? item?.previousElementSibling;
                 const target = next?.querySelector<HTMLElement>("a")
-                  ?? document.getElementById("chat-attachments-title");
+                  ?? document.getElementById("chat-message-text");
                 target?.focus();
                 onRemove(photo);
               }}

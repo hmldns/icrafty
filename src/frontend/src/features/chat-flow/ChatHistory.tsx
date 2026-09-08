@@ -1,74 +1,68 @@
-import { useEffect, useRef } from "react";
-import { Badge } from "../../components/ui/primitives";
-import { CameraRunCard } from "./CameraRunCard";
-import { PhotoStrip } from "./PhotoStrip";
-import type { HistoryEntry, VersionRef } from "./types";
+import { useEffect, useRef, useState } from "react";
+import { Button } from "../../components/ui/primitives";
+import type { ItemActions, ItemRendererResolver } from "./ItemRendererRegistry";
+import { InteractionItemFrame } from "./InteractionItemFrame";
+import type { HistoryItem } from "./historyTypes";
 
-export function ChatHistory({
-  entries,
-  onInspect,
-}: {
-  entries: readonly HistoryEntry[];
-  onInspect: (ref: VersionRef) => void;
+/** Timeline knows order and expansion, while the injected registry owns item presentation. */
+export function ChatHistory({ items, itemRenderer, actions }: {
+  items: readonly HistoryItem[];
+  itemRenderer: ItemRendererResolver;
+  actions: ItemActions;
 }) {
-  const list = useRef<HTMLOListElement>(null);
+  const scroll = useRef<HTMLDivElement>(null);
+  const lastId = useRef(items.at(-1)?.id);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [awayFromEnd, setAwayFromEnd] = useState(false);
+  const jumpToEnd = () => {
+    if (scroll.current) scroll.current.scrollTop = scroll.current.scrollHeight;
+  };
   useEffect(() => {
-    const latest = entries.at(-1);
-    if (latest?.kind === "message" && latest.origin === "local" && list.current) {
-      list.current.scrollTop = list.current.scrollHeight;
-    }
-  }, [entries]);
+    const latest = items.at(-1);
+    if (latest?.id !== lastId.current && latest?.type === "message" && latest.origin === "local") jumpToEnd();
+    lastId.current = latest?.id;
+  }, [items]);
+
+  function expandAll(value: boolean) {
+    setExpanded(Object.fromEntries(items.map((item) => [item.id, value])));
+  }
+
   return (
     <section className="chat-history" aria-labelledby="chat-history-title">
-      <div className="section-heading">
-        <div>
-          <h2 id="chat-history-title">The conversation</h2>
-          <p>A few observations, kept in order.</p>
+      <div className="chat-history-heading">
+        <h2 id="chat-history-title">Conversation</h2>
+        <div className="row">
+          <Button size="small" variant="ghost" onClick={() => expandAll(false)}>Collapse items</Button>
+          <Button size="small" variant="ghost" onClick={() => expandAll(true)}>Expand items</Button>
         </div>
-        <Badge>{entries.length} entries</Badge>
       </div>
-      <ol
-        ref={list}
-        tabIndex={0}
-        className="chat-history-list"
-        aria-label="Chat history"
+      <div
+        className="chat-history-scroll" ref={scroll} tabIndex={0} role="region" aria-label="Conversation timeline"
+        onScroll={() => {
+          const el = scroll.current;
+          if (el) setAwayFromEnd(el.scrollHeight - el.scrollTop - el.clientHeight > 100);
+        }}
       >
-        {entries.map((entry) => (
-          <li key={entry.id}>
-            {entry.kind === "camera-run" ? (
-              <CameraRunCard run={entry} onInspect={onInspect} />
-            ) : (
-              <article
-                className={`chat-message chat-message--${entry.author}`}
-                aria-label={`${entry.origin === "local" ? "Local mock" : "Fixture"} input from ${entry.author === "you" ? "you" : "icrafty"}`}
-              >
-                <div className="chat-message-heading">
-                  <span className="chat-avatar" aria-hidden="true">
-                    {entry.author === "you" ? "Y" : "c"}
-                  </span>
-                  <strong>{entry.author === "you" ? "You" : "icrafty"}</strong>
-                  <span>
-                    {entry.origin === "local" ? "Local mock input" : "Fixture"}
-                  </span>
-                </div>
-                {entry.text && <p className="chat-message-text">{entry.text}</p>}
-                {entry.attachments.length > 0 && (
-                  <>
-                    <PhotoStrip
-                      photos={entry.attachments}
-                      label="Submitted image versions"
-                      onInspect={onInspect}
-                    />
-                    <p className="chat-fixture-note">
-                      Attached versions stay with this input.
-                    </p>
-                  </>
-                )}
-              </article>
-            )}
-          </li>
-        ))}
-      </ol>
+        <ol className="chat-history-list" aria-label="Chat history">
+          {items.map((item) => {
+            const renderer = itemRenderer(item);
+            if (!renderer) return <li key={item.id}>This item has no registered view.</li>;
+            const content = renderer.render(item, actions);
+            return (
+              <li key={item.id} className={`chat-entry chat-entry--${renderer.variant}`}>
+                {renderer.variant === "interaction" && "tool" in item ? (
+                  <InteractionItemFrame
+                    item={item} icon={renderer.icon} label={renderer.label}
+                    expanded={expanded[item.id] ?? renderer.initiallyExpanded}
+                    onToggle={() => setExpanded((current) => ({ ...current, [item.id]: !(current[item.id] ?? renderer.initiallyExpanded) }))}
+                  >{content}</InteractionItemFrame>
+                ) : content}
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+      {awayFromEnd && <Button className="chat-jump" size="small" icon="right" onClick={jumpToEnd}>Latest</Button>}
     </section>
   );
 }

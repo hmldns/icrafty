@@ -1,81 +1,96 @@
-# Chat flow mock
+# Chat history mock
 
-Open `/debug/chat` from the workshop or the Chat navigation link. This is a local
-UI rehearsal with a fixed mug-cap repair story. Illustrations, annotations,
-camera history, and the model snapshot are fixtures. The mock does not open a
-camera, run a model viewer or editor, contact an agent, or store inputs. Leaving
-the route or refreshing restores the fixture history.
+Open `/debug/chat` from the workshop or the Chat link. The main surface is a
+conversation: messages alternate with camera, image, model, and activity items.
+Each tool item has a compact summary and an expandable body. **Collapse items**
+and **Expand items** control the full history; each item also has its own toggle.
+The composer stays below the scrolling history.
 
-## Try the flow
+The initial conversation and tool records are local fixtures. The page does not
+connect to an agent, implement ACP transport, or manage product sessions. **Send**
+adds a message locally. Leaving the route or refreshing discards the rehearsal,
+including newly captured photos and model snapshots.
 
-1. Open either capture in the **Camera run** card. It selects that capture's
-   original version in the asset inspector, including when a newer version exists.
-2. Browse the four assets and choose a version under **Version history**. The
-   preview and version label show exactly what **Attach v… to input** will add.
-3. Attach one or more versions, optionally add a message, then choose
-   **Add mock input**. Text alone or images alone also work. Empty input is disabled.
-4. Select another asset or revision. Queued attachments and earlier inputs keep
-   their chosen images. Opening a submitted thumbnail inspects its exact version.
-5. Remove queued images with their labeled remove buttons. The same image version
-   cannot be attached twice to one input; different versions of an asset may be
-   attached together for comparison.
+## Try the interactions
 
-**Browse assets** moves focus to the assets heading. Camera captures, submitted
-images, and lineage links move focus to the selected asset's heading. Native radio
-buttons support arrow keys. **View input** returns to the composer. The history
-and attachment strips scroll independently and can be reached with the keyboard;
-submitting scrolls history to the new input and returns focus to the message field.
+- In the camera item, attach either illustrated photo. **Open camera**, then
+  **Start camera**, uses the existing capture component and explicitly requests
+  camera access. A new capture appears in that history item and in the composer.
+  Closing the camera, collapsing its item, or leaving the route stops its tracks.
+- The image item shows a fixed annotated revision inline. **Attach image** keeps
+  that exact version. **Versions & details**, a photo thumbnail, or **Photos** in
+  the composer opens the secondary image picker.
+- In the model item, drag to rotate, scroll to zoom, or use **Top**, **Side**, and
+  **Reset view** from the keyboard. **Attach this view** captures the actual
+  displayed view as a new image. Later rotations do not change that snapshot.
+  Collapsing the item disposes its renderer; reopening starts from the initial view.
+- Remove queued images with their labeled buttons. Send text, images, or both.
+  Enter sends; Shift+Enter inserts a newline. Empty messages are disabled.
+  Earlier messages keep their exact image versions, even when a working selection
+  changes. Selecting the same version twice does not duplicate it in one message.
+- **Tool details** reveals the record's name, status, input, and result. This is
+  secondary inspection; the ordinary item body is the useful domain view.
 
-## Fixture lineage
+Image selection is a dialog with keyboard focus management. The original photo,
+annotated replacement, independent saved copy, and model snapshot remain available
+there. Mug rim v2 replaces the current image within its asset, while its original
+v1 remains available. Rim study is a separate asset copied from Mug rim v2 and has
+its own v1. This lineage does not retarget images already attached to messages.
 
-- **Mug rim** comes from camera run 1, capture 1. Original **v1** remains available.
-  **v2 · Marked rim** adds Arrow and Text marks and demonstrates the outcome of
-  replacing the current image within the same asset. The fixture chat input and
-  camera card still show v1.
-- **Mug profile** is capture 2, with one original version.
-- **Rim study** is an independent saved copy of Mug rim v2 with an additional
-  Rectangle mark. Its own history starts at v1; the source asset stays at v2.
-- **Cap concept** is an illustrated snapshot with a fixed `mug-cap.step` source
-  label and isometric view. It is an image fixture, not an evaluated CAD result.
+## Component and data model
 
-The 82 mm label is illustrative fixture content, not a measured or verified fit.
-The SVGs in `public/chat-flow/` are deterministic project illustrations, with no
-external assets or image service. Marks are already drawn into these files.
+`ChatDebugPage` supplies local records and a resource catalog to `ChatFlow`.
+`projectHistory` converts `HistoryRecord[]` into typed `HistoryItem[]`. Message
+records pass through; tool records are projected using an explicit tool-name map:
 
-## Component boundary
+- `camera.capture` → camera item with photo references and capture actions.
+- `images.show` → an image item with a specific asset/version reference.
+- `models.show` → a model item referring to a catalog model.
+- Unknown tools, missing resources, and invalid results → a generic activity item.
 
-`ChatDebugPage` supplies `mugCapFixture` to `ChatFlow`. `ChatFlowFixture` contains
-assets, initial history, and an initial version selection. All UI data types are
-local to `src/features/chat-flow/types.ts`; they do not change the image workspace's
-storage contracts. References in a fixture must resolve to one of its versions.
-Mount a new `ChatFlow` instance when replacing the whole fixture.
+The small `ToolCallRecord` is a presentation boundary for a future adapter, not
+an ACP wire contract. Input and output remain separate. Projectors read output
+objects, JSON output strings, or an object under `structuredContent`. They do not
+invent missing results from input arguments. Repeated tool-call IDs replace the
+item at its original position, preserving identity through status/result updates.
+A future transport adapter can supply normalized records without changing the
+history or domain components.
 
-`ChatAsset` owns a source relationship, a fixed revision list, and a current
-version ID. A `VersionRef` identifies one asset and one image version.
-`snapshotVersion` captures that version's identity, title, labels, image URL, and
-alt text into a `PhotoAttachment`. Both the queue and the submitted message hold
-these values; history rendering never resolves an asset's current version. A
-future data provider must supply stable image URLs for each immutable version.
+`ChatHistory` receives an `ItemRendererResolver`. It owns order, scrolling, and
+expansion. Each concrete item co-exports a typed renderer entry; `itemRegistry.ts`
+composes the entries. The common `InteractionItemFrame` owns disclosure and tool
+metadata. Adding a new item means adding a projector and renderer entry, without
+adding a domain switch to the history shell. Unknown results remain visible.
 
-`AssetView`, `CameraRunCard`, `PhotoStrip`, `ChatHistory`, and `ChatComposer` accept
-typed data and callbacks. `useChatFlow` owns the small in-memory selection,
-attachment, and submission state. There is no protocol adapter, session manager,
-import/export format, backend, or asset persistence implementation.
+`useChatFlow` handles local UI commands and keeps assets, record updates, draft
+attachments, and submitted messages in memory. `PhotoAttachment` captures identity
+and display values for one version; rendering a submitted image never follows an
+asset's current-version pointer. Captures and snapshots use owned blob URLs, which
+remain valid across item collapse and are revoked when the surface unmounts.
 
-## Validation
+The camera view embeds the existing `CameraPanel`. The compact model view reuses
+`ModelScene` and `importModel`; it owns and disposes its canvas, import operation,
+and renderer. Shared camera/model/image contracts and persistence are unchanged.
 
-From `src/frontend/`:
+## Fixtures and limits
+
+The SVG photos and annotation marks are deterministic illustrations. The 82 mm
+label is illustrative, not a verified measurement. `mug-cap-concept.stl` is a
+small deterministic revolved display mesh, not a CAD evaluation or fit-checked
+part. There are no external image services or dependencies on a CAD service.
+New camera photos and model snapshots are real browser outputs, kept only in memory.
+
+Validation targets Chromium with fake camera devices. Typecheck/build and the
+focused suite run from `src/frontend/`:
 
 ```sh
 npm run typecheck
 npm run build
-CRAFTY_TEST_PORT=5307 npm test -- tests/chat-flow.spec.ts tests/routes.spec.ts
+CRAFTY_TEST_PORT=5307 npm test -- tests/chat-flow.spec.ts tests/chat-flow-projection.spec.ts tests/routes.spec.ts
 ```
 
-Set `PLAYWRIGHT_BROWSERS_PATH` to an existing compatible project-local Chromium
-cache if needed. The chat tests cover lineage links, exact-version selection and
-submission, independent copies, attachment removal, optional text, in-memory reset,
-keyboard focus, scrollable strips, and 390/320 px layouts. The route regressions
-exercise the existing directory, legacy redirects, gallery, and camera navigation.
-Desktop and compact screenshots are inspected during feature acceptance; browser
-artifacts stay in the ignored frontend output directories.
+Set `PLAYWRIGHT_BROWSERS_PATH` to a compatible project-local cache as needed.
+Tests cover projection/update identity and fallback, collapse/expand, camera
+permission/capture/cleanup, rotating 3D and fixed snapshots, exact-version message
+attachments, copy lineage, local reset, keyboard focus, and 390/320 px layouts.
+Screenshots and browser artifacts remain in ignored frontend output directories.

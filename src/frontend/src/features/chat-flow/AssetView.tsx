@@ -35,6 +35,7 @@ export function AssetView({
   onSelect,
   onInspect,
   onAttach,
+  onReturnToInput,
   headingRef,
   detailHeadingRef,
 }: {
@@ -45,6 +46,7 @@ export function AssetView({
   onSelect: (ref: VersionRef) => void;
   onInspect: (ref: VersionRef) => void;
   onAttach: () => void;
+  onReturnToInput: () => void;
   headingRef: Ref<HTMLHeadingElement>;
   detailHeadingRef: Ref<HTMLHeadingElement>;
 }) {
@@ -121,7 +123,8 @@ export function AssetView({
             height="480"
           />
           <figcaption>
-            v{version.number} · {version.label}<span>Illustrative fixture</span>
+            v{version.number} · {version.label}
+            <span>{version.illustrative ? "Illustrative fixture" : asset.source.kind === "camera" ? "Camera capture" : "Saved view"}</span>
           </figcaption>
         </figure>
         <fieldset className="chat-version-picker">
@@ -194,10 +197,10 @@ export function AssetView({
           >
             {attached ? `v${version.number} attached` : `Attach v${version.number} to input`}
           </Button>
-          <a href="#chat-composer" className="button button--ghost">
-            View input{attachmentCount > 0 ? ` (${attachmentCount})` : ""}
+          <Button variant="ghost" onClick={onReturnToInput}>
+            Back to message{attachmentCount > 0 ? ` (${attachmentCount})` : ""}
             <Icon name="right" size={16} />
-          </a>
+          </Button>
         </div>
         <p className="chat-fixture-note">
           Browsing another version keeps attached images as chosen.
