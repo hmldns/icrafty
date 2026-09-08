@@ -32,11 +32,12 @@ PANEL = (225, 234, 243)
 
 def versions(settings: Settings) -> dict:
     import PIL
-    return {"renderer": "freecad-tessellation-software-zbuffer@1", "numpy": np.__version__,
+    return {"renderer": "freecad-tessellation-software-zbuffer@2", "numpy": np.__version__,
             "pillow": PIL.__version__, "freetype": features.version("freetype2"),
             "font": settings.font, "font_sha256": digest(Path(settings.font).read_bytes()),
             "background": BACKGROUND, "title_height": settings.title_height,
-            "tessellation_mm": settings.tessellation_mm, "display": "none", "opengl": "none"}
+            "tessellation_mm": settings.tessellation_mm, "display": "none", "opengl": "none",
+            "edge_style": "silhouette-and-depth-discontinuity"}
 
 
 def normalized(vector):
@@ -44,7 +45,7 @@ def normalized(vector):
     return vector / np.linalg.norm(vector)
 
 
-def resolve_camera(view: dict, mesh: dict, settings: Settings) -> dict:
+def resolve_camera(view: dict, mesh: dict, settings: Settings, footer: int = 0) -> dict:
     direction, hint = PRESETS[view["preset"]]
     forward = normalized(direction)
     right = normalized(np.cross(forward, hint))
@@ -56,7 +57,9 @@ def resolve_camera(view: dict, mesh: dict, settings: Settings) -> dict:
     x = (corners - center) @ right
     y = (corners - center) @ up
     viewport_width = view["width"] - 24
-    viewport_height = view["height"] - settings.title_height - 24
+    viewport_height = view["height"] - settings.title_height - 24 - footer
+    if viewport_height < 64:
+        raise CadError("render_error", "Panel is too short for readable requested annotations")
     aspect = viewport_width / viewport_height
     span_y = view.get("span_mm", max(float(np.ptp(y)), float(np.ptp(x)) / aspect, 0.01) * 1.18)
     span_x = span_y * aspect
@@ -114,11 +117,24 @@ def raster(mesh: dict, camera: dict, width: int, height: int, check: Callable) -
         color = np.minimum(255, base_color * illumination + 12).astype(np.uint8)
         previous[inside] = z[inside]
         rgb[y0:y1+1, x0:x1+1][inside] = color
+    # Parallel roof and rim faces receive the same light. Outline real depth
+    # discontinuities so an orthographic bottom view exposes the cavity boundary.
+    visible = np.isfinite(depth)
+    edge = np.zeros((height, width), dtype=bool)
+    threshold = max(camera["span_mm"][0]/width, camera["span_mm"][1]/height) * 4
+    for axis in (0, 1):
+        for shift in (-1, 1):
+            neighbor = np.roll(depth, shift, axis)
+            neighbor_visible = np.isfinite(neighbor)
+            differences = np.zeros_like(depth)
+            np.subtract(depth, neighbor, out=differences, where=visible & neighbor_visible)
+            edge |= visible & (~neighbor_visible | (np.abs(differences) > threshold))
+    rgb[edge] = (29, 69, 90)
     return Image.fromarray(rgb)
 
 
 def render_output(output: dict, mesh: dict, directory: Path, geometry_digest: str,
-                  settings: Settings, check: Callable, fault: Callable) -> dict:
+                  settings: Settings, check: Callable, fault: Callable, callouts: list | None = None) -> dict:
     """One artifact; per-panel failures and sidecar failures stay independent."""
     is_grid = "grid" in output
     views = output["grid"]["views"] if is_grid else [{"id": output["id"], **output["view"]}]
@@ -137,7 +153,28 @@ def render_output(output: dict, mesh: dict, directory: Path, geometry_digest: st
         x = padding + (index % columns) * (cell_w + padding)
         y = padding + (index // columns) * (cell_h + padding)
         width, height = view["width"], view["height"]
-        camera = resolve_camera(view, mesh, settings)
+        metric_records = []
+        footer = 0
+        for metric in callouts or []:
+            value = f"{metric['value']:.6g}" if type(metric["value"]) in (int, float) else str(metric["value"])
+            label = f"{metric['target']['part']}.{metric['target']['feature']} | {metric['id']}: {value} {metric['unit']} [{metric['status']}]"
+            lines, remaining = [], label
+            while font.getlength(remaining) > width-24:
+                end = max(i for i in range(1,len(remaining)) if font.getlength(remaining[:i]) <= width-24)
+                lines.append(remaining[:end])
+                remaining = remaining[end:]
+            lines.append(remaining)
+            record_height = len(lines)*19+5
+            metric_records.append({"id": f"{view['id']}.metric.{metric['id']}", "view_id": view["id"],
+                "kind": "measurement", "text": "\n".join(lines), "offset": footer,
+                "bounds": [x+12, 0, width-24, record_height], "provenance": {
+                    "kind": "computed_metric", "metric_id": metric["id"], "value": metric["value"],
+                    "unit": metric["unit"], "method": metric["method"], "target": metric["target"],
+                    "other_target": metric.get("other_target"), "status": metric["status"], "criterion": metric["criterion"]}})
+            footer += record_height
+        if footer:
+            footer += 8
+        camera = resolve_camera(view, mesh, settings, footer)
         title = camera_title(view["id"], view, camera)
         # Pixel-measured wrapping, shared by raster and sidecar; no hidden text clipping.
         lines = []
@@ -154,7 +191,7 @@ def render_output(output: dict, mesh: dict, directory: Path, geometry_digest: st
         panel = Image.new("RGB", (width, height), BACKGROUND)
         draw = ImageDraw.Draw(panel)
         draw.rectangle((0, 0, width, settings.title_height), fill=PANEL)
-        viewport = [x+12, y+settings.title_height+12, width-24, height-settings.title_height-24]
+        viewport = [x+12, y+settings.title_height+12, width-24, height-settings.title_height-24-footer]
         item = {"view_id": view["id"], "status": "ready", "title": title, "camera": camera,
                 "parts": output["parts"], "panel": [x, y, width, height], "viewport": viewport,
                 "view_to_image": [[1, 0, x], [0, 1, y], [0, 0, 1]]}
@@ -162,6 +199,13 @@ def render_output(output: dict, mesh: dict, directory: Path, geometry_digest: st
             "text": text, "anchor": [x+12, y+8], "bounds": [x+12, y+8, width-24, len(lines)*19],
             "provenance": {"kind": "resolved_camera", "camera": camera}}
         annotations.append(annotation)
+        for metric_record in metric_records:
+            local_y = height-footer+metric_record.pop("offset")+4
+            metric_record["anchor"] = [x+12, y+local_y]
+            metric_record["bounds"][1] = y+local_y
+            annotations.append(metric_record)
+            if flags["inline"]:
+                draw.multiline_text((12,local_y), metric_record["text"], font=font, fill=INK, spacing=4)
         try:
             fault("view", output["id"] + ":" + view["id"])
             rendered = raster(mesh, camera, viewport[2], viewport[3], check)
@@ -174,6 +218,11 @@ def render_output(output: dict, mesh: dict, directory: Path, geometry_digest: st
         except Exception as exc:
             item.update(status="error", reason=str(exc))
             draw.text((20, settings.title_height+30), "VIEW ERROR\n" + str(exc)[:70], font=font, fill=(150, 30, 35))
+        if item["status"] != "ready":
+            annotations.append({"id": f"{view['id']}.failure", "view_id": view["id"], "kind": "diagnostic",
+                "text": "VIEW ERROR\n"+item["reason"][:70], "anchor": [x+20,y+settings.title_height+30],
+                "bounds": [x+20,y+settings.title_height+30,width-40,40], "always_inline": True,
+                "provenance": {"kind": "service_error", "reason": item["reason"]}})
         if flags["inline"]:
             draw.multiline_text((12, 8), text, font=font, fill=INK, spacing=4)
         canvas.paste(panel, (x, y))

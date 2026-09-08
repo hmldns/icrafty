@@ -155,6 +155,10 @@ def compare(metric: dict, measurement: dict) -> dict:
 
 
 def validate_result(result: dict, root: Path) -> None:
+    from .schemas import RESULT_SCHEMA
+    errors = list(Draft202012Validator(RESULT_SCHEMA).iter_errors(result))
+    if errors:
+        raise CadError("invalid_result", errors[0].message)
     required = {"schema_version", "run_id", "execution", "provenance", "geometry", "artifacts", "metrics", "diagnostics"}
     if set(result) != required or result["schema_version"] != 1:
         raise CadError("invalid_result", "Invalid result envelope")
@@ -169,6 +173,8 @@ def validate_result(result: dict, root: Path) -> None:
         elif "path" in artifact:
             raise CadError("invalid_result", "Incomplete artifact must not expose a file path")
         sidecar = artifact.get("annotations", {})
+        if "comparison" in artifact:
+            verify_record(root, artifact["comparison"])
         if sidecar.get("status") == "ready":
             verify_record(root, sidecar)
         elif "path" in sidecar:
@@ -184,3 +190,7 @@ def validate_result(result: dict, root: Path) -> None:
         bundle = load_json(path)
         for part in bundle["parts"].values():
             verify_record(path.parent, part)
+        for item in bundle.get("frozen_files", []):
+            verify_record(path.parent, item)
+    if "request" in result["provenance"]:
+        verify_record(root, result["provenance"]["request"])

@@ -8,6 +8,7 @@ from pathlib import Path
 import selectors
 import signal
 import subprocess
+import sys
 import threading
 import time
 from typing import Any
@@ -37,17 +38,26 @@ def process_tree(pid: int) -> list[tuple[int, int]]:
 
 
 class NativeProcess:
-    def __init__(self, settings: Settings, directory: Path, mode: str, job: Path | None = None):
+    def __init__(self, settings: Settings, directory: Path, mode: str, job: Path | None = None,
+                 budget_root: Path | None = None):
         self.settings = settings
         self.directory = directory
+        self.budget_root = budget_root or directory
         directory.mkdir(parents=True, exist_ok=True)
         self.log_path = directory / (mode + ".log")
         self.log = self.log_path.open("xb")
         self.log_size = 0
         self.peak_rss = self.peak_processes = 0
         self.buffer = b""
+        self.closed = False
         self.started = time.monotonic()
-        self.command = [settings.native_python, "-I", str(Path(__file__).with_name("native_worker.py")),
+        if sys.platform == "linux":
+            import ctypes
+            if ctypes.CDLL(None, use_errno=True).prctl(36, 1, 0, 0, 0) != 0:
+                raise CadError("process_setup", "Cannot enable descendant reaping")
+        executable = sys.executable if mode == "render" else settings.native_python
+        worker = "render_worker.py" if mode == "render" else "native_worker.py"
+        self.command = [executable, "-I", str(Path(__file__).with_name(worker)),
                         mode, "--lib", settings.freecad_lib, "--memory", str(settings.memory_bytes),
                         "--cpu", str(settings.cpu_seconds), "--output-limit", str(settings.output_bytes)]
         if job:
@@ -90,9 +100,12 @@ class NativeProcess:
         if sum(rss for _, rss in tree) > self.settings.memory_bytes:
             code = "memory_limit"
         total = 0
-        for path in self.directory.rglob("*"):
+        for path in self.budget_root.rglob("*"):
             if path.is_file() and not path.is_symlink():
-                total += path.stat().st_size
+                try:
+                    total += path.stat().st_size
+                except FileNotFoundError:
+                    pass
         if total > self.settings.output_bytes:
             code = "output_limit"
         if code:
@@ -116,7 +129,7 @@ class NativeProcess:
                         if line.startswith(b"CRAFTY_RPC:"):
                             response = json.loads(line[len(b"CRAFTY_RPC:"):])
                             if not response["ok"]:
-                                raise CadError("native_error", response["error"], traceback=response.get("traceback"))
+                                raise CadError(response.get("code", "native_error"), response["error"], traceback=response.get("traceback"))
                             return response["data"]
                         self._log(line + b"\n")
                 else:
@@ -129,14 +142,19 @@ class NativeProcess:
     def call(self, job: dict, cancel: threading.Event | None = None, deadline: float | None = None) -> dict:
         if self.process.poll() is not None:
             raise CadError("native_lost", "Retained native process is no longer live")
+        job = job.copy()
+        self.budget_root = Path(job.pop("_budget_root", self.directory))
         self.process.stdin.write(json.dumps(job, allow_nan=False).encode() + b"\n")
         self.process.stdin.flush()
         return self._read(deadline or time.monotonic() + self.settings.wall_seconds, cancel, True)
 
-    def wait(self, cancel: threading.Event | None = None) -> int:
-        return self._read(time.monotonic() + self.settings.wall_seconds, cancel, False)
+    def wait(self, cancel: threading.Event | None = None, deadline: float | None = None) -> int:
+        return self._read(deadline or time.monotonic() + self.settings.wall_seconds, cancel, False)
 
     def close(self):
+        if self.closed:
+            return
+        self.closed = True
         tree = process_tree(self.process.pid)
         try:
             os.killpg(self.process.pid, signal.SIGKILL)
@@ -148,8 +166,22 @@ class NativeProcess:
             except ProcessLookupError:
                 pass
         self.process.wait(timeout=5)
+        reap_deadline = time.monotonic() + 0.5
+        pending = {pid for pid, _ in tree if pid != self.process.pid}
+        while pending and time.monotonic() < reap_deadline:
+            for pid in list(pending):
+                try:
+                    reaped, _ = os.waitpid(pid, os.WNOHANG)
+                    if reaped:
+                        pending.remove(pid)
+                except ChildProcessError:
+                    pending.remove(pid)
+            if pending:
+                time.sleep(0.005)
         self.stats.update(peak_rss_bytes=self.peak_rss, peak_processes=self.peak_processes,
-                          duration_seconds=time.monotonic() - self.started, exit_code=self.process.returncode)
+                          duration_seconds=time.monotonic() - self.started, exit_code=self.process.returncode,
+                          terminated_descendants=[pid for pid, _ in tree if pid != self.process.pid],
+                          unreaped_descendants=list(pending))
         self.selector.close()
         self.log.close()
         for stream in (self.process.stdin, self.process.stdout, self.process.stderr):
@@ -157,18 +189,18 @@ class NativeProcess:
 
 
 def one_shot(settings: Settings, directory: Path, mode: str, job: dict,
-             cancel: threading.Event | None = None) -> tuple[dict, dict]:
+             cancel: threading.Event | None = None, deadline: float | None = None) -> tuple[dict, dict]:
     directory.mkdir(parents=True, exist_ok=True)
     job = {**job, "response": str(directory / "response.json")}
     atomic_json(directory / "job.json", job)
-    process = NativeProcess(settings, directory, mode, directory / "job.json")
+    process = NativeProcess(settings, directory, mode, directory / "job.json", Path(job.get("_budget_root", directory)))
     try:
-        code = process.wait(cancel)
+        code = process.wait(cancel, deadline)
         response = load_json(directory / "response.json") if (directory / "response.json").exists() else None
         if code or not response or not response["ok"]:
-            raise CadError("build_error" if mode == "build" else "export_error",
+            raise CadError({"build": "build_error", "render": "render_error"}.get(mode, "export_error"),
                            response.get("error", "Native execution failed") if response else "Native execution failed",
-                           exit_code=code, traceback=(response or {}).get("traceback"))
+                           exit_code=code, traceback=(response or {}).get("traceback"), process=process.stats)
         return response["data"], process.stats
     finally:
         process.close()

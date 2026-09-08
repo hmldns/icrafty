@@ -54,6 +54,25 @@ NAME = re.compile(r"^[A-Za-z][A-Za-z0-9_.-]{0,79}$")
 
 
 def build(job):
+    # Helpful deterministic-input enforcement for ordinary Python I/O. This is
+    # not a sandbox for hostile native code; Docker supplies the isolation gate.
+    allowed_reads = {Path(job["source"]).resolve(), *(Path(p).resolve() for p in job["inputs"].values())}
+    work = Path.cwd().resolve()
+    module_roots = [Path(sys.base_prefix).resolve() / "lib", Path(FreeCAD.__file__).resolve().parent]
+    def audit(event, args):
+        if event in ("socket.connect", "socket.bind"):
+            raise PermissionError("Model network dependencies are undeclared")
+        if event == "open" and isinstance(args[0], (str, bytes, os.PathLike)):
+            path = Path(os.fsdecode(args[0])).resolve()
+            mode = args[1] or ""
+            flags = args[2] or 0
+            writing = any(c in mode for c in "wa+") or bool(flags & (os.O_WRONLY | os.O_RDWR | os.O_CREAT))
+            permitted = path.is_relative_to(work) if writing else (path in allowed_reads or path.is_relative_to(work)
+                or any(path.is_relative_to(root) for root in module_roots))
+            if not permitted:
+                raise PermissionError(f"Undeclared model file dependency: {path}")
+    sys.dont_write_bytecode = True
+    sys.addaudithook(audit)
     spec = importlib.util.spec_from_file_location("submitted_model", job["source"])
     model = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(model)
@@ -78,6 +97,11 @@ def build(job):
         data = shape.exportBrepToString().encode()
         path = directory / (name + ".brep")
         path.write_bytes(data)
+        # OCCT normalizes boolean-generated subshape serialization on BRep read.
+        # Bind the feature digest to the exact persisted part, while membership
+        # is established against the submitted shape before serialization.
+        persisted = Part.Shape()
+        persisted.importBrepFromString(data.decode())
         resolved = {}
         if not isinstance(features.get(name, {}), dict):
             raise ValueError("Named features must be an object")
@@ -90,8 +114,9 @@ def build(job):
             if len(matches) != 1:
                 resolved[label] = {"status": "unavailable", "reason": "feature_not_unique_member"}
             else:
+                member = getattr(persisted, SUBSHAPES[kind])[matches[0]]
                 resolved[label] = {"status": "ready", "type": kind, "index": matches[0],
-                                   "sha256": sha(feature.exportBrepToString().encode())}
+                                   "sha256": sha(member.exportBrepToString().encode())}
         manifest["parts"][name] = {"path": path.name, "sha256": sha(data), "size_bytes": len(data),
             "placement_matrix": list(shape.Placement.toMatrix().A), "features": resolved}
     manifest["geometry_digest"] = sha(json_bytes(manifest["parts"]))
@@ -228,7 +253,8 @@ def serve():
                 raise ValueError("Unknown native operation")
             response = {"ok": True, "data": answer}
         except Exception as exc:
-            response = {"ok": False, "error": str(exc), "traceback": traceback.format_exc()[-4000:]}
+            response = {"ok": False, "error": str(exc), "code": "selection_unavailable" if isinstance(exc, Unavailable) else "native_error",
+                        "traceback": traceback.format_exc()[-4000:]}
         print("CRAFTY_RPC:" + json.dumps(response, allow_nan=False), flush=True)
 
 
