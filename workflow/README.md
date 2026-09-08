@@ -261,6 +261,12 @@ resolve and commit, then retry `builders merge NAME` to record integration. To
 back out of a conflict instead, run `git merge --abort`. No automatic reset or
 conflict resolution discards work.
 
+If the director has already merged the reported commit manually, `merge` verifies
+that it is an ancestor of the director's `HEAD` and only records integration.
+This recording step preserves local edits and untracked files; it does not run
+another Git merge or touch the index. A merge that changes the checkout still
+requires it to be clean.
+
 `assign` requires the previous assignment to be integrated and the worker to
 remain alive. It fast-forwards that worker to the director's current `HEAD`,
 increments its assignment generation, saves the new prompt, and submits it to

@@ -284,6 +284,27 @@ class BuildersTest(unittest.TestCase):
         self.assertTrue((self.root / "outside.txt").exists())
         self.assertEqual(len(self.git("rev-list", "--parents", "-n", "1", "HEAD").split()), 3)
 
+    def test_recording_manual_merge_preserves_local_work(self):
+        w = self.launch()
+        self.commit(w)
+        report = self.report(w)
+        (self.root / "shared.txt").write_text("Concurrent director edits\n")
+        (self.root / "notes.txt").write_text("Untracked notes\n")
+        self.cli("merge", w["name"], code=1)
+        self.git("merge", "--no-ff", "--no-edit", report["commit"])
+        head = self.git("rev-parse", "HEAD")
+        diff = self.git("diff")
+        status = self.git("status", "--porcelain")
+        merged = self.cli("merge", w["name"])
+        self.assertEqual(merged["status"], "merged")
+        self.assertEqual(merged["integrated_commit"], report["commit"])
+        self.assertEqual(merged["integration_head"], head)
+        self.assertEqual(self.git("rev-parse", "HEAD"), head)
+        self.assertEqual(self.git("diff"), diff)
+        self.assertEqual(self.git("status", "--porcelain"), status)
+        self.assertEqual(self.git("diff", "--cached"), "")
+        self.assertEqual((self.root / "notes.txt").read_text(), "Untracked notes\n")
+
     def test_reuse_preserves_window_and_rejects_old_generation(self):
         w = self.launch()
         self.commit(w)

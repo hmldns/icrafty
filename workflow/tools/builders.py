@@ -670,7 +670,9 @@ def integrate(p, args):
         branch = git(p.root, "symbolic-ref", "--short", "HEAD").stdout.strip()
         if branch != p.config["director_branch"]:
             raise Error(f"Integration requires director branch {p.config['director_branch']}.")
-        if git(p.root, "status", "--porcelain").stdout:
+        already_integrated = git(p.root, "merge-base", "--is-ancestor",
+                                 snap["commit"], "HEAD", check=False).returncode == 0
+        if not already_integrated and git(p.root, "status", "--porcelain").stdout:
             raise Error("The director checkout must be clean before integration.")
         with p.db() as db:
             current = p.worker(args.name, db)
@@ -678,10 +680,13 @@ def integrate(p, args):
                 raise Error("Worker state changed during preflight; review again.")
             current["status"] = "merging"
             p.save(db, current)
-        result = git(p.root, "merge", "--no-ff", "--no-edit", snap["commit"], check=False)
+        # A director may have merged manually or resolved a conflict already.
+        # Recording that ancestry needs no index or working-tree mutation.
+        result = None if already_integrated else git(
+            p.root, "merge", "--no-ff", "--no-edit", snap["commit"], check=False)
         with p.db() as db:
             current = p.worker(args.name, db)
-            if result.returncode:
+            if result is not None and result.returncode:
                 if current["status"] == "merging":
                     current["status"] = "done"
                 p.event(db, current, "merge_failed", {"stdout": result.stdout, "stderr": result.stderr}, attention=True)
@@ -692,7 +697,7 @@ def integrate(p, args):
                     current["status"] = "merged"
                 p.event(db, current, "merged", {"commit": snap["commit"], "head": current["integration_head"]})
             p.save(db, current)
-        if result.returncode:
+        if result is not None and result.returncode:
             raise Error("Merge stopped. Resolve and commit in the director checkout, or run git merge --abort. "
                         "Then retry builders merge.\n" + result.stdout + result.stderr)
     emit(current)
