@@ -3,6 +3,7 @@ import { Icon, type IconName } from "../../components/ui/Icon";
 import type { HistoryItem } from "./historyTypes";
 import { useChatCamera } from "./ChatCamera";
 import { useDisclosureContent } from "./useDisclosureContent";
+import { itemIcon } from "./itemIcon";
 
 const statusLabels = { pending: "Ready", in_progress: "In progress", completed: "Done", failed: "Failed" } as const;
 
@@ -26,8 +27,8 @@ export function InteractionItemFrame({ item, icon, label, expanded, onToggle, ch
     <article className="chat-interaction" aria-label={item.title} aria-busy={toolRunning || undefined} data-item-type={item.type} data-tool-call-id={tool?.toolCallId} data-tool-status={tool?.status}
       data-streaming={item.type === "thought" && item.streaming || undefined}>
       <button type="button" className="chat-interaction-toggle" aria-expanded={expanded} aria-controls={bodyId} onClick={onToggle}>
-        <span className="chat-interaction-icon">{toolRunning || item.type === "thought" && item.streaming
-          ? <span className="spinner" aria-hidden="true" /> : <Icon name={icon} size={16} />}</span>
+        <span className="chat-interaction-icon"><Icon name={itemIcon(item, icon)} size={16} />
+          {(toolRunning || item.type === "thought" && item.streaming) && <span className="spinner" aria-hidden="true" />}</span>
         <span className="chat-interaction-name"><span className="sr-only">{label}</span><strong>{item.title}</strong></span>
         {cameraActive && <span className="chat-camera-live">{camera.phase === "live" ? "Camera live" : camera.phase === "requesting" ? "Starting camera…" : "Camera off"}</span>}
         <span className="chat-interaction-summary">{item.summary}</span>

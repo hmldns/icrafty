@@ -1,6 +1,14 @@
 import type { CSSProperties } from "react";
 
 const paths = {
+  thought: "M9 18h6M9 21h6M8 14a6 6 0 1 1 8 0c-1 1-1 2-1 2H9s0-1-1-2Z",
+  ruler: "m3 16 13-13 5 5L8 21l-5-5Zm7-7 2 2m1-5 2 2m-8 4 2 2m-5 1 2 2",
+  shield: "m12 3 8 3v5c0 5-8 10-8 10S4 16 4 11V6l8-3Zm-4 9 3 3 5-6",
+  sparkles: "m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3ZM20 2v4m-2-2h4",
+  images: "M7 7h14v14H7V7Zm0 10 4-4 3 3 3-3 4 4M3 17V3h14",
+  file: "M5 3h9l5 5v13H5V3Zm9 0v5h5M8 12h8m-8 4h6",
+  terminal: "M3 4h18v16H3V4Zm4 4 4 4-4 4m6 0h4",
+  tool: "m14 6 4 4 3-3a6 6 0 0 1-8 8l-6 6-4-4 6-6a6 6 0 0 1 8-8l-3 3Z",
   arrow: "M5 19 19 5M7 5h12v12",
   right: "M4 12h16m-6-6 6 6-6 6",
   camera: "M8 6 9.5 3h5L16 6h4v14H4V6h4ZM16 13a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z",
