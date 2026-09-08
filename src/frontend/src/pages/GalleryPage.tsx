@@ -23,7 +23,9 @@ export function GalleryPage() {
         <div>
           <p className="eyebrow">02 / The details make the difference</p>
           <h1>Made of small, good things.</h1>
-          <p>The same components you’ll find throughout the Crafty workshop.</p>
+          <p>
+            The same components you’ll find throughout the icrafty workshop.
+          </p>
         </div>
         <Badge>Component gallery</Badge>
       </header>

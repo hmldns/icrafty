@@ -1,15 +1,42 @@
-import { useSyncExternalStore, type AnchorHTMLAttributes } from "react";
+import {
+  useEffect,
+  useSyncExternalStore,
+  type AnchorHTMLAttributes,
+} from "react";
+
+export const ROUTES = {
+  directory: "/debug",
+  camera: "/debug/camera",
+  gallery: "/debug/gallery",
+} as const;
+
+const redirects: Readonly<Record<string, string>> = {
+  "/": ROUTES.directory,
+  "/camera": ROUTES.camera,
+  "/gallery": ROUTES.gallery,
+};
 
 const subscribe = (callback: () => void) => {
   window.addEventListener("popstate", callback);
   return () => window.removeEventListener("popstate", callback);
 };
 export function usePathname(): string {
-  return useSyncExternalStore(
+  const pathname = useSyncExternalStore(
     subscribe,
     () => window.location.pathname.replace(/\/$/, "") || "/",
-    () => "/",
+    () => ROUTES.directory,
   );
+  const destination = redirects[pathname] ?? pathname;
+  useEffect(() => {
+    if (pathname === destination) return;
+    window.history.replaceState(
+      window.history.state,
+      "",
+      destination + window.location.search + window.location.hash,
+    );
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  }, [pathname, destination]);
+  return destination;
 }
 export function Link({
   href,

@@ -10,7 +10,7 @@ import {
 test("downloads current marks repeatedly at original resolution without saving a revision", async ({
   page,
 }) => {
-  await page.goto("/camera");
+  await page.goto("/debug/camera");
   const original = await uploadImage(page);
   await page.getByLabel("Stroke width", { exact: true }).selectOption("12");
   await drawLine(page);
@@ -48,7 +48,7 @@ test("downloads current marks repeatedly at original resolution without saving a
 test("undo, redo, clear, save, restore and reopen preserve editable geometry and stable identities", async ({
   page,
 }) => {
-  await page.goto("/camera");
+  await page.goto("/debug/camera");
   await uploadImage(page);
   await drawLine(page);
   await page
@@ -111,7 +111,7 @@ test("undo, redo, clear, save, restore and reopen preserve editable geometry and
 test("keyboard history avoids typed text and zoom preserves image-space export", async ({
   page,
 }) => {
-  await page.goto("/camera");
+  await page.goto("/debug/camera");
   await uploadImage(page);
   await page.getByLabel("Canvas zoom").selectOption("0.5");
   await drawLine(page);
@@ -133,7 +133,7 @@ test("narrow editor keeps the download action reachable and exports a point stro
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/camera");
+  await page.goto("/debug/camera");
   await uploadImage(page);
   await expect(
     page.getByRole("button", { name: "Download PNG", exact: true }),

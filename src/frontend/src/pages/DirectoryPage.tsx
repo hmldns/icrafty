@@ -1,6 +1,6 @@
 import { Icon } from "../components/ui/Icon";
 import { Badge } from "../components/ui/primitives";
-import { Link } from "../router";
+import { Link, ROUTES } from "../router";
 
 function WorkshopDrawing() {
   return (
@@ -39,7 +39,7 @@ export function DirectoryPage() {
       <section className="directory-hero">
         <div>
           <p className="eyebrow">
-            The Crafty workshop <span>001</span>
+            The icrafty workshop <span>001</span>
           </p>
           <h1>
             Good things deserve
@@ -65,7 +65,7 @@ export function DirectoryPage() {
         </div>
         <div className="directory-grid">
           <Link
-            href="/camera"
+            href={ROUTES.camera}
             className="directory-card directory-card--camera"
           >
             <div className="directory-card-top">
@@ -92,7 +92,7 @@ export function DirectoryPage() {
               <Badge tone="accent">Ready to use</Badge>
             </div>
           </Link>
-          <Link href="/gallery" className="directory-card">
+          <Link href={ROUTES.gallery} className="directory-card">
             <div className="directory-card-top">
               <span className="directory-number">02 / EXPLORE THE DETAILS</span>
               <Icon name="arrow" />

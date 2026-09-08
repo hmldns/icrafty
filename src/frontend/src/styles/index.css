@@ -840,20 +840,36 @@
   .camera-panel {
     padding: var(--space-6);
   }
+  .camera-framing {
+    display: flex;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
+  }
+  .camera-framing p {
+    color: var(--color-muted);
+    font-size: var(--text-label);
+    padding-bottom: var(--space-3);
+  }
   .camera-preview {
     position: relative;
     border-radius: var(--radius-md);
     background: var(--color-ink);
-    min-height: 280px;
-    height: min(48vw, 420px);
+    width: min(100%, calc(min(60dvh, 480px) * var(--camera-aspect)));
+    aspect-ratio: var(--camera-aspect);
+    margin-inline: auto;
     display: grid;
     place-items: center;
     overflow: hidden;
   }
   .camera-preview video {
+    position: absolute;
+    inset: 0;
     height: 100%;
     width: 100%;
-    object-fit: contain;
+    object-fit: cover;
+    object-position: center;
   }
   .camera-placeholder {
     position: absolute;
@@ -1681,8 +1697,28 @@
   .camera-controls > .row {
     justify-content: space-between;
   }
-  .camera-preview {
-    min-height: 240px;
+  .camera-framing {
+    align-items: stretch;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .camera-framing p {
+    padding-bottom: 0;
+  }
+  .camera-placeholder {
+    gap: var(--space-2);
+    padding: var(--space-3);
+    text-align: center;
+  }
+  .camera-placeholder > svg {
+    width: 28px;
+    height: 28px;
+  }
+  .camera-preview[data-aspect="16:9"] .camera-placeholder > svg {
+    display: none;
+  }
+  .camera-placeholder .button {
+    margin-top: 0;
   }
   .camera-caption > span {
     display: block;

@@ -1,8 +1,12 @@
-# Crafty frontend
+# icrafty frontend
 
 A local image collection and annotation workspace built with React, TypeScript,
-Vite, and Tailwind. `/` is the workshop directory, `/camera` is the capture and
-annotation workspace, and `/gallery` demonstrates the app's shared components.
+Vite, and Tailwind. The debug tools live under `/debug`: `/debug` is the workshop
+directory, `/debug/camera` is the capture and annotation workspace, and
+`/debug/gallery` demonstrates the app's shared components. The root `/` redirects
+to `/debug` for now. Previous `/camera` and `/gallery` links redirect to their new
+locations. Redirects replace the current history entry and retain query strings
+and fragments. Existing local image collections remain available on the same origin.
 
 ## Run
 
@@ -53,6 +57,12 @@ camera and choose Start camera to grant access. Capture repeatedly with the
 button or Space when focus is outside inputs and other controls. Stop or Close
 camera releases its tracks; navigation does the same. Camera access requires a
 secure context such as HTTPS or localhost.
+
+The camera preview starts square. Use Aspect ratio to choose 1:1, 4:3, 3:4,
+16:9, or 9:16. The preview and captured image use the same centered crop without
+stretching; changing the ratio keeps the camera running. Preview size is bounded
+to fit the screen. Captured images retain the selected shape when you annotate
+or download them.
 
 Draw with Pen, Arrow, or Rectangle, or enter a Text label and click to place it.
 Text can also be placed from the keyboard with Place text in center. Colors,
