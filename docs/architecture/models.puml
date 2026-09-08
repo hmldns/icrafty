@@ -1,62 +1,55 @@
 @startuml models
 !include theme.iuml
-title Crafty — local STEP handoff and model publication
-top to bottom direction
+title Crafty — CAD agent rendering and verification loop
 
-state "Build job (when needed)" as Build {
-  state "Queued\nfrozen source + inputs" as BuildQueued
-  state "Building\nisolated FreeCAD attempt" as Building
-  state "Built\nSTEP staged; build job complete" as Built
-  state "Build failed / cancelled" as BuildFailed #FCE9E7
-  BuildQueued -down-> Building
-  Building -down-> Built
-  Building -right-> BuildFailed : error / timeout / Stop
-  BuildQueued -right-> BuildFailed : Stop before execution
-}
+start
+:Receive durable modeling task\nobjective + input assets + measurements\nparent revision + requested outputs;
 
-state "Local STEP + source files\nagent-visible folder" as Local
-state "Publication operation" as Publication {
-  state "Ingesting\nmodel_publish(stepPath, sourcePath, parentRevisionId)" as Ingesting
-  state "Verifying\nfrozen submitted STEP; isolated attempt" as Verifying
-  state "Complete staged artifact set" as Staged
-  state "Publish gate" as Gate <<choice>>
-  state "Ready revision\nimmutable manifest + durable event" as Ready #E8F3EC
-  state "Failed / cancelled / fenced" as Failed #FCE9E7
-  Ingesting -down-> Verifying : capture exact bytes; enqueue verification
-  Verifying -down-> Staged : valid geometry + GLB + PNG + report
-  Staged -down-> Gate : compare attempt lease + cancellation fence
-  Gate -down-> Ready : commit all references atomically
-  Gate -right-> Failed : stale attempt / Stop
-  Verifying -right-> Failed : invalid geometry / resource limit / Stop
-  Ingesting -right-> Failed : incomplete files / invalid source / Stop
-}
+repeat
+  :CAD agent revises FreeCAD Python\nor requests more evidence of existing geometry;
+  :Freeze source / geometry reference\nviews + checks + requested output types;
+  :Queue evaluation; lease bounded attempt;
+  :Ensure geometry\nreuse live handle / restore native snapshot\nor build explicitly supplied source;
 
-[*] -down-> BuildQueued
-Built -down-> Local : MCP downloads completed output
-Local -down-> Ingesting : explicit submission by agent
-Ready -down-> [*]
+  if (Geometry available?) then (yes)
+    :Pin immutable geometry handle; retain snapshot + provenance;
+    :Render requested images\ncompute requested numerical checks;
+    if (Preview or export requested?) then (yes)
+      :Derive requested GLB / STEP\nfrom the same evaluated geometry;
+      :Validate export if present;
+    endif
+    :Record each artifact's availability\nand each check's measured / pass / fail / error state;
+    :Release query pin; keep geometry for subsequent evidence;
+  else (no)
+    :Retain error report and available diagnostics;
+  endif
 
-note left of Local
-  Existing local STEP + source may enter here.
-  A worker path is not automatically an agent path.
-  Folder contents do not automatically become chat assets.
+  :Persist evaluation outcome + evidence;
+  :Local MCP materializes completed files\ninside the CAD session workspace;
+  :CAD agent opens images and reads measurements;
+  :Explicitly publish selected evidence by local path\nimmutable result set linked to source revision + run;
+
+  note right
+    A publication may contain PNG + metrics JSON only.
+    Source revision, evaluation, artifact availability,
+    check outcomes, and published results are separate records.
+    Existing evidence stays available after a failed iteration.
+  end note
+
+repeat while (Revise again within task budget?) is (yes) not (no)
+
+:Return evidence / interpretation / available artifacts\nor clarification request to conversational agent;
+note right
+  CAD session and task remain recoverable.
+  Clarification is answered through the user's chat.
+  A final downloadable design includes STEP + source.
+  Extra views / metrics / exports reuse ensured geometry.
+  An expired handle can be restored from its native snapshot without rebuilding source.
 end note
-note right of Verifying
-  Reopen the exact submitted STEP.
-  Derive GLB and fixed-camera PNG from that geometry.
-  Record units and coordinate conversion.
-  No generated Python runs in the verifier.
-end note
-note right of Ready
-  revisionId + parentRevisionId + file digests
-  source.py + parameters.json + part.step
-  preview.glb + verification PNGs + validation.json
-  A new design gets a new revision; old files stay intact.
-end note
-note bottom of Publication
-  Build jobs, publication jobs, ACP turns, and revisions have independent states.
-  Retrying unchanged input uses a new attempt ID and the same operation identity.
-  Older completion cannot silently replace a newer selected revision.
-  Local path is a transfer input; assetId / revisionId is the durable identity.
-end note
+stop
+
+legend bottom
+  TRD-21–28: FreeCAD is the rendering and verification service; the CAD agent owns the loop.
+  Every commit checks attempt ownership and cancellation. Stop rejects unpublished late results.
+endlegend
 @enduml

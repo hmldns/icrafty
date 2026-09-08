@@ -1,0 +1,76 @@
+@startuml cad-contract
+!include theme.iuml
+title CAD core — ensure geometry once, request evidence repeatedly
+autonumber
+
+participant "Caller\nCLI / test harness / adapter" as Caller
+participant "Evaluator supervisor" as Eval
+participant "FreeCAD build process\ngenerated model.py" as Build #F9E4E2
+participant "Retained clean FreeCAD runtime\nimmutable loaded geometry" as Verify
+database "Native snapshots +\nprivate query result directories" as Run
+
+Caller -> Eval : ensure_geometry(source files / native bundle)
+Eval -> Eval : validate / freeze inputs; compute build key
+note over Caller, Run
+  Build key: source, build parameters, declared inputs, native versions/settings.
+  Views, annotations, metrics and exports do not change geometry identity.
+  Source-based evaluate remains a convenience that ensures and queries in one call.
+end note
+
+alt compatible geometry already loaded
+  Eval -> Verify : reuse immutable cached geometry
+else compatible native snapshot available
+  Eval -> Run : read native bundle + provenance
+  Eval -> Verify : restore native geometry without executing source
+else source explicitly supplied
+  Eval -> Build : invoke build(parameters, local input paths)
+  Build --> Eval : staged native bundle / feature map, or build error
+  Eval -> Run : freeze native snapshot + provenance, if available
+  Eval -> Verify : load available native geometry; never run generated code here
+end
+Verify --> Eval : live geometry_handle + geometry digest, or diagnostics
+Eval --> Caller : ensure result + handle / native snapshot reference
+
+opt geometry ensured
+  loop subsequent evidence requests for this geometry
+    Caller -> Eval : evaluate_geometry(handle, request, new output directory)
+    Eval -> Verify : validate live handle; pin immutable geometry
+    alt handle live and pinned
+    opt PNG requested
+      Verify -> Run : separate views / composed grids / both;\nJSON sidecars + inline labels from shared annotation records
+    end
+    opt measurements or checks requested
+      Verify -> Run : computed values, units, targets, criteria, outcomes
+    end
+    opt STEP / GLB requested and supported
+      Verify -> Run : requested exports + validation evidence
+    end
+    Verify --> Eval : independent artifact / annotation / metric outcomes
+    Eval -> Verify : release query pin; retain geometry for another request
+    else expired / released / unknown handle
+      Verify --> Eval : geometry_unavailable; no source execution
+    end
+    Eval -> Run : finalize result.json atomically after completed files
+    Eval --> Caller : local result path + query outcome
+  end
+  opt caller releases geometry
+    Caller -> Eval : release_geometry(handle)
+    Eval -> Verify : release cached state once no query pins it
+  end
+end
+
+note over Caller, Run
+  Handles are stable while live; expiry/restart is explicit, never a hidden source rebuild.
+  Restore a retained native snapshot to obtain a new handle; query state never mutates geometry.
+  Each query gets its own immutable result. Failed checks preserve useful evidence; STEP is optional.
+  Titles appear at each view's top-left when inline annotations are selected; JSON keeps view/camera coordinates.
+  No chat, ACP or MCP dependency inside this core. Message grouping belongs to the wrapper.
+end note
+
+legend bottom
+  Review draft: docs/M-CAD.md, M-CAD-1–20 and M-CAD-31–36. Examples: cad/examples/cylinder/.
+  One-shot CLI can read a native bundle; retained local runtimes/harnesses can use live handles.
+  Separate diagram cad-handoff covers transfer, durable operations and publication.
+  Local process boundaries are a development stage; Docker later enforces isolation (TRD-25, TRD-37).
+endlegend
+@enduml

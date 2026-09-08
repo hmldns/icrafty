@@ -35,11 +35,12 @@ Attached --> Attached : view / download / agent retrieval
 note right of Ready
   assetId, projectId, kind, MIME, bytes, SHA-256
   dimensions, normalized orientation, createdAt
-  derivedFromAssetId and sourceRevisionId where applicable
+  derivedFromAssetId, sourceRevisionId, runId where applicable
   Storage key and temporary URL are not the asset identity.
 end note
 note right of Derived
-  Model snapshot records revision + GLB hash + camera pose.
+  Browser model snapshot records revision + GLB hash + camera pose.
+  FreeCAD renders reference their run and native geometry snapshot.
   Annotation coordinates refer to normalized source pixels.
   Flattened PNG is directly visible to the agent.
   Keep the source unchanged; edits create another asset.

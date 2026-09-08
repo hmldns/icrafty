@@ -1,0 +1,64 @@
+@startuml sessions
+!include theme.iuml
+title Crafty — one recoverable container per agent session
+autonumber
+
+participant "API / session records" as API
+participant "Runtime orchestrator" as Orch
+participant "Container engine" as Engine
+database "Session-specific\npersistent volumes" as Volumes
+participant "Session container\nsupervisor + ACP adapter + Codex" as Runtime
+
+API -> Orch : ensure_running(agentSessionId, role)
+Orch -> API : acquire exclusive ownership; record next generation
+Orch -> Engine : inspect / stop any previous container for this session
+Engine --> Orch : confirmed stopped and detached
+note over Orch, Engine
+  If the old writer cannot be stopped, recovery stays pending.
+  Revoking API credentials does not prevent filesystem writes.
+end note
+Orch -> Volumes : select this session's workspace + Codex-state volumes
+Volumes --> Orch : stable volume IDs
+Orch -> Engine : create pinned image; mount at same absolute paths
+Engine -> Runtime : start private session runtime
+Runtime -> Runtime : register readers; initialize ACP + scoped MCP tools
+
+alt first use
+  Runtime -> Runtime : session/new(cwd, mcpServers)
+  Runtime -> API : save ACP session ID for application agentSessionId
+else recovering existing session
+  Runtime -> Runtime : session/resume or session/load(saved ACP session ID)
+  Runtime -> API : reconcile replay and task / turn state
+end
+
+Runtime -> API : ready(agentSessionId, generation)
+API -> Runtime : dispatch permitted prompt / handoff
+
+opt idle shutdown
+  API -> Orch : suspend after active work settles
+  Orch -> Engine : stop container; await exit
+  Engine --> Orch : stopped
+  Orch -> API : suspended; release writer ownership
+  note over Orch, Volumes
+    Keep workspace, Codex state, ACP mapping, and task records.
+    Retiring a container is not deleting a session.
+  end note
+end
+
+opt crash or restart
+  Orch -> API : fence old generation; mark uncertain work interrupted
+  Orch -> Engine : confirm old runtime stopped
+  Orch -> Volumes : retain and remount the same session volumes
+  Orch -> Engine : replace container; repeat ACP recovery
+  note over API, Runtime
+    New container ID; same application session and saved ACP session.
+    Never blindly replay an uncertain prompt or side effect.
+    Conversational and CAD sessions recover independently.
+  end note
+end
+
+legend bottom
+  TRD-7–12: same lifecycle for each agent role; no shared writable session mounts.
+  Browser reconnect replays application events and does not itself replace an agent container.
+endlegend
+@enduml

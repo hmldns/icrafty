@@ -32,6 +32,21 @@ an agent or server. Camera access needs browser permission and a secure context
 the source server allowing cross-origin requests; downloading a file yourself
 and importing it locally also works.
 
+## CAD and documentation
+
+The [documentation index](docs/README.md) separates product requirements,
+technical decisions, and module contracts. For CAD review, start with
+[M-CAD.md](docs/M-CAD.md): a code file or ensured geometry and explicit requests
+go in; artifacts and computed metrics come out. The [handoff protocol](docs/architecture/CAD-PROTOCOL.md)
+describes how a later MCP wrapper transfers those files.
+
+The [cad/](cad/README.md) uv project is scaffolded; the evaluator remains to be
+implemented. Prepare it from the repository root with `uv sync --directory cad`.
+The first implementation target is a local cylinder/cap verification loop, then
+the same evaluator contract packaged in isolated Docker.
+The [prepared implementation brief](docs/CAD-IMPLEMENTATION.md) defines that
+assignment and the evidence required at handoff.
+
 ## Development
 
 Frontend code and its conventions live in [src/frontend/](src/frontend/AGENTS.md).

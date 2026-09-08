@@ -1,0 +1,6 @@
+.venv/
+.uv-cache/
+dist/
+runs/
+.pytest_cache/
+.ruff_cache/

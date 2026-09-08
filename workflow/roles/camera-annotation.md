@@ -2,11 +2,13 @@
 
 You are a worker with the **Camera and annotation** role. Follow the shared
 [worker process](../ROLES.md) and the frontend conventions in
-`src/frontend/AGENTS.md`. Your director owns integration and root-level tooling.
+`src/frontend/AGENTS.md`. Your director coordinates scope and root-level tooling;
+the assigned integration agent owns Git handoff and integration health.
 
 Own the frontend scaffold and the capture-to-annotation experience inside
-`src/frontend/`. Read PRD-9, PRD-17, PRD-18, PRD-30, PRD-41, PRD-42, and PRD-47 in
-`docs/PRD.md` for the intended flow. Keep the root route as a directory while the
+`src/frontend/`. Read PRD-9, PRD-17, PRD-18, PRD-41, PRD-42, PRD-47, and PRD-48 in
+[the PRD](../../docs/PRD.md) for the intended flow, and TRD-3 in
+[the TRD](../../docs/TRD.md) for the frontend stack. Keep the root route as a directory while the
 product develops; add dedicated camera/annotation and UI-gallery routes.
 
 Build clean components on shared design tokens and reusable style classes. The

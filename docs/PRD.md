@@ -3,6 +3,9 @@
 This inventory develops the original [IDEA.md](IDEA.md) and the product discussion.
 Keep the original idea unchanged. Use each stable PRD identifier when discussing
 or updating a requirement; do not renumber existing statements as the document grows.
+This document describes product behavior and outcomes. Implementation decisions
+live in [TRD.md](TRD.md), with their own identifiers. Gaps in the PRD counter are
+intentional where technical statements have moved; do not reuse those identifiers.
 
 **Confirmed** records the agreed direction. **Proposed** marks a suggested default
 or acceptance condition. **Open** identifies a decision still to be made.
@@ -41,7 +44,7 @@ the app.
 
 **PRD-7 — Chat workspace.** **Confirmed.** Chat is the primary workspace. Show
 questions, answers, photos, drafts, interactive 3D models, and revisions in the
-conversation, with assets supplied through the MCP integration.
+conversation.
 
 **PRD-8 — Suggestions and dialog.** **Confirmed.** The agent may suggest a fix
 in words, generated sketches, or 3D drafts, depending on what helps the
@@ -62,7 +65,7 @@ request format to suit the conversation; a sketch is not required for every
 measurement question.
 
 **PRD-11 — Dimension input.** **Confirmed.** Support answers in chat, submitted
-sketches or images with labels, and forms generated through MCP. A form may link
+sketches or images with labels, and forms presented by the agent. A form may link
 to an image and its labels and contain size inputs or open questions. The agent
 can use these interactions as needed within the conversation.
 
@@ -107,9 +110,11 @@ the annotated image and determine which draft or model the user wants changed.
 artifacts in the conversation. Preserve earlier artifacts so the user can expand
 and inspect previous versions.
 
-**PRD-20 — Artifact consistency.** **Proposed.** Associate each model preview,
-FreeCAD source, and generated export with the same part revision. The preview and
-download for a revision must describe the same generated geometry.
+**PRD-20 — Artifact consistency.** **Confirmed.** Associate images, measurements,
+interactive previews, editable source, and exports with the design revision and
+evaluation that produced them. Available previews and downloads must describe the
+same geometry. An early evaluation can contain images or numerical results without
+a STEP file.
 
 **PRD-21 — Replying to assets.** **Proposed.** An asset card may provide a reply
 button that attaches the selected artifact to the next chat message. This lets
@@ -123,56 +128,26 @@ download. Asset cards can also offer downloads of their available files.
 
 ## Agent interaction
 
-**PRD-23 — Codex and ACP.** **Confirmed.** Connect the chat to Codex through the
-requested ACP integration, with MCP tools available to the agent. Stream responses
-and expose supported activity in the conversation.
+**PRD-23 — Streaming conversation.** **Confirmed.** Show responses progressively
+and expose useful activity while the agent works, so the user can follow progress
+within the conversation.
 
-**PRD-24 — MCP result components.** **Confirmed.** Render MCP tool calls and
-results using useful interactive frontend components where they help visualize
-results, navigate assets, or collect user input. These components may include
-forms with image references, dimension inputs, and open questions as described
-in PRD-11. Return submitted input to the agent in the same conversation. Exposed
-ACP activity, including supported status and summary events, should support
+**PRD-24 — Interactive results.** **Confirmed.** Present useful interactive
+components within chat to visualize results, navigate assets, or collect user
+input. These may include forms with image references, dimension inputs, and open
+questions as described in PRD-11. Return submitted input to the agent in the same
+conversation. Activity, including useful status updates and summaries, supports
 suitable collapse and expand behavior.
 
 **PRD-25 — Progress and errors.** **Proposed.** Show generation progress and
 errors in their conversational context. Preserve previous successful artifacts
 when a generation attempt fails, so the user can continue from existing work.
 
-## Technical constraints
+## Access and scope
 
-**PRD-26 — Python backend.** **Confirmed.** Use Python for the backend.
-
-**PRD-27 — Python tooling.** **Confirmed.** Use `uv` for Python project setup,
-dependency management, and running project commands.
-
-**PRD-28 — FreeCAD output.** **Confirmed.** Generate FreeCAD Python declarative
-part code and use FreeCAD to produce the STEP file. Provide an interactive browser
-preview of the generated part.
-
-**PRD-29 — FreeCAD service.** **Confirmed.** Run FreeCAD as an isolated service
-with an API and memory constraints.
-
-**PRD-30 — Frontend stack.** **Confirmed.** Use TypeScript, React, Vite, Tailwind,
-and Three.js. Add a useful React binding for Three.js if needed.
-
-**PRD-31 — Codex runtime.** **Confirmed.** Run Codex in a container with mounted
-credentials and working directories while retaining streaming support. The user
-will authorize Codex on the server.
-
-**PRD-32 — Shared asset access.** **Confirmed.** Images and generated outputs must
-be accessible as files to the agent and retrievable through the backend. Support
-passing assets between the conversation and agent in both directions, including
-stored annotated images. Agent-facing references must resolve to retrievable
-file content. Account for retrieval across isolated services; an additional tool
-to fetch or download an asset is a possible mechanism. S3 remains a possible
-storage approach, not a settled dependency.
-
-**PRD-33 — Deployment.** **Confirmed.** Deploy on DigitalOcean at the purchased
-domain `icrafty.ai`, using Docker, Docker Compose, and Caddy.
-
-**PRD-34 — Multiple users.** **Confirmed.** Keep the design ready for multiple
-users. Full multiuser authorization is deferred for the first implementation.
+**PRD-34 — Multiple users.** **Confirmed.** Keep the product ready for multiple
+users with private repair projects. Full account management is deferred for the
+first implementation.
 
 ## Printing and remaining dependencies
 
@@ -187,21 +162,6 @@ how the printing video and finished-part photo will be collected. This is
 external demo preparation and does not block completion of the app's download
 flow.
 
-**PRD-37 — Existing integration references.** **Open.** Obtain the user's
-existing ACP/MCP chat implementation. Verify the integration adapter, event
-handling, and reusable tool-result components before implementing those pieces.
-The ACP feasibility plan should assess stopping active work, submitting the next
-message, optional message queuing under PRD-46, and retrieving stored assets
-across isolated services under PRD-32.
-
-**PRD-38 — Sketch generation.** **Open.** Establish how Codex produces sketch
-images and returns them through the MCP asset flow. The product requires visual
-drafts; the generation mechanism has not been selected.
-
-**PRD-39 — Asset implementation.** **Open.** Select the browser preview format,
-asset storage approach, and download implementation while preserving shared
-agent/backend access and consistency between model revisions and exports.
-
 ## First-build acceptance
 
 **PRD-40 — Complete journey.** **Proposed.** The first implementation should
@@ -209,14 +169,14 @@ support a complete session from describing an object through capturing and
 reviewing several photos, discussing a fix and its dimensions, generating a
 model, submitting stored annotated feedback, and downloading a revised part.
 Generation may use supplied details or the user's explicit request to proceed
-with available knowledge. Include image attachment, MCP input forms, retained
-chat assets, normal chat turn controls under PRD-46, and deployment in this scope.
+with available knowledge. Include image attachment, input forms, retained chat
+assets, normal chat turn controls under PRD-46, and a working hosted product.
 
 **PRD-41 — Capture and generation check.** **Proposed.** Demonstrate capturing
 multiple laptop camera images in one dialog using the on-screen control and
 keyboard shortcut, deleting unwanted shots, and submitting retained images to
 the agent. Demonstrate measurement requests and answers through conversation,
-labeled images, and MCP forms with image references. Generate a part with a
+labeled images, and forms with image references. Generate a part with a
 downloadable STEP file and an interactive preview of the same revision, both
 when enough information is available and at the user's explicit request using
 available knowledge.
@@ -242,31 +202,53 @@ workflow for missing or uncertain measurements later in the product's life.
 For the current build, follow PRD-12: the user may ask the agent to proceed with
 its best available knowledge.
 
-**PRD-45 — Printing integration extension.** **Confirmed.** Keep the architecture
-open to adding tools, such as an additional MCP integration, that can submit a
-selected asset or part revision to an external service for print preparation.
-Implementing that submission, selecting a provider, and operating the printing
-workflow are outside the current build's scope.
+**PRD-45 — Printing integration extension.** **Confirmed.** Leave room for a
+future capability to submit a selected asset or part revision to an external
+service for print preparation. Implementing that submission, selecting a provider,
+and operating the printing workflow are outside the current build's scope.
 
 ## Chat controls and interface references
 
 **PRD-46 — Turn controls and optional queuing.** **Confirmed.** Use normal chat
 behavior: the user can stop current work and submit a new message, or wait until
 the current turn finishes before sending another. Add queued messages if they
-are straightforward to support through the ACP integration. Treat queuing as a
-feasibility decision for the ACP plan, rather than a requirement for completing
-the first product build.
+are straightforward to support. Queuing is optional for the first product build.
 
 **PRD-47 — Annotation interface reference.** **Open.** The user has reference
 images for a drawing and annotation tool. Review those references when designing
 the image editor and its controls within the capture and feedback flows.
 
-## Immediate frontend milestone
+## Immediate capture milestone
 
 **PRD-48 — Annotation downloads for evaluation.** **Confirmed.** The nearest
 camera-feature goal is to collect images from the camera, files, or the web,
 annotate them, and download the current annotated image directly from the editor
 for use in an evaluation loop. Download includes unsaved marks and keeps the
 editor open for further edits and downloads. Preserve the original image and
-editable annotations. This local preparation flow can precede agent and backend
-integration.
+editable annotations. This local preparation flow can be used before the
+connected design-generation workflow is available.
+
+## Evaluation and continuity
+
+**PRD-50 — Early evaluation results.** **Confirmed.** Show images, numerical
+checks, interactive previews, or available exports as useful during design.
+Images and checks must be available early for quick feedback without requiring
+a STEP export on every iteration. Preserve useful intermediate results. The
+final download outcome under PRD-5 still includes STEP.
+
+**PRD-51 — Numerical verification.** **Confirmed.** Communicate computed geometric
+measurements and aggregate or integral properties, such as dimensions, area,
+volume, and center of volume. Associate results with their evaluated geometry,
+units, requested criteria, and pass/fail or measurement status. Keep computed
+evidence distinct from agent interpretation and estimated inputs. The initial
+set of calculations can grow as modeling requires it.
+
+**PRD-53 — Modeling continuity.** **Confirmed.** Keep modeling work connected to
+the repair objective, submitted images and annotations, measurements, assumptions,
+and the revision being changed. Present findings and clarification requests in
+the same conversation so the user can follow and correct the design work.
+
+**PRD-54 — Recoverable work.** **Confirmed.** Let the user return to a repair
+with its conversation, submitted assets, and completed results intact. A restart
+or interrupted operation must not erase that work. Make interrupted work visible
+so the user can decide how to continue.

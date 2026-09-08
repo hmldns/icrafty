@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "geometry": {"handle": "replace-with-live-geometry-handle"},
+  "parameters": {},
+  "inputs": {},
+  "outputs": [],
+  "metrics": [
+    {
+      "id": "body.volume",
+      "kind": "volume",
+      "target": {"part": "body"},
+      "unit": "mm^3",
+      "criterion": {"equals": 6283.185307179586, "absolute_tolerance": 0.001}
+    }
+  ]
+}

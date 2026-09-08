@@ -1,0 +1,69 @@
+@startuml cad-development
+!include theme.iuml
+title CAD development — deterministic evaluator, part trials, then Docker
+
+start
+:Select the next fixture family and its outcome;
+note right
+  Proposed progression:
+  1. Cylinders, sleeves, caps: basic dimensions and volume.
+  2. Bolt / nut bodies: named features, bores, mating references.
+  3. External / internal thread pairs: profile, pitch, handedness,
+     engagement and clearance at recorded assembly poses.
+  4. Custom threaded nuts and matching profiles.
+  5. More complex booleans, fillets, intersecting bores, lofts.
+  Each family includes expected-good and intentionally-bad cases.
+end note
+:Define independent expected measurements, tolerances,\nrequired views, failure cases, and execution budget;
+
+repeat
+  :Implement or change file-based evaluator, checks, result contract;
+  :Run local Makefile verification suites through uv\ncontracts / geometry / views / exports / reuse / failures;
+  :Inspect Rich progress and summaries + JSON reports / HTML gallery\nincluding JSON/inline annotations, errors, and timeouts;
+  :Verify one build -> many queries with stable geometry\nand native-snapshot restore without source execution;
+repeat while (Service contract or known-result regression fails?) is (yes) not (no)
+
+repeat
+  :Run CAD-agent task trial against the fixed fixture criteria;
+  :Agent submits code -> inspects images / checks -> revises;
+  :Record success / failure, final evidence,\niterations, runtime, and questions requiring user input;
+  if (Trial exposes a service defect?) then (yes)
+    :Fix service; rerun affected deterministic regressions;
+  else (no)
+    :Refine task context / agent instructions if needed;
+  endif
+repeat while (Trial needs revision and budget remains?) is (yes) not (no)
+
+if (Assigned part outcome demonstrated?) then (yes)
+else (no)
+  :Retain trial evidence and report the unmet outcome;\nresolve the service defect or missing task information;
+  stop
+endif
+
+:Review fixture-family evidence and readiness for the next family;
+note right
+  Start delegation with cylinders / cap geometry.
+  Review reports and artifacts before expanding the fixture family.
+  Failure is a retained result; do not relax criteria to obtain a pass.
+  An image review and a numeric assertion are different evidence types.
+end note
+
+:Package the working service in isolated Docker;
+:Run the same fixtures and agent trial contract\nwith mounted inputs / outputs and execution limits;
+
+while (Container behavior or isolation checks fail?) is (yes)
+  :Fix packaging / runtime configuration;
+  :Repeat the affected acceptance checks;
+endwhile (no)
+
+:Delegation outcome package\nsource + repeatable commands + fixture corpus\nreports / images / optional exports + known limitations;
+stop
+
+legend bottom
+  Review draft: M-CAD-21–29 and M-CAD-37–42. Local Makefile targets are planned, not implemented.
+  Deterministic service regressions and CAD-agent task trials are separate development loops.
+  Local CLI works before MCP. The same requests and result files survive packaging and adapter work.
+  Thread profile and clearance criteria need selection before the thread stage (M-CAD-26).
+  Geometric checks are the software gate; physical printed fit is separate evidence.
+endlegend
+@enduml

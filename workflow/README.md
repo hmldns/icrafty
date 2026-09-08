@@ -1,14 +1,16 @@
 # Project-local Codex builders
 
 Read [ROLES.md](ROLES.md) for director and worker responsibilities. Shared project
-context and conventions live in the root [AGENTS.md](../AGENTS.md), ready to fill
-in as the project develops. This folder owns the workflow's tools and process.
+context, repository structure, and conventions live in the root
+[AGENTS.md](../AGENTS.md). This folder owns the workflow's tools and process.
 
 The director works in the main checkout. Narrow, persistent workers run interactive
 Codex in separate Git worktrees and tmux windows in **`crafty-builders`**. The user
 can enter any window and give directions. A single durable inbox returns their
-reports, questions, lifecycle events, and failures to the director. The director
-reviews and merges accepted commits into its own checkout.
+reports, questions, lifecycle events, and failures to the director. Builders own
+implementation and acceptance. The director coordinates their work and routes
+completed reports to the assigned [integration agent](roles/integration.md), which
+owns Git handoff and combined runtime health in the main checkout.
 
 ```mermaid
 flowchart LR
@@ -21,7 +23,9 @@ flowchart LR
   B -->|reports and hooks| Q
   S[tmux scan] -->|exit or missing pane| Q
   Q -->|builders wait returns| D
-  D -->|review and merge exact commits| G[Director Git checkout]
+  D -->|completed reports and dependencies| I[Integration agent]
+  I -->|check handoff and merge exact commits| G[Main Git checkout]
+  I -->|integration result| D
 ```
 
 ## Setup and locality
@@ -242,29 +246,36 @@ Codex UI errors still require inspecting the worker window.
 
 ## Review, merge, and reuse
 
+The integration agent checks the reported commit and its compatibility with main,
+using the builder's feature-validation report. It owns the merge and checks any
+integration changes. The director coordinates follow-up assignments. Do not have
+both roles operate the main index or repeat the builder's acceptance work.
+
 ```bash
+# Integration agent, from the main checkout:
 ./workflow/builders inspect api-health
 ./workflow/builders diff api-health
 ./workflow/builders merge api-health
-# Run the appropriate combined project checks here.
+# Run checks relevant to integration changes or runtime handoff.
+# Director, after the integration agent reports completion:
 ./workflow/builders assign api-health --prompt 'Next narrow task with the same role.'
 ```
 
 `merge` requires a done report, a clean worker tree at the reported commit, and
 a clean director checkout on the configured director branch. It checks that the
 worker's history still descends from its assignment base. It rejects changes
-outside owned paths unless the director explicitly supplies
-`--allow-outside-scope`. Review that exception before using it.
+outside owned paths unless `--allow-outside-scope` is supplied. Coordinate a scope
+exception with the director before the integration agent uses it.
 
 Integration uses a normal Git merge of the **reported commit ID**, with
-`--no-ff --no-edit`; the tool never substitutes a moving branch tip. Only the
-director invokes it. Conflicts remain in the director checkout for resolution:
+`--no-ff --no-edit`; the tool never substitutes a moving branch tip. The assigned
+integration agent invokes it. Conflicts remain in the main checkout for resolution:
 resolve and commit, then retry `builders merge NAME` to record integration. To
 back out of a conflict instead, run `git merge --abort`. No automatic reset or
 conflict resolution discards work.
 
-If the director has already merged the reported commit manually, `merge` verifies
-that it is an ancestor of the director's `HEAD` and only records integration.
+If the integration agent has already merged the reported commit manually, `merge`
+verifies that it is an ancestor of main's `HEAD` and only records integration.
 This recording step preserves local edits and untracked files; it does not run
 another Git merge or touch the index. A merge that changes the checkout still
 requires it to be clean.
@@ -276,7 +287,8 @@ the same Codex thread and window. It keeps the existing role and scope; repeat
 `--scope` to replace the scope for the next task. Commit director changes first.
 
 If a worker cannot commit because of Git sandbox permissions, it reports blocked.
-After reviewing its changes and ensuring it is paused, the director can run:
+The director can route this handoff to the integration agent. After checking the
+worker's owned changes and ensuring it is paused, that agent can run:
 
 ```bash
 ./workflow/builders checkpoint api-health -m 'Implement the reviewed health endpoint'

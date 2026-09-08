@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "source": "model.py",
+  "parameters": {
+    "radius_mm": 10,
+    "height_mm": 20
+  },
+  "inputs": {},
+  "outputs": [
+    {
+      "id": "iso",
+      "kind": "png",
+      "parts": ["body"],
+      "annotations": {"json": true, "inline": true},
+      "view": {"preset": "isometric", "width": 1024, "height": 768}
+    }
+  ],
+  "metrics": [
+    {
+      "id": "body.valid",
+      "kind": "validity",
+      "target": {"part": "body"},
+      "unit": "1",
+      "criterion": {"equals": true}
+    },
+    {
+      "id": "body.solids",
+      "kind": "solid_count",
+      "target": {"part": "body"},
+      "unit": "1",
+      "criterion": {"equals": 1}
+    },
+    {
+      "id": "body.width",
+      "kind": "bbox_extent",
+      "target": {"part": "body"},
+      "axis": "x",
+      "unit": "mm",
+      "criterion": {"equals": 20, "absolute_tolerance": 0.001}
+    },
+    {
+      "id": "body.volume",
+      "kind": "volume",
+      "target": {"part": "body"},
+      "unit": "mm^3",
+      "criterion": {"equals": 6283.185307179586, "absolute_tolerance": 0.001}
+    }
+  ]
+}

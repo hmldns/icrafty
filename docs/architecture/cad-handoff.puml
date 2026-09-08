@@ -1,0 +1,72 @@
+@startuml cad-handoff
+!include theme.iuml
+title CAD wrapper — transfer files without changing the evaluator contract
+autonumber
+
+box "CAD session container + persistent workspace" #EAF2F8
+  participant "CAD agent" as Agent
+  participant "Local MCP adapter" as MCP
+end box
+participant "Backend + dispatcher\ndurable operation / attempt state" as App
+database "Scoped immutable storage" as Store
+participant "Isolated FreeCAD attempt\nM-CAD local file contract" as Core #F9E4E2
+
+Agent -> MCP : asset_fetch(asset_id), if an input is needed
+MCP -> App : authorized asset retrieval
+App -> Store : read immutable bytes
+Store --> App : bytes + digest
+App --> MCP : bytes + digest
+MCP --> Agent : completed file in this session's workspace
+
+Agent -> Agent : write model.py + request.json + declared inputs
+Agent -> MCP : cad_evaluate(request_path, idempotency_key)
+MCP -> MCP : validate allowed paths; snapshot completed local files
+MCP -> App : input bundle bytes + relative manifest + idempotency key
+App -> Store : finalize frozen input bundle
+App -> App : accept operation once; persist task / session context
+App --> MCP : operation_id + accepted status
+MCP --> Agent : operation_id for status / bounded wait
+
+App -> Core : materialize declared files; route to CLI or retained runtime;\nevaluate with private query output directory
+note over MCP, Core
+  A source path is meaningful only where its bytes live.
+  Transfer bytes; preserve relative request paths and digests.
+  Runtime/mount authority belongs to the dispatcher, never submitted code.
+end note
+Core -> Core : ensure / reuse geometry -> requested evidence -> result.json
+Core --> App : query completion + finalized files, or interrupted attempt;\nretained runtime stays alive
+App -> App : verify paths / digests / attempt ownership / cancellation
+App -> Store : capture completed evidence; record outer operation outcome
+
+Agent -> MCP : cad_status / bounded cad_wait(operation_id)
+MCP -> App : retrieve state + completed result bundle
+App --> MCP : result.json + completed files + digests
+MCP -> MCP : materialize bundle atomically in session-local run directory
+MCP --> Agent : operation/run IDs + local result / artifact paths
+
+Agent -> Agent : inspect files; revise code or return evidence
+opt explicit user-visible publication
+  Agent -> MCP : result_publish(selected local files, run_id, idempotency_key,\nmessage_mode: together / per_image)
+  MCP -> App : submit completed bytes + verified provenance
+  App -> Store : finalize immutable selected assets
+  App -> App : commit result manifest + ordered message identities once
+  App --> MCP : durable result / asset references
+  MCP --> Agent : durable result / asset references
+end
+
+note over Agent, App
+  Another agent receives stored references and fetches its own local copies.
+  Grid / separate images / both; deliver together or per image with the same result reference.
+  One MCP result can describe several images and chat messages (CAD-PROTOCOL-13).
+  Preserve JSON sidecars and inline labels together (CAD-PROTOCOL-14).
+  Scoped live geometry handles route to retained state; snapshot restore does not run source (CAD-PROTOCOL-15).
+  Retry and recovery use durable operation/attempt IDs; the core remains file based.
+  Stop fences stale capture/publication and stops the owned attempt process tree.
+end note
+
+legend bottom
+  Review draft: docs/architecture/CAD-PROTOCOL.md. M-CAD.md owns the inner contract.
+  Storing an evaluation is distinct from publishing selected results in chat.
+  ACP session recovery is background context, shown separately in sessions / acp-turn.
+endlegend
+@enduml

@@ -9,7 +9,8 @@ Read the [tooling guide](README.md) for commands and recovery procedures.
 
 Task-specific responsibilities can be supplied by a role profile, such as
 [Camera and annotation](roles/camera-annotation.md) or
-[3D model viewer](roles/model-viewer.md). Git handoff uses the separate
+[3D model viewer](roles/model-viewer.md), and
+[CAD service](roles/cad-service.md). Git handoff uses the separate
 [Integration](roles/integration.md) role. The launch prompt names the assigned
 role and profile alongside its task and owned paths.
 

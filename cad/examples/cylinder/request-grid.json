@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "source": "model.py",
+  "parameters": {
+    "radius_mm": 10,
+    "height_mm": 20
+  },
+  "inputs": {},
+  "outputs": [
+    {
+      "id": "overview",
+      "kind": "png",
+      "parts": ["body"],
+      "annotations": {"json": true, "inline": true},
+      "grid": {
+        "columns": 2,
+        "views": [
+          {"id": "iso", "preset": "isometric", "width": 800, "height": 600},
+          {"id": "top", "preset": "top", "width": 800, "height": 600},
+          {"id": "front", "preset": "front", "width": 800, "height": 600},
+          {"id": "right", "preset": "right", "width": 800, "height": 600}
+        ]
+      }
+    }
+  ],
+  "metrics": []
+}

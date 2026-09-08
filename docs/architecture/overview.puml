@@ -1,61 +1,58 @@
 @startuml overview
 !include theme.iuml
-title Crafty — deployment and isolation boundaries
+title Crafty — separate agents, persistent sessions, and FreeCAD evaluation
 top to bottom direction
 
 actor "Maker\ncaliper + object" as User
-component "Browser\nReact chat + capture / annotation\ninline images, forms, Three.js models" as Web
-node "DigitalOcean host · Docker Compose" {
-  component "Caddy · public edge\nicrafty.ai · HTTPS / WSS" as Edge
-  node "Application boundary · trusted Python / uv" #E8F3EC {
-    component "API + coordinator\nsole domain state owner\nasset ingestion / revision publication" as API
-    database "Metadata + durable events\nSQLite first" as DB
-    storage "Immutable blobs\nprivate API volume first" as Blobs
+component "Browser\nchat / capture / annotations\nimages / numerical evidence / 3D / downloads" as Web
+
+node "DigitalOcean host · Docker Compose + runtime orchestration" {
+  component "Caddy · public HTTPS / WSS\nicrafty.ai" as Edge
+  node "Trusted application · Python / uv" #E8F3EC {
+    component "API + task coordinator\nmessages / handoffs / evaluation jobs\nassets / result publication / event stream" as API
+    storage "Durable metadata + immutable blobs\nsession mappings / tasks / revisions / results" as State
+    component "Runtime orchestrator\ncreate / stop / recover containers\nexclusive session ownership + pinned mounts" as Orch
   }
-  node "Agent boundary · one project / owner" #FFF0E5 {
-    component "Python ACP supervisor\n-> Codex ACP adapter (ACP v1 stdio)\n-> Codex App Server (native stdio)" as Agent
-    component "Crafty MCP facade · local stdio\nasset_fetch -> localPath\nasset_publish / model_publish(path)\nrequest input · isolated CAD build" as MCP
-    storage "Chat scratch directories\nprivate agent home + credentials" as Work
-    note bottom of Work
-      No app DB, global blobs,
-      host workspace, or Docker socket.
+
+  node "Conversational session A · isolated container" #FFF0E5 {
+    component "Supervisor -> ACP adapter -> Codex\nuser dialog / measurements / CAD delegation\nlocal MCP: input requests + fetch / publish files" as Convo
+  }
+  node "CAD session B · isolated container" #FFF0E5 {
+    component "Supervisor -> ACP adapter -> Codex\ncode -> inspect renders / checks -> revise\nlocal MCP: FreeCAD evaluation + file handoff" as Cad
+  }
+  node "FreeCAD service · bounded execution attempts" #FCE9E7 {
+    component "Build native geometry\nrender requested views / compute checks\noptional GLB / STEP export" as FC
+    note bottom of FC
+      Execution and verification; no reasoning agent.
+      Images or numerical results can finish without STEP.
+      No network, provider credentials, or Docker socket.
+      CPU / memory / process / output / time limits.
     end note
   }
-  component "Trusted CAD launcher\nfixed images / entrypoints / job mounts\nonly component with container control" as Launcher #E8F3EC
-  node "Disposable execution boundary · each job attempt" #FCE9E7 {
-    component "Build container\nFreeCAD executes generated Python" as CAD
-    component "Isolated verification / preview\nreopen submitted STEP -> GLB -> PNG\nnever execute generated Python" as Verify
-    note bottom of Verify
-      No network, credentials, or Docker socket.
-      Unprivileged; read-only root; dropped caps.
-      CPU / RAM / PID / disk / time limits.
-      Only frozen inputs + bounded job outputs.
-    end note
-  }
+
+  storage "Session A persistent volumes\nworkspace + private Codex state" as VolA #FFF3CD
+  storage "Session B persistent volumes\nworkspace + private Codex state" as VolB #FFF3CD
 }
-cloud "Model / enabled image services" as Provider
 
 User --> Web
-Web --> Edge : commands / uploads / downloads\napplication event stream + cursor
+Web --> Edge : application routes + event cursor
 Edge --> API
-API -right-> DB : transaction + event
-DB -down[hidden]-> Blobs
-API -[norank]-> Blobs : finalize bytes
-API --> Agent : private scoped channel\ndispatch / acknowledged events
-Agent --> MCP : tool calls
-Agent -right-> Provider : provider egress
-MCP --> Work : materialize / publish bytes
-MCP -[norank]-> API : scoped domain HTTP\nasset / operation IDs
-API --> Launcher : lease / inputs / guarded completion\nlauncher initiates private connection
-Launcher --> CAD : create / stop / destroy
-CAD --> Verify : build -> local file handoff -> model_publish\nseparate verification job (logical lifecycle)
-Verify -[norank]-> Launcher : validated output set
-Agent -[hidden]right-> Launcher
+API -right-> State : sole domain state writer
+API --> Orch : desired session / job state
+Orch --> Convo : start / recover A
+Orch --> Cad : start / recover B
+Orch --> FC : start / stop attempts
+Convo --> VolA : exclusive mount
+Cad --> VolB : exclusive mount
+Convo -[hidden]right-> Cad
+Cad -[hidden]right-> FC
+
 legend bottom
-  Green: trusted state / orchestration   Orange: agent runtime   Red: generated-code execution
-  Private arrows describe logical exchange; only Caddy has public routes.
-  Agent and local MCP share a file namespace. Worker paths require explicit transfer.
-  Printing is a future additional MCP integration; current product ends at downloads.
-  Design proposal; services are not deployed yet. Protocol detail: acp-turn diagram.
+  TRD-5–13: each agent has its own ACP session, container, and persistent mounts.
+  Private ACP / MCP data flows and agent handoffs pass through the application; see acp-turn.
+  Local file paths are session-local. Shared project assets move through scoped fetch / publication.
+  Only the orchestrator has container-control authority. Container removal retains session volumes.
+  TRD-21–28: CAD agent owns iteration; FreeCAD provides images, numerical checks, and optional exports.
+  Confirmed architecture direction with proposed implementation details; no deployed services implied.
 endlegend
 @enduml
