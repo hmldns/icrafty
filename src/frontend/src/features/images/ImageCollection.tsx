@@ -62,7 +62,9 @@ function ImageCard({
                 ? "Local file"
                 : image.source.origin === "paste"
                   ? "Clipboard"
-                  : "Camera"}
+                  : image.source.origin === "model"
+                    ? "Model snapshot"
+                    : "Camera"}
           </span>
         </p>
         <div className="row">

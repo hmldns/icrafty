@@ -1,3 +1,5 @@
+import type { ModelProvenance } from "../models/types";
+
 export interface Point {
   x: number;
   y: number;
@@ -25,11 +27,13 @@ export const emptyHistory = (): EditHistory => ({
 export interface SourceImage {
   id: string;
   name: string;
-  origin: "file" | "paste" | "camera" | "url";
+  origin: "file" | "paste" | "camera" | "url" | "model";
   createdAt: string;
   width: number;
   height: number;
   blob: Blob;
+  /** Optional additive metadata: existing IndexedDB v1 images remain readable. */
+  model?: ModelProvenance;
 }
 export interface ImageDraft {
   sourceId: string;

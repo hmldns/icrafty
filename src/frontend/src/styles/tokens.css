@@ -41,4 +41,6 @@
   --text-small: 0.8125rem;
   --text-body: 0.9375rem;
   --text-label: 0.75rem;
+  --color-model-background: #eeeee5;
+  --color-model-surface: #87a89b;
 }

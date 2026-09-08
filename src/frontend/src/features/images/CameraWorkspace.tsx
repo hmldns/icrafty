@@ -1,78 +1,29 @@
-import { useCallback, useState } from "react";
-import { AnnotationEditor } from "../annotation/AnnotationEditor";
+import { useState } from "react";
 import { CameraPanel } from "../camera/CameraPanel";
-import { Button, LoadingState, Notice } from "../../components/ui/primitives";
-import { ImageCollection } from "./ImageCollection";
 import { ImageIntake } from "./ImageIntake";
-import { useCollection } from "./useCollection";
-import type { SourceImage } from "./types";
+import { ImageWorkspace, type ImageWorkspaceIntake } from "./ImageWorkspace";
 
-export function CameraWorkspace() {
-  const collection = useCollection();
+function CameraIntake({ addImage, loading }: ImageWorkspaceIntake) {
   const [cameraOpen, setCameraOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const editing = collection.images.find(
-    (image) => image.source.id === editingId,
-  );
-  const addImage = useCallback(
-    async (source: SourceImage, openEditor: boolean) => {
-      await collection.add(source);
-      if (openEditor) setEditingId(source.id);
-    },
-    [collection.add],
-  );
   return (
-    <div className="workspace">
+    <>
       <ImageIntake
         onAdd={addImage}
         onCamera={() => setCameraOpen(true)}
-        disabled={collection.loading}
+        disabled={loading}
       />
       {cameraOpen && (
         <CameraPanel
-          onCapture={collection.add}
+          onCapture={(source) => addImage(source, false)}
           onClose={() => setCameraOpen(false)}
         />
       )}
-      {collection.error && (
-        <Notice
-          tone="error"
-          action={
-            <Button
-              size="small"
-              onClick={() =>
-                collection.unsaved
-                  ? collection.retryDrafts()
-                  : void collection.reload()
-              }
-            >
-              {collection.unsaved ? "Retry saving" : "Retry loading"}
-            </Button>
-          }
-        >
-          {collection.error}
-        </Notice>
-      )}
-      {collection.loading ? (
-        <LoadingState>Opening your local image collection…</LoadingState>
-      ) : (
-        <ImageCollection
-          images={collection.images}
-          onEdit={setEditingId}
-          onDelete={collection.remove}
-        />
-      )}
-      {editing && (
-        <AnnotationEditor
-          key={editing.source.id}
-          image={editing}
-          onClose={() => setEditingId(null)}
-          onChange={collection.updateDraft}
-          onSave={collection.saveRevision}
-          pending={collection.pending > 0}
-          storageError={collection.error}
-        />
-      )}
-    </div>
+    </>
+  );
+}
+
+export function CameraWorkspace() {
+  return (
+    <ImageWorkspace>{(intake) => <CameraIntake {...intake} />}</ImageWorkspace>
   );
 }

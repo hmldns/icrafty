@@ -1,0 +1,285 @@
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  Badge,
+  Button,
+  Notice,
+  SelectField,
+} from "../../components/ui/primitives";
+import { errorMessage } from "../images/imageIO";
+import { importModel } from "./importModel";
+import { ModelScene } from "./modelScene";
+import { SectionControls, type ModelBounds } from "./SectionControls";
+import type {
+  ModelSnapshot,
+  ModelSource,
+  Projection,
+  SectionPlane,
+  ViewPreset,
+} from "./types";
+
+export interface ModelViewerProps {
+  source: ModelSource | null;
+  label?: string;
+  onSnapshot?: (snapshot: ModelSnapshot) => void | Promise<void>;
+  snapshotDisabled?: boolean;
+  snapshotLabel?: string;
+}
+
+const presets: ViewPreset[] = [
+  "front",
+  "back",
+  "left",
+  "right",
+  "top",
+  "bottom",
+  "isometric",
+];
+
+export function ModelViewer({
+  source,
+  label = "Model viewer",
+  onSnapshot,
+  snapshotDisabled = false,
+  snapshotLabel = "Snapshot",
+}: ModelViewerProps) {
+  const canvasHost = useRef<HTMLDivElement>(null);
+  const scene = useRef<ModelScene | null>(null);
+  const [retry, setRetry] = useState(0);
+  const generation = useMemo(() => ({}), [source, retry]);
+  const activeGeneration = useRef(generation);
+  activeGeneration.current = generation;
+  const helpId = useId();
+  const [state, setState] = useState<"empty" | "loading" | "ready" | "error">(
+    "empty",
+  );
+  const [error, setError] = useState("");
+  const [captureError, setCaptureError] = useState("");
+  const [capturing, setCapturing] = useState(false);
+  const [projection, setProjection] = useState<Projection>("perspective");
+  const [sections, setSections] = useState<SectionPlane[]>([]);
+  const [bounds, setBounds] = useState<ModelBounds | null>(null);
+  const [triangles, setTriangles] = useState(0);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setError("");
+    setCaptureError("");
+    setCapturing(false);
+    setSections([]);
+    setBounds(null);
+    setProjection("perspective");
+    if (!source || !canvasHost.current) {
+      setState("empty");
+      return;
+    }
+    // Each effect setup gets a fresh canvas, including React StrictMode replay.
+    const canvas = document.createElement("canvas");
+    canvas.tabIndex = -1;
+    canvas.setAttribute("aria-label", `${label} 3D canvas`);
+    canvas.setAttribute("aria-describedby", helpId);
+    canvasHost.current.replaceChildren(canvas);
+    setState("loading");
+    let runtime: ModelScene | undefined;
+    const fail = (cause: unknown) => {
+      if (controller.signal.aborted) return;
+      setError(errorMessage(cause));
+      setState("error");
+      controller.abort();
+      runtime?.dispose();
+      scene.current = null;
+    };
+    try {
+      runtime = new ModelScene(canvas, () =>
+        fail(
+          new Error(
+            "The graphics context was lost. Reload the model to recover.",
+          ),
+        ),
+      );
+      scene.current = runtime;
+      const current = runtime;
+      void importModel(source, controller.signal)
+        .then((model) => {
+          if (controller.signal.aborted || scene.current !== current) return;
+          current.setModel(model, source);
+          setBounds({
+            x: { min: current.bounds.min.x, max: current.bounds.max.x },
+            y: { min: current.bounds.min.y, max: current.bounds.max.y },
+            z: { min: current.bounds.min.z, max: current.bounds.max.z },
+          });
+          setTriangles(
+            model.meshes.reduce(
+              (count, mesh) =>
+                count + (mesh.indices?.length ?? mesh.positions.length / 3) / 3,
+              0,
+            ),
+          );
+          setState("ready");
+          canvas.tabIndex = 0;
+        })
+        .catch(fail);
+    } catch (cause) {
+      fail(
+        new Error(
+          `The 3D view could not start. This browser needs WebGL 2. ${errorMessage(cause)}`,
+        ),
+      );
+    }
+    return () => {
+      controller.abort();
+      runtime?.dispose();
+      canvas.remove();
+      if (scene.current === runtime) scene.current = null;
+    };
+  }, [source, generation, label, helpId]);
+
+  const capture = async () => {
+    if (!scene.current || !onSnapshot || capturing) return;
+    const currentGeneration = generation;
+    const currentScene = scene.current;
+    setCapturing(true);
+    setCaptureError("");
+    try {
+      const snapshot = await currentScene.snapshot();
+      if (
+        activeGeneration.current === currentGeneration &&
+        scene.current === currentScene
+      )
+        await onSnapshot(snapshot);
+    } catch (cause) {
+      if (
+        activeGeneration.current === currentGeneration &&
+        scene.current === currentScene
+      )
+        setCaptureError(errorMessage(cause));
+    } finally {
+      if (activeGeneration.current === currentGeneration) setCapturing(false);
+    }
+  };
+  const ready = state === "ready";
+  return (
+    <section
+      className="model-viewer card"
+      aria-label={label}
+      data-state={state}
+    >
+      <header className="model-heading">
+        <div>
+          <h2>{label}</h2>
+          <p className="small model-name">
+            {source?.identity.name ?? "Choose a STEP or STL model"}
+          </p>
+        </div>
+        {onSnapshot && (
+          <Button
+            variant="primary"
+            icon="camera"
+            disabled={!ready || capturing || snapshotDisabled}
+            onClick={() => void capture()}
+          >
+            {capturing ? "Freezing view…" : snapshotLabel}
+          </Button>
+        )}
+      </header>
+      <div className="model-toolbar">
+        <div className="row" aria-label="Standard views">
+          {presets.map((preset) => (
+            <Button
+              size="small"
+              key={preset}
+              disabled={!ready}
+              onClick={() => scene.current?.setView(preset)}
+            >
+              {preset[0]!.toUpperCase() + preset.slice(1)}
+            </Button>
+          ))}
+        </div>
+        <div className="row">
+          <Button
+            size="small"
+            disabled={!ready}
+            onClick={() => scene.current?.fit()}
+          >
+            Fit model
+          </Button>
+          <Button
+            size="small"
+            disabled={!ready}
+            onClick={() => scene.current?.zoom(1.25)}
+          >
+            Zoom in
+          </Button>
+          <Button
+            size="small"
+            disabled={!ready}
+            onClick={() => scene.current?.zoom(0.8)}
+          >
+            Zoom out
+          </Button>
+          <SelectField
+            label="Projection"
+            value={projection}
+            disabled={!ready}
+            onChange={(event) => {
+              const next = event.target.value as Projection;
+              scene.current?.setProjection(next);
+              setProjection(next);
+            }}
+          >
+            <option value="perspective">Perspective</option>
+            <option value="orthographic">Orthographic</option>
+          </SelectField>
+        </div>
+      </div>
+      <div className="model-viewport">
+        <div className="model-canvas-host" ref={canvasHost} />
+        {!ready && (
+          <div className="model-overlay">
+            {state === "error" ? (
+              <Notice
+                tone="error"
+                action={
+                  <Button
+                    size="small"
+                    onClick={() => setRetry((value) => value + 1)}
+                  >
+                    Retry model
+                  </Button>
+                }
+              >
+                {error}
+              </Notice>
+            ) : (
+              <p role="status">
+                {state === "loading"
+                  ? "Loading model…"
+                  : "Choose a model to begin."}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+      <div className="model-caption">
+        <p id={helpId} className="small">
+          Drag to orbit · Right-drag or Shift-drag to pan · Scroll to zoom.
+          Touch: one finger orbits, two pan/zoom. Focus the canvas for arrow-key
+          pan.
+        </p>
+        {ready && (
+          <Badge>{triangles.toLocaleString()} triangles · mm · Z-up</Badge>
+        )}
+      </div>
+      {captureError && <Notice tone="error">{captureError}</Notice>}
+      {ready && bounds && (
+        <SectionControls
+          sections={sections}
+          bounds={bounds}
+          onChange={(next) => {
+            scene.current?.setSections(next);
+            setSections(next);
+          }}
+        />
+      )}
+    </section>
+  );
+}

@@ -61,7 +61,7 @@ export function DirectoryPage() {
       <section aria-labelledby="tools-title" className="directory-tools">
         <div className="section-heading">
           <h2 id="tools-title">On the workbench</h2>
-          <span className="eyebrow">Two places to begin</span>
+          <span className="eyebrow">Three places to begin</span>
         </div>
         <div className="directory-grid">
           <Link
@@ -115,6 +115,28 @@ export function DirectoryPage() {
                 Browse the building blocks <Icon name="right" size={16} />
               </span>
               <Badge>Design system</Badge>
+            </div>
+          </Link>
+          <Link href={ROUTES.models} className="directory-card">
+            <div className="directory-card-top">
+              <span className="directory-number">03 / INSPECT & EXPLAIN</span>
+              <Icon name="arrow" />
+            </div>
+            <div className="directory-card-icon">
+              <Icon name="image" size={38} />
+            </div>
+            <div>
+              <h3>The model gallery</h3>
+              <p>
+                Turn a part around, look inside, then freeze a view to annotate
+                and download.
+              </p>
+            </div>
+            <div className="directory-card-bottom">
+              <span>
+                Open the 3D workspace <Icon name="right" size={16} />
+              </span>
+              <Badge>STEP & STL</Badge>
             </div>
           </Link>
         </div>

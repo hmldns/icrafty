@@ -3,7 +3,8 @@
 A local image collection and annotation workspace built with React, TypeScript,
 Vite, and Tailwind. The debug tools live under `/debug`: `/debug` is the workshop
 directory, `/debug/camera` is the capture and annotation workspace, and
-`/debug/gallery` demonstrates the app's shared components. The root `/` redirects
+`/debug/gallery` demonstrates the app's shared components. `/debug/models` opens
+the STEP/STL viewer and connected snapshot/annotation workspace. The root `/` redirects
 to `/debug` for now. Previous `/camera` and `/gallery` links redirect to their new
 locations. Redirects replace the current history entry and retain query strings
 and fragments. Existing local image collections remain available on the same origin.
@@ -32,6 +33,7 @@ npm run test:install
 npm run typecheck
 npm run build
 npm test
+npm run test:production
 ```
 
 The browser installer needs network access. It downloads Chromium's headless
@@ -48,6 +50,13 @@ storage failures, object URL cleanup, and downloads. Download tests decode PNG
 bytes and assert original dimensions, marked pixels, unchanged source bytes,
 distinct filenames, and an editor that stays open. The compact-viewport check
 asserts that Download PNG is visible before scrolling to it.
+
+The viewer tests import real STEP and binary STL, inspect rendered pixels, exercise
+views/sections, independent instances, source replacement, context-loss recovery,
+snapshot provenance, annotation downloads, and gallery containment. The production
+test requires a current build and starts preview on 4187. Override isolated ports
+with `CRAFTY_TEST_PORT` and `CRAFTY_PREVIEW_PORT`; `PLAYWRIGHT_BROWSERS_PATH` can
+point to an existing compatible browser installation. Defaults remain 5287/4187.
 
 ## Use the workspace
 
@@ -85,7 +94,7 @@ Draft edits persist automatically. The UI reports storage failures and still
 allows downloading in-memory edits. Deleting an image deletes its draft and
 all revisions.
 
-This spike has no backend, accounts, chat, agent transfer, or 3D implementation.
+This spike has no backend, accounts, chat, agent transfer, or CAD evaluator.
 Images are local to the browser profile **and origin**, including the port.
 Browser data clearing, private-session closure, or storage eviction can remove
 them; download important work. Live synchronization between tabs is not provided.
@@ -112,6 +121,12 @@ so direct links and refresh work; Vite development and preview already do this.
 - `src/features/camera/`: media lifecycle and capture controls.
 - `src/features/images/`: intake, collection, validation, and local blob storage.
 - `src/features/annotation/`: image-space geometry, drawing, history, and export.
+- `src/features/models/`: independent Three.js renderer, import worker, views,
+  sections, and debug gallery. See [embedding and behavior](docs/viewer-usage.md)
+  and the [assignment brief](docs/model-viewer.md). [Validation results](docs/viewer-validation.md)
+  record the worker's browser checks and limitations.
+- `tooling/`: local model catalog, sample downloader, fixtures, standalone embedding
+  example, and isolated test server. See [tooling commands and provenance](tooling/README.md).
 - `src/styles/`: centralized tokens and reusable semantic styles, with Tailwind's
   Vite integration.
 

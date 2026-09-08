@@ -7,5 +7,9 @@ playwright-report/
 playwright/.cache/
 *.tsbuildinfo
 *.local
+tooling/.artifacts/
+tooling/.test-models/
+tooling/.tmp/
+tooling/.uv-cache/
 .env*
 !.env.example

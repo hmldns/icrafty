@@ -1,5 +1,9 @@
 # Reusable model viewer spike
 
+Implementation: [usage and embedding](viewer-usage.md), [local tooling and sample
+provenance](../tooling/README.md). The numbered brief below remains the assignment
+scope; the implementation guide records supported behavior and limits.
+
 This implementation brief records the viewer assignment and unresolved product
 choices. Canonical product behavior remains in [PRD](../../../docs/PRD.md)
 PRD-14–18, PRD-20, PRD-48, and PRD-50–54. Technical context is
