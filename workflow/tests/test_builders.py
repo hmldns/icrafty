@@ -1,6 +1,7 @@
 """Real Git + real tmux integration tests with a deterministic Codex fixture."""
 
 from concurrent.futures import ThreadPoolExecutor
+from argparse import Namespace
 import importlib.util
 import json
 from pathlib import Path
@@ -85,6 +86,16 @@ class BuildersTest(unittest.TestCase):
     def report(self, w, status="done", code=0):
         return self.cli("report", w["name"], "--generation", w["generation"], "--status", status,
                         "--summary", "Useful result", "--tests", "Validated fixture", code=code)
+
+    def assert_live_shell(self, w):
+        self.until(lambda: (pane := self.p.panes().get(w["pane"]))
+                   and pane["dead"] == "0" and pane["mode"] == "shell")
+        self.p.tmux("send-keys", "-t", w["pane"], "-l", "pwd > shell-cwd.txt")
+        self.p.tmux("send-keys", "-t", w["pane"], "Enter")
+        result = Path(w["worktree"]) / "shell-cwd.txt"
+        self.until(lambda: result.exists() and result.read_text().strip() == w["worktree"])
+        self.assertEqual(self.p.panes()[w["pane"]]["window"], w["window"])
+        self.assertFalse(self.p.worker(w["name"])["alive"])
 
     def test_launch_shared_instructions_and_local_configuration(self):
         w = self.launch()
@@ -232,6 +243,7 @@ class BuildersTest(unittest.TestCase):
         crashed = self.launch(mode="crash")
         self.assertEqual(crashed["status"], "error")
         self.assertEqual(crashed["exit_code"], 23)
+        self.assert_live_shell(crashed)
         w = self.launch("vanished", mode="busy")
         self.p.tmux("kill-pane", "-t", w["pane"])
         self.cli("scan")
@@ -378,17 +390,70 @@ class BuildersTest(unittest.TestCase):
         self.assertEqual(ids, {r["id"] for r in self.p.events()})
         self.cli("ack", max(ids) + 100, code=1)
 
-    def test_unrelated_panes_untouched_and_dead_panes_not_steered(self):
+    def test_stop_keeps_usable_shell_and_does_not_steer_it(self):
         w = self.launch()
         unrelated = self.p.tmux("new-window", "-d", "-P", "-F", "#{pane_id}",
                                  "-t", "crafty-builders:", "-n", "unmanaged").stdout.strip()
         self.cli("stop", w["name"])
         self.assertIn(unrelated, self.p.panes())
-        self.until(lambda: self.p.panes()[w["pane"]]["dead"] == "1")
-        self.assertIn(w["pane"], self.p.panes())
+        self.assert_live_shell(w)
         self.assertEqual(self.p.tmux("show-option", "-w", "-v", "-t", w["window"],
                                     "remain-on-exit").stdout.strip(), "on")
         self.cli("steer", w["name"], "--prompt", "Hello", code=1)
+
+    def test_normal_exit_keeps_same_live_shell_and_reports_once(self):
+        w = self.launch()
+        self.p.tmux("send-keys", "-t", w["pane"], "/exit", "Enter")
+        self.assert_live_shell(w)
+        self.assertEqual(self.p.worker(w["name"])["exit_code"], 0)
+        self.cli("scan")
+        self.cli("scan")
+        self.assertEqual(sum(e["kind"] == "exited" for e in self.p.events()), 1)
+        self.cli("steer", w["name"], "--prompt", "touch forbidden.txt", code=1)
+        self.assertFalse((Path(w["worktree"]) / "forbidden.txt").exists())
+
+    def test_upgrade_installs_hook_without_interrupting_live_worker(self):
+        w = self.launch()
+        pid = self.p.tmux("display-message", "-p", "-t", w["pane"], "#{pane_pid}").stdout
+        self.p.tmux("set-hook", "-wu", "-t", w["window"], builders.SHELL_EXIT_HOOK)
+        # An unrelated hook and an unrelated split pane must survive this upgrade.
+        self.p.tmux("set-hook", "-w", "-t", w["window"], "pane-died[3]", "display-message unrelated")
+        self.cli("keep-shells")
+        self.cli("keep-shells")
+        self.assertEqual(self.p.tmux("display-message", "-p", "-t", w["pane"], "#{pane_pid}").stdout, pid)
+        self.assertTrue(self.p.worker(w["name"])["alive"])
+        self.assertIn("unrelated", self.p.tmux("show-hooks", "-w", "-t", w["window"]).stdout)
+        other = self.p.tmux("split-window", "-d", "-P", "-F", "#{pane_id}", "-t", w["pane"], "exit 7").stdout.strip()
+        self.until(lambda: self.p.panes()[other]["dead"] == "1")
+        self.pane_exit(w, pane=other)
+        self.assertEqual(self.p.panes()[other]["dead"], "1")
+        self.assertTrue(self.p.worker(w["name"])["alive"])
+        self.p.tmux("send-keys", "-t", w["pane"], "/exit", "Enter")
+        self.assert_live_shell(w)
+
+    def pane_exit(self, w, pane=None):
+        builders.pane_exited(self.p, Namespace(name=w["name"], run_id=w["run_id"], pane=pane or w["pane"]))
+
+    def test_upgrade_recovers_an_old_dead_pane(self):
+        w = self.launch()
+        self.p.tmux("set-hook", "-wu", "-t", w["window"], builders.SHELL_EXIT_HOOK)
+        self.p.tmux("respawn-pane", "-k", "-t", w["pane"], "exit 9")
+        self.until(lambda: self.p.panes()[w["pane"]]["dead"] == "1")
+        self.cli("keep-shells")
+        self.assert_live_shell(w)
+        self.assertEqual(self.p.worker(w["name"])["exit_code"], 9)
+
+    def test_stale_exit_callback_cannot_replace_restarted_worker(self):
+        w = self.launch()
+        self.cli("stop", w["name"])
+        self.assert_live_shell(w)
+        restarted = self.cli("restart", w["name"])
+        self.until(lambda: self.p.worker(w["name"])["status"] == "idle")
+        pid = self.p.tmux("display-message", "-p", "-t", w["pane"], "#{pane_pid}").stdout
+        self.pane_exit(w)
+        self.assertEqual(self.p.tmux("display-message", "-p", "-t", w["pane"], "#{pane_pid}").stdout, pid)
+        self.assertEqual(self.p.panes()[w["pane"]]["mode"], "worker")
+        self.assertTrue(self.p.worker(restarted["name"])["alive"])
 
     def test_automatic_result_wakes_and_is_integratable(self):
         w = self.launch(mode="auto")

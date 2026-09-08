@@ -301,16 +301,25 @@ and status. It is restricted to idle, blocked, stopped, or errored workers.
 
 ## Retained windows and recovery
 
-Worker windows have tmux **`remain-on-exit on`** set individually. A normal Codex
-exit or crash leaves the window and terminal history visible.
+Worker windows have tmux **`remain-on-exit on`** and a project-owned window hook.
+A normal Codex exit or crash opens an interactive shell in the same pane and
+worktree, preserving the window and terminal history. The worker is recorded as
+exited even though its shell is usable; directions are never pasted into that
+shell as if Codex were still running.
 
 ```bash
 ./workflow/builders stop api-health
 ./workflow/builders restart api-health
+# Apply this behavior to existing project workers without interrupting Codex:
+./workflow/builders keep-shells
 ```
 
-`stop` terminates the owned pane's process, leaves a stopped message in that same
-pane, and preserves the worktree and history. `restart` reuses a retained pane;
+`stop` terminates the owned pane's process and opens a shell in that same pane,
+preserving the worktree and history. `keep-shells` installs the exit hook on
+registered worker windows and recovers older dead panes into live shells. It
+leaves active processes untouched. Hooks ignore unrelated split panes and stale
+worker runs; exiting the parked shell itself does not start a respawn loop.
+`restart` reuses a retained pane;
 if it disappeared, it creates another window. It resumes the recorded Codex
 thread when available, preserves worktree edits, and increments the assignment
 generation so old reports/callbacks cannot complete the new run. Completed,
@@ -330,7 +339,8 @@ executable. It uses temporary repositories (including paths with spaces/quotes)
 and unique private tmux sockets, and cleans up its own servers. It does not call
 a model or touch existing user sessions. Tests cover hooks and notify fallback,
 duplicate callbacks, concurrent reports, wait/ack recovery, startup prompts,
-crashes, lost panes, literal steering, retained windows, restart, stale reports,
+crashes, lost panes, literal steering, live shells after exit, upgrade of existing
+panes without interruption, restart, stale exit callbacks and reports,
 scope checks, conflicts, and reuse after integration.
 
 For your own experiment, initialize a disposable Git repository with a baseline

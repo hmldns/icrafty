@@ -30,6 +30,7 @@ ROLE_GUIDE = SCRIPT.parents[1] / "ROLES.md"
 HOOKS = ("SessionStart", "UserPromptSubmit", "PermissionRequest", "Stop",
          "Interrupt", "SessionEnd")
 FINAL = {"done", "blocked", "error", "stopped", "merged"}
+SHELL_EXIT_HOOK = "pane-died[197]"
 
 
 class Error(Exception):
@@ -177,22 +178,39 @@ class Project:
     def panes(self):
         result = self.tmux("list-panes", "-a", "-F",
                            "#{pane_id}\t#{window_id}\t#{session_name}\t#{pane_dead}"
-                           "\t#{pane_dead_status}\t#{@builders_root}\t#{@builders_worker}",
+                           "\t#{pane_dead_status}\t#{@builders_root}\t#{@builders_worker}\t#{@builders_mode}",
                            check=False)
         if result.returncode:
             if any(s in result.stderr for s in ("no server running", "No such file or directory")):
                 return {}
             raise Error(result.stderr.strip())
-        return {fields[0]: dict(zip(("pane", "window", "session", "dead", "exit_code", "root", "worker"), fields))
-                for line in result.stdout.splitlines() if len(fields := line.split("\t")) == 7}
+        return {fields[0]: dict(zip(("pane", "window", "session", "dead", "exit_code", "root", "worker", "mode"), fields))
+                for line in result.stdout.splitlines() if len(fields := line.split("\t")) == 8}
 
     def owned_pane(self, w, live=True):
         pane = self.panes().get(w.get("pane"))
         if not pane or pane["root"] != str(self.root) or pane["worker"] != w["name"]:
             raise Error(f"Worker {w['name']} no longer has its registered tmux pane.")
-        if live and pane["dead"] == "1":
-            raise Error(f"Worker {w['name']} exited; use restart.")
+        if live and (pane["dead"] == "1" or pane["mode"] == "shell" or not w.get("alive")):
+            raise Error(f"Worker {w['name']} is not running Codex; use restart or launch a new worker.")
         return pane
+
+    def keep_shell(self, w):
+        """Install an exit hook on this worker's window without touching its process."""
+        pane = self.owned_pane(w, live=False)
+        callback = shlex.join(self.entrypoint() + ["_pane-exit", w["name"], w["run_id"], "#{hook_pane}"])
+        self.tmux("set-option", "-w", "-t", pane["window"], "remain-on-exit", "on")
+        self.tmux("set-hook", "-w", "-t", pane["window"], SHELL_EXIT_HOOK,
+                  shlex.join(["run-shell", "-b", callback]))
+        return pane
+
+    def park_pane(self, w, replace=False):
+        self.owned_pane(w, live=False)
+        # Mark it before respawning so an old exit callback cannot replace this shell.
+        self.tmux("set-option", "-p", "-t", w["pane"], "@builders_mode", "shell")
+        flags = ["-k"] if replace else []
+        self.tmux("respawn-pane", *flags, "-t", w["pane"], "-c", w["worktree"],
+                  shlex.join(self.entrypoint() + ["_park", w["name"], w["run_id"]]))
 
     def ensure_session(self):
         session = self.config["session"]
@@ -284,6 +302,8 @@ Your full assignment is also saved at {self.state / 'workers' / w['name'] / 'ass
         self.tmux("set-option", "-w", "-t", window, "automatic-rename", "off")
         self.tmux("set-option", "-p", "-t", pane, "@builders_root", self.root)
         self.tmux("set-option", "-p", "-t", pane, "@builders_worker", w["name"])
+        self.tmux("set-option", "-p", "-t", pane, "@builders_mode", "worker")
+        self.keep_shell(w | {"pane": pane, "window": window})
         with self.db() as db:
             current = self.worker(w["name"], db)
             current.update(pane=pane, window=window, launch_ready=True, alive=True)
@@ -472,6 +492,59 @@ def supervise(p, args):
             if not already_exited:
                 p.event(db, current, "exited", {"exit_code": code}, attention=True)
     return code
+
+
+def recover_shell(p, w, pane):
+    """The caller holds the director lock and has verified the registered dead pane."""
+    code = int(pane["exit_code"]) if pane["exit_code"] else None
+    with p.db() as db:
+        current = p.worker(w["name"], db)
+        if current.get("alive"):
+            current.update(alive=False, exit_code=code)
+            if current["status"] not in FINAL:
+                current["status"] = "stopped" if code == 0 else "error"
+            p.save(db, current)
+            p.event(db, current, "exited", {"reason": "Worker process exited", "exit_code": code}, attention=True)
+    p.park_pane(w)
+
+
+def pane_exited(p, args):
+    # A window hook can also run for a user's split pane, or after a restart.
+    with p.lock():
+        w = p.worker(args.name)
+        if w["run_id"] != args.run_id or w.get("pane") != args.pane:
+            return
+        pane = p.owned_pane(w, live=False)
+        if pane["dead"] == "1" and pane["mode"] != "shell":
+            recover_shell(p, w, pane)
+
+
+def keep_shells(p):
+    results = []
+    with p.lock():
+        for w in p.workers():
+            pane = p.panes().get(w.get("pane"))
+            if not pane or pane["root"] != str(p.root) or pane["worker"] != w["name"]:
+                continue
+            pane = p.keep_shell(w)
+            if pane["dead"] == "1":
+                recover_shell(p, w, pane)
+            results.append({"worker": w["name"], "pane": pane["pane"], "recovered": pane["dead"] == "1"})
+    emit(results)
+
+
+def park(p, args):
+    w = p.worker(args.name)
+    if os.environ.get("TMUX_PANE") != w.get("pane") or (args.run_id and args.run_id != w["run_id"]):
+        raise Error("The parked shell must run in this worker's current registered pane.")
+    p.owned_pane(w, live=False)
+    p.tmux("set-option", "-p", "-t", w["pane"], "@builders_mode", "shell")
+    os.chdir(w["worktree"])
+    print(f"Worker {w['name']} is stopped. Live shell in {w['worktree']}.", flush=True)
+    shell_path = os.environ.get("SHELL", "/bin/sh")
+    if not Path(shell_path).is_file() or not os.access(shell_path, os.X_OK):
+        shell_path = "/bin/sh"
+    os.execv(shell_path, [shell_path, "-i"])
 
 
 def lifecycle(p, payload, name=None, run_id=None):
@@ -715,8 +788,8 @@ def stop(p, args):
             p.save(db, w)
             p.event(db, w, "stopped", attention=True)
         # Replace the process, retaining the pane and its terminal history.
-        p.tmux("respawn-pane", "-k", "-t", w["pane"],
-               shlex.join(p.entrypoint() + ["_park", w["name"]]))
+        p.keep_shell(w)
+        p.park_pane(w, replace=True)
     emit({"worker": args.name, "stopped": True, "worktree_preserved": w["worktree"]})
 
 
@@ -765,6 +838,7 @@ def parser():
     init.add_argument("--no-hooks", action="store_true", help="Use notify + scanning for older Codex")
     commands.add_parser("doctor", help="Check prerequisites, local configuration, and pane health")
     commands.add_parser("monitor", help="Ensure the project's tmux session and initial watcher exist")
+    commands.add_parser("keep-shells", help="Keep live shells after worker exit; update existing panes without interruption")
     for name in ("launch", "steer", "assign"):
         cmd = commands.add_parser(name)
         cmd.add_argument("name")
@@ -809,6 +883,11 @@ def parser():
     runner.add_argument("run_id")
     parked = commands.add_parser("_park", help=argparse.SUPPRESS)
     parked.add_argument("name")
+    parked.add_argument("run_id", nargs="?")
+    exited = commands.add_parser("_pane-exit", help=argparse.SUPPRESS)
+    exited.add_argument("name")
+    exited.add_argument("run_id")
+    exited.add_argument("pane")
     notify = commands.add_parser("_notify", help=argparse.SUPPRESS)
     notify.add_argument("name")
     notify.add_argument("run_id")
@@ -834,7 +913,11 @@ def main(argv=None):
         elif cmd == "_run":
             return supervise(p, args)
         elif cmd == "_park":
-            print(f"Worker {args.name} stopped. Worktree and pane retained. Use builders restart {args.name}.")
+            park(p, args)
+        elif cmd == "_pane-exit":
+            pane_exited(p, args)
+        elif cmd == "keep-shells":
+            keep_shells(p)
         elif cmd == "_hook":
             emit(lifecycle(p, json.load(sys.stdin)))
         elif cmd == "_notify":

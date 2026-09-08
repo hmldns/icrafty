@@ -97,6 +97,9 @@ try:
         if char in (b"\n", b"\r") and (b"\x1b[200~" not in buffer or b"\x1b[201~" in buffer):
             prompt = buffer.decode().replace("\x1b[200~", "").replace("\x1b[201~", "").strip()
             buffer = b""
+            if prompt == "/exit":
+                hook("SessionEnd", reason="exit")
+                break
             turn += 1
             (artifact / "fake-input.txt").write_text(prompt)
             hook("UserPromptSubmit", prompt=prompt)
