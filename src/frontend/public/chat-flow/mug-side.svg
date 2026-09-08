@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480">
+<defs>
+  <linearGradient id="ceramic" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#adc3ab"/><stop offset="1" stop-color="#6c8976"/></linearGradient>
+  <linearGradient id="inside" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#455c4e"/><stop offset="1" stop-color="#96ad94"/></linearGradient>
+  <linearGradient id="cap" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#a9c5b7"/><stop offset="1" stop-color="#729683"/></linearGradient>
+  <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#dcded3" stroke-width="1"/></pattern>
+</defs>
+<rect width="640" height="480" fill="#eeeee5"/><rect width="640" height="480" fill="url(#grid)" opacity=".45"/>
+<ellipse cx="321" cy="392" rx="195" ry="28" fill="#252923" opacity=".09"/>
+  <path d="M451 180h26c108 0 95 169-36 131" fill="none" stroke="#68856e" stroke-width="35"/>
+  <path d="M452 178h24c86 0 77 142-31 115" fill="none" stroke="#b1c5ac" stroke-width="17"/>
+  <path d="M148 144h304l-24 207c-4 44-248 44-254 0Z" fill="url(#ceramic)" stroke="#657d68" stroke-width="3"/>
+  <ellipse cx="300" cy="144" rx="152" ry="36" fill="#cbd5b9" stroke="#738b73" stroke-width="3"/>
+  <ellipse cx="300" cy="141" rx="137" ry="25" fill="url(#inside)"/>
+  <path d="M178 185l17 144" fill="none" stroke="#cbd5b9" stroke-width="11" stroke-linecap="round"/>
+  <path d="M151 156c64 44 231 44 299 0" fill="none" stroke="#f7f5ef" stroke-opacity=".4" stroke-width="5"/>
+</svg>

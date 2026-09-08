@@ -61,7 +61,7 @@ export function DirectoryPage() {
       <section aria-labelledby="tools-title" className="directory-tools">
         <div className="section-heading">
           <h2 id="tools-title">On the workbench</h2>
-          <span className="eyebrow">Three places to begin</span>
+          <span className="eyebrow">Four places to begin</span>
         </div>
         <div className="directory-grid">
           <Link
@@ -137,6 +137,31 @@ export function DirectoryPage() {
                 Open the 3D workspace <Icon name="right" size={16} />
               </span>
               <Badge>STEP & STL</Badge>
+            </div>
+          </Link>
+          <Link href={ROUTES.chat} className="directory-card">
+            <div className="directory-card-top">
+              <span className="directory-number">04 / GATHER THE STORY</span>
+              <Icon name="arrow" />
+            </div>
+            <div className="directory-card-icon">
+              <Icon name="text" size={38} />
+              <span>
+                <Icon name="image" size={20} />
+              </span>
+            </div>
+            <div>
+              <h3>The chat flow</h3>
+              <p>
+                Explore a repair’s sample history. Choose image versions and try
+                an input with a little more context.
+              </p>
+            </div>
+            <div className="directory-card-bottom">
+              <span>
+                Try the conversation <Icon name="right" size={16} />
+              </span>
+              <Badge tone="accent">Local mock</Badge>
             </div>
           </Link>
         </div>

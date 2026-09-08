@@ -9,6 +9,11 @@ to `/debug` for now. Previous `/camera` and `/gallery` links redirect to their n
 locations. Redirects replace the current history entry and retain query strings
 and fragments. Existing local image collections remain available on the same origin.
 
+`/debug/chat` rehearses a conversation with fixed camera history, asset revisions,
+and a removable attachment strip. Choose a version and add a local mock input;
+earlier inputs keep their chosen images. This [chat flow mock](docs/chat-flow.md)
+resets when you leave or refresh and does not send messages to an agent.
+
 ## Run
 
 Use Node.js 22.12 or newer and npm. From `src/frontend/`:

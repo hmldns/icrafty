@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480">
+<defs>
+  <linearGradient id="ceramic" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#adc3ab"/><stop offset="1" stop-color="#6c8976"/></linearGradient>
+  <linearGradient id="inside" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#455c4e"/><stop offset="1" stop-color="#96ad94"/></linearGradient>
+  <linearGradient id="cap" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#a9c5b7"/><stop offset="1" stop-color="#729683"/></linearGradient>
+  <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#dcded3" stroke-width="1"/></pattern>
+</defs>
+<rect width="640" height="480" fill="#eeeee5"/><rect width="640" height="480" fill="url(#grid)" opacity=".45"/>
+<ellipse cx="337" cy="355" rx="194" ry="39" fill="#252923" opacity=".08"/>
+  <path d="M459 186c118-49 127 137 5 113" fill="none" stroke="#6c8976" stroke-width="35"/>
+  <path d="M461 186c108-37 109 124 2 107" fill="none" stroke="#b1c5ac" stroke-width="18"/>
+  <path d="M131 211c0 109 34 154 170 154s170-45 170-154" fill="url(#ceramic)" stroke="#657d68" stroke-width="3"/>
+  <ellipse cx="301" cy="211" rx="170" ry="136" fill="#cbd5b9" stroke="#738b73" stroke-width="3"/>
+  <ellipse cx="301" cy="211" rx="146" ry="115" fill="url(#inside)" stroke="#5a725d" stroke-width="3"/>
+  <ellipse cx="301" cy="226" rx="115" ry="84" fill="#f7f5ef" opacity=".55"/>
+  <path d="M159 175c18-52 72-84 129-86" fill="none" stroke="#fffefa" opacity=".7" stroke-width="7" stroke-linecap="round"/><g fill="none" stroke="#bc402a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M169 219h264m-251-10-13 10 13 10m238-20 13 10-13 10"/>
+  <path d="M169 200v40m264-40v40" stroke-width="2"/>
+</g><rect x="236" y="153" width="131" height="44" rx="6" fill="#fffefa"/><text x="301" y="183" text-anchor="middle" font-family="sans-serif" font-size="26" font-weight="600" fill="#bc402a">82 mm</text><rect x="207" y="67" width="182" height="48" rx="5" fill="none" stroke="#bc402a" stroke-width="4"/>
+  <path d="M389 76l53-32h67" fill="none" stroke="#bc402a" stroke-width="3"/>
+  <text x="429" y="32" font-family="sans-serif" font-size="22" fill="#bc402a">seal here</text>
+</svg>
