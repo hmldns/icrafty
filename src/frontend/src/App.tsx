@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useRef } from "react";
 import { Icon } from "./components/ui/Icon";
+import { Brand } from "./components/Brand";
 import { Link, ROUTES, usePathname } from "./router";
 import { DirectoryPage } from "./pages/DirectoryPage";
 import { CameraPage } from "./pages/CameraPage";
@@ -42,20 +43,10 @@ export function App() {
       <a className="skip-link" href="#main">
         Skip to content
       </a>
-      <header className="site-header">
+      {!product && <header className="site-header">
         <div className="site-header-inner">
-          <Link
-            className="brand"
-            href={ROUTES.repair}
-            aria-label="icrafty home"
-          >
-            <span className="brand-mark" aria-hidden="true">
-              c
-            </span>
-            icrafty<span className="brand-period">.</span>
-          </Link>
+          <Brand />
           <nav aria-label="Main navigation" className="debug-navigation">
-            {product ? <Link href={ROUTES.repair} aria-current="page">Your repairs</Link> : <>
             <Link
               href={ROUTES.directory}
               aria-current={path === ROUTES.directory ? "page" : undefined}
@@ -87,14 +78,13 @@ export function App() {
               Chat
             </Link>
             <Link href={ROUTES.agent} aria-current={path === ROUTES.agent ? "page" : undefined}>Live chat</Link>
-            </>}
           </nav>
           <span className="header-note">
             <span />
             Made for making
           </span>
         </div>
-      </header>
+      </header>}
       <main id="main" ref={main} tabIndex={-1} className="main-content">
         {product ? <RepairPage /> : path === ROUTES.directory ? (
           <DirectoryPage />
@@ -114,7 +104,7 @@ export function App() {
           <NotFoundPage />
         )}
       </main>
-      <footer className="site-footer">
+      {!product && <footer className="site-footer">
         <span>
           icrafty <span className="footer-divider">/</span> A little ingenuity
           goes a long way.
@@ -122,7 +112,7 @@ export function App() {
         <span>
           <Icon name="lock" size={14} /> {path === ROUTES.agent ? "Saved locally · connected to Codex" : "Local workshop"}
         </span>
-      </footer>
+      </footer>}
     </div>
   );
 }

@@ -1,21 +1,27 @@
-.app-shell--repair { height: 100dvh; min-height: 560px; --content-width: 100%; }
-.app-shell--repair .site-header { flex-shrink: 0; }
-.app-shell--repair .site-header-inner { min-height: 58px; padding-inline: var(--space-6); }
+.app-shell--repair { height: 100dvh; min-height: 0; overflow: hidden; --content-width: 100%; }
 .app-shell--repair .brand { font-size: 1.5rem; }
 .app-shell--repair .brand-mark { height: 30px; width: 30px; font-size: 27px; }
-.app-shell--repair .debug-navigation a { padding-block: var(--space-4); }
-.app-shell--repair .site-footer { display: none; }
-.app-shell--repair .main-content { display: flex; min-height: 0; padding: var(--space-4); }
+.app-shell--repair .main-content { display: flex; min-height: 0; padding: 0; }
 .repair-page { display: flex; flex: 1; flex-direction: column; min-width: 0; min-height: 0; gap: var(--space-3); }
-.repair-page > .agent-chat { flex: 1; min-height: 0; grid-template-columns: 260px minmax(0, 1fr); align-items: stretch; gap: var(--space-4); }
-.repair-page .agent-sidebar { display: flex; flex-direction: column; min-height: 0; overflow: auto; }
-.repair-page .agent-session-list { max-height: none; flex-shrink: 0; }
-.repair-page .agent-conversation { display: flex; flex-direction: column; min-height: 0; gap: var(--space-3); }
-.repair-page .agent-conversation-heading { min-height: 48px; flex-shrink: 0; padding-inline: var(--space-2); }
-.repair-page .agent-conversation-heading p { margin-top: var(--space-1); }
-.repair-page .chat-surface { flex: 1; height: auto; min-height: 0; }
+.repair-page > .agent-chat { flex: 1; min-height: 0; grid-template-columns: 272px minmax(0, 1fr); align-items: stretch; gap: 0; }
+.repair-page .agent-sidebar { display: flex; flex-direction: column; min-height: 0; padding: var(--space-5) var(--space-4); border: 0; border-right: 1px solid var(--color-line); border-radius: 0; overflow: hidden; }
+.repair-sidebar-brand { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-shrink: 0; min-height: 40px; padding: var(--space-2); }
+.repair-sidebar-toggle { display: none; }
+.repair-page .agent-sidebar-content { display: flex; flex: 1; flex-direction: column; gap: var(--space-4); min-height: 0; }
+.repair-page .agent-sidebar-content > :not(.agent-session-list) { flex-shrink: 0; }
+.repair-page .agent-session-list { display: flex; flex: 1; flex-direction: column; min-height: 0; max-height: none; overscroll-behavior: contain; }
+.repair-page .agent-session-list > li { flex-shrink: 0; }
+.repair-page .agent-sidebar-note { font-size: .6875rem; }
+.repair-page .agent-conversation { display: flex; flex-direction: column; min-height: 0; min-width: 0; gap: 0; background: var(--color-paper); }
+.repair-page .agent-conversation-heading { min-height: 72px; flex-shrink: 0; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-line); }
+.repair-page .agent-conversation-heading > div:first-child { min-width: 0; }
+.repair-page .agent-conversation-heading h2 { font-size: 1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.repair-page .agent-conversation-heading p { margin-top: var(--space-1); font-size: .75rem; }
+.repair-page .agent-conversation > .notice { flex-shrink: 0; margin: var(--space-3) var(--space-4); }
+.repair-page .chat-surface { flex: 1; height: auto; min-height: 0; border: 0; border-radius: 0; box-shadow: none; }
 .repair-page .chat-history-scroll { min-height: 0; max-height: none; }
-.repair-page .agent-start { min-height: 0; }
+.repair-page .chat-composer { flex-shrink: 0; padding-bottom: max(var(--space-4), env(safe-area-inset-bottom)); }
+.repair-page .agent-start { min-height: 0; overflow: auto; border: 0; border-radius: 0; }
 .repair-sample { border-top: 1px solid var(--color-line); padding-top: var(--space-4); margin-top: auto; display: grid; gap: var(--space-2); flex-shrink: 0; }
 .repair-sample h3 { font-size: var(--text-small); }
 .repair-sample > p:not(.eyebrow) { color: var(--color-muted); font-size: var(--text-small); }
@@ -41,17 +47,23 @@
 .measurement-answers dt { color: var(--color-muted); }
 .measurement-answers dd { text-align: right; overflow-wrap: anywhere; }
 @media (max-width: 800px) {
-  .app-shell--repair { min-height: 100dvh; height: auto; }
-  .app-shell--repair .main-content { padding: var(--space-2); }
-  .app-shell--repair .header-note { display: none; }
-  .repair-page > .agent-chat { grid-template-columns: minmax(0, 1fr); }
-  .repair-page .agent-sidebar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-2); }
-  .repair-page .agent-session-list { grid-column: 1 / -1; display: flex; overflow: auto; max-height: 130px; }
-  .repair-page .agent-session-list li { flex: 0 0 180px; }
-  .repair-page .repair-sample { grid-column: 1 / -1; grid-template-columns: 1fr auto; align-items: center; }
+  .repair-page > .agent-chat { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .repair-page .agent-sidebar { padding: var(--space-2) var(--space-3); gap: 0; border-right: 0; border-bottom: 1px solid var(--color-line); }
+  .repair-sidebar-brand { padding: 0; }
+  .repair-sidebar-toggle { display: inline-flex; }
+  .repair-page .agent-sidebar-content { display: none; padding-top: var(--space-3); max-height: 38dvh; overflow: auto; }
+  .repair-page .agent-sidebar-content[data-expanded="true"] { display: flex; }
+  .repair-page .agent-session-list { flex: none; }
+  .repair-page .repair-sample { grid-template-columns: 1fr auto; align-items: center; }
   .repair-sample-photos, .repair-page .repair-sample .eyebrow, .repair-page .repair-sample > p { display: none; }
-  .repair-page .chat-surface { flex: none; height: max(480px, calc(100dvh - 190px)); }
-  .repair-page .chat-history-scroll { min-height: 100px; }
+  .repair-page .agent-conversation-heading { min-height: 58px; padding: var(--space-2) var(--space-3); }
+  .repair-page .agent-conversation-heading p { display: none; }
+  .repair-page .chat-history-scroll { padding: var(--space-4) var(--space-3); }
+  .repair-page .chat-composer { padding-inline: var(--space-3); }
   .measurement-answers > div { flex-wrap: wrap; }
   .measurement-answers dd { text-align: left; }
+}
+@media (min-width: 801px) and (max-height: 680px) {
+  .repair-page .repair-sample-photos, .repair-page .repair-sample > p { display: none; }
+  .repair-page .agent-sidebar-content { gap: var(--space-3); }
 }

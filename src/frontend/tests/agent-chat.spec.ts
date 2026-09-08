@@ -109,6 +109,7 @@ test("main repair surface sends sample photos and measurement answers in the rea
   await expect(page).toHaveURL("/?repair=a");
   await expect(page).toHaveTitle("icrafty · Your repairs");
   await expect(page.getByRole("complementary", { name: "Repairs" })).toBeVisible();
+  await expect(page.getByRole("complementary", { name: "Repairs" }).getByRole("link", { name: "icrafty home" })).toBeVisible();
   await expect(page.getByRole("link", { name: "UI gallery", exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Try the mug cap", exact: true }).click();
   await expect(history(page).getByRole("img")).toHaveCount(4);
@@ -147,7 +148,14 @@ test("main repair surface sends sample photos and measurement answers in the rea
   await expect(history(page).getByText("Measurements submitted", { exact: true })).toHaveCount(1);
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+  expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(844);
   await expect(page.getByRole("textbox", { name: "Message (optional)" })).toBeVisible();
+  await page.getByRole("button", { name: "Show repairs", exact: true }).click();
+  await expect(page.getByRole("button", { name: "New repair", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "New repair", exact: true }).focus();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: "Show repairs", exact: true })).toBeFocused();
+  await expect(page.getByRole("button", { name: "New repair", exact: true })).not.toBeVisible();
 });
 
 test("real mounted components upload, stream, show MCP images, download and restore saved history", async ({ page }) => {
