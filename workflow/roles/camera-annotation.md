@@ -24,8 +24,7 @@ revision, and keep the editor open for another iteration. Use clear filenames
 and preserve the original. Broader camera controls support this loop.
 
 Use the initial assignment for concrete acceptance criteria and source material.
-Copy and adapt useful implementation ideas into self-contained local code;
-do not carry over external application dependencies, branding, or path references.
+Do not carry over external application dependencies, branding, or path references.
 Do not add chat backends, authentication, ACP, or 3D generation to this spike.
 
 Validate type checking, a production build, and focused interaction tests. Report

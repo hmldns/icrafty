@@ -40,8 +40,6 @@ feature needs it.
 - Validate imported images. Use browser-safe cross-origin image loading; surface
   actionable failures and never pretend a blocked image was imported or saved.
 - Keep this spike independent of account systems and external application SDKs.
-  Adapt useful source ideas into local components without runtime links, branding,
-  or imports from the reference application.
 
 ## Commands and checks
 
