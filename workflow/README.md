@@ -218,7 +218,9 @@ mergeable.
 
 New hook definitions may require review with **`/hooks`** in the worker's Codex
 UI. Codex may also ask you to trust the project at first launch. The tooling does
-not change persisted trust or bypass those prompts. See the
+not change persisted trust or bypass those prompts. Native Codex can save hook
+trust records in its own configuration when you review them; the hook commands
+remain specific to these project worker launches. See the
 [official Codex hook documentation](https://learn.chatgpt.com/docs/hooks).
 
 Until a root hook verifies the thread, the invocation-local `notify` callback
