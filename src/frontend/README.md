@@ -14,6 +14,12 @@ and fragments. Existing local image collections remain available on the same ori
 attach chosen images to a local message. This [chat history mock](docs/chat-flow.md)
 resets when you leave or refresh and does not send messages to an agent.
 
+The operational debug pages use a compact shared header and bounded working
+regions. Model-file tiles can sit beside, above or below one active viewer;
+the placement is remembered in this browser. Camera actions and the mock-chat
+composer stay near their working surfaces. See [debug workspace controls and
+layout acceptance](docs/debug-workspaces.md).
+
 The viewer has muted X/Y/Z section planes, pale cut-face fills and optional faint
 diagonal hatching for closed meshes. New model annotations have contrasting
 outlines. Select **Solid block + inner sphere demo** to inspect the caps and their

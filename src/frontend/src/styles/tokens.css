@@ -41,6 +41,9 @@
   --text-small: 0.8125rem;
   --text-body: 0.9375rem;
   --text-label: 0.75rem;
+  --workspace-gutter: 12px;
+  --workspace-dock-width: 192px;
+  --workspace-panel-width: 280px;
   --color-model-background: #eeeee5;
   --color-model-surface: #87a89b;
   --color-section-x: #95846d;

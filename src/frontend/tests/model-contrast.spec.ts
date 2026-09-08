@@ -2,7 +2,14 @@ import { expect, test } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { ANNOTATION_COLORS } from "../src/features/annotation/geometry";
 import type { Mark } from "../src/features/images/types";
-import { captureModel, modelSources, pngPixels, ready } from "./model-helpers";
+import {
+  captureModel,
+  modelSources,
+  pngPixels,
+  ready,
+  selectModel,
+  openSections,
+} from "./model-helpers";
 import { databaseSnapshot, downloadCurrent, drawLine } from "./helpers";
 
 const rgb = (hex: string) =>
@@ -28,10 +35,9 @@ test("subtle section hatching toggles independently, preserves holes and keeps a
 }) => {
   await page.goto("/debug/models");
   await ready(page);
-  await page
-    .getByLabel("Model source", { exact: true })
-    .selectOption("folder:sleeve.stl");
+  await selectModel(page, "folder:sleeve.stl");
   const primary = await ready(page);
+  await openSections(primary);
   const capColors = await primary.evaluate((element) =>
     ["x", "y", "z", "reference"].map((axis) =>
       getComputedStyle(element)
@@ -125,10 +131,9 @@ test("every model annotation color has a persisted contrast outline in preview, 
   await page.setViewportSize({ width: 1280, height: 1050 });
   await page.goto("/debug/models");
   await ready(page);
-  await page
-    .getByLabel("Model source", { exact: true })
-    .selectOption("solid-demo");
+  await selectModel(page, "solid-demo");
   const primary = await ready(page);
+  await openSections(primary);
   await primary.getByLabel("Show section planes").uncheck();
   await primary.getByRole("button", { name: "Remove Z" }).click();
   await primary.getByRole("button", { name: "Right", exact: true }).click();
@@ -253,6 +258,9 @@ test("every model annotation color has a persisted contrast outline in preview, 
   await page.getByRole("button", { name: "Close Annotate image" }).click();
   await page.reload();
   await ready(page);
+  await page
+    .getByRole("button", { name: "Image collection", exact: true })
+    .click();
   await page
     .getByRole("button", {
       name: "Annotate Solid block + inner sphere demo snapshot.png",

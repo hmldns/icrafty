@@ -27,6 +27,15 @@ export interface ModelViewerProps {
   snapshotLabel?: string;
   initialSections?: readonly SectionPlane[];
   referenceObjects?: readonly ReferenceSphere[];
+  layout?: "document" | "workspace";
+  onLoad?: (event: ModelLoadEvent) => void;
+}
+
+export interface ModelLoadEvent {
+  source: ModelSource;
+  state: "loading" | "ready" | "error";
+  /** One 192 × 128 PNG from the initial view, when preview generation succeeds. */
+  preview?: Blob;
 }
 
 const presets: ViewPreset[] = [
@@ -47,7 +56,13 @@ export function ModelViewer({
   snapshotLabel = "Snapshot",
   initialSections,
   referenceObjects,
+  layout = "document",
+  onLoad,
 }: ModelViewerProps) {
+  const loadCallback = useRef(onLoad);
+  loadCallback.current = onLoad;
+  const [sectionsOpen, setSectionsOpen] = useState(false);
+  const sectionId = useId();
   const canvasHost = useRef<HTMLDivElement>(null);
   const scene = useRef<ModelScene | null>(null);
   const [retry, setRetry] = useState(0);
@@ -94,11 +109,13 @@ export function ModelViewer({
     canvas.setAttribute("aria-describedby", helpId);
     canvasHost.current.replaceChildren(canvas);
     setState("loading");
+    loadCallback.current?.({ source, state: "loading" });
     let runtime: ModelScene | undefined;
     const fail = (cause: unknown) => {
       if (controller.signal.aborted) return;
       setError(errorMessage(cause));
       setState("error");
+      loadCallback.current?.({ source, state: "error" });
       controller.abort();
       runtime?.dispose();
       scene.current = null;
@@ -135,6 +152,15 @@ export function ModelViewer({
           );
           setState("ready");
           canvas.tabIndex = 0;
+          if (loadCallback.current) {
+            void current
+              .thumbnail()
+              .catch(() => undefined)
+              .then((preview) => {
+                if (!controller.signal.aborted && scene.current === current)
+                  loadCallback.current?.({ source, state: "ready", preview });
+              });
+          }
         })
         .catch(fail);
     } catch (cause) {
@@ -176,9 +202,24 @@ export function ModelViewer({
     }
   };
   const ready = state === "ready";
+  const sectionControls = ready && bounds && (
+    <SectionControls
+      sections={sections}
+      bounds={bounds}
+      appearance={appearance}
+      onAppearanceChange={(next) => {
+        scene.current?.setSectionAppearance(next);
+        setAppearance(next);
+      }}
+      onChange={(next) => {
+        scene.current?.setSections(next);
+        setSections(next);
+      }}
+    />
+  );
   return (
     <section
-      className="model-viewer card"
+      className={`model-viewer card model-viewer--${layout}`}
       aria-label={label}
       data-state={state}
     >
@@ -248,37 +289,64 @@ export function ModelViewer({
             <option value="perspective">Perspective</option>
             <option value="orthographic">Orthographic</option>
           </SelectField>
+          {layout === "workspace" && (
+            <Button
+              size="small"
+              disabled={!ready}
+              aria-expanded={sectionsOpen}
+              aria-controls={sectionId}
+              onClick={() => setSectionsOpen((open) => !open)}
+            >
+              Sections
+              {sections.length
+                ? ` (${sections.filter((section) => section.enabled).length})`
+                : ""}
+            </Button>
+          )}
         </div>
       </div>
-      <div className="model-viewport">
-        <div className="model-canvas-host" ref={canvasHost} />
-        {!ready && (
-          <div className="model-overlay">
-            {state === "error" ? (
-              <Notice
-                tone="error"
-                action={
-                  <Button
-                    size="small"
-                    onClick={() => setRetry((value) => value + 1)}
-                  >
-                    Retry model
-                  </Button>
-                }
-              >
-                {error}
-              </Notice>
-            ) : (
-              <p role="status">
-                {state === "loading"
-                  ? "Loading model…"
-                  : "Choose a model to begin."}
-              </p>
-            )}
-          </div>
+      <div className="model-stage">
+        <div className="model-viewport">
+          <div className="model-canvas-host" ref={canvasHost} />
+          {!ready && (
+            <div className="model-overlay">
+              {state === "error" ? (
+                <Notice
+                  tone="error"
+                  action={
+                    <Button
+                      size="small"
+                      onClick={() => setRetry((value) => value + 1)}
+                    >
+                      Retry model
+                    </Button>
+                  }
+                >
+                  {error}
+                </Notice>
+              ) : (
+                <p role="status">
+                  {state === "loading"
+                    ? "Loading model…"
+                    : "Choose a model to begin."}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+        {layout === "workspace" && (
+          <aside
+            className="model-section-panel"
+            id={sectionId}
+            hidden={!sectionsOpen}
+            aria-label="Section settings"
+          >
+            {sectionControls}
+          </aside>
         )}
       </div>
-      <div className="model-caption">
+      <details className="model-caption">
+        <summary>View controls & model info</summary>
         <p id={helpId} className="small">
           Drag to orbit · Right-drag or Shift-drag to pan · Scroll to zoom.
           Touch: one finger orbits, two pan/zoom. Focus the canvas for arrow-key
@@ -287,23 +355,9 @@ export function ModelViewer({
         {ready && (
           <Badge>{triangles.toLocaleString()} triangles · mm · Z-up</Badge>
         )}
-      </div>
+      </details>
       {captureError && <Notice tone="error">{captureError}</Notice>}
-      {ready && bounds && (
-        <SectionControls
-          sections={sections}
-          bounds={bounds}
-          appearance={appearance}
-          onAppearanceChange={(next) => {
-            scene.current?.setSectionAppearance(next);
-            setAppearance(next);
-          }}
-          onChange={(next) => {
-            scene.current?.setSections(next);
-            setSections(next);
-          }}
-        />
-      )}
+      {layout === "document" && sectionControls}
     </section>
   );
 }

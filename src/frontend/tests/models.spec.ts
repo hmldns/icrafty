@@ -7,6 +7,8 @@ import {
   modelSources,
   pngPixels,
   ready,
+  selectModel,
+  openSections,
   viewer,
 } from "./model-helpers";
 import { databaseSnapshot, downloadCurrent, drawLine } from "./helpers";
@@ -22,6 +24,7 @@ test("real STEP and STL render; presets, projection, orbit, pan, zoom and fit af
   });
   await page.goto("/debug/models");
   const primary = await ready(page);
+  await openSections(primary);
   await expect(primary).toContainText("84 triangles");
   const iso = await canvasPixels(page, primary);
   expect(iso.foreground).toBeGreaterThan(5000);
@@ -38,7 +41,7 @@ test("real STEP and STL render; presets, projection, orbit, pan, zoom and fit af
   ]) {
     await primary.getByRole("button", { name: preset, exact: true }).click();
     expect((await canvasPixels(page, primary)).foreground).toBeGreaterThan(
-      5000,
+      iso.width * iso.height * 0.01,
     );
   }
   await primary.getByLabel("Projection").selectOption("orthographic");
@@ -69,9 +72,7 @@ test("real STEP and STL render; presets, projection, orbit, pan, zoom and fit af
   expect((await canvasPixels(page, primary)).foreground).toBeGreaterThan(
     orbited.foreground,
   );
-  await page
-    .getByLabel("Model source", { exact: true })
-    .selectOption("folder:bracket.stl");
+  await selectModel(page, "folder:bracket.stl");
   await ready(page);
   await expect(primary).toContainText("20 triangles");
   expect((await canvasPixels(page, primary)).foreground).toBeGreaterThan(5000);
@@ -83,10 +84,9 @@ test("independent section planes move, flip, disable, remove and survive camera 
 }) => {
   await page.goto("/debug/models");
   await ready(page);
-  await page
-    .getByLabel("Model source", { exact: true })
-    .selectOption("folder:bracket.stl");
+  await selectModel(page, "folder:bracket.stl");
   const primary = await ready(page);
+  await openSections(primary);
   await primary.getByLabel("Show section planes").uncheck();
   const original = await canvasPixels(page, primary);
   await primary.getByRole("button", { name: "Add X plane" }).click();
@@ -132,6 +132,7 @@ test("frozen model pixels and provenance enter shared annotation, unsaved PNG do
 }) => {
   await page.goto("/debug/models");
   const primary = await ready(page);
+  await openSections(primary);
   await primary.getByLabel("Projection").selectOption("orthographic");
   await primary.getByRole("button", { name: "Add Z plane" }).click();
   const rendered = await canvasPixels(page, primary);
@@ -155,7 +156,8 @@ test("frozen model pixels and provenance enter shared annotation, unsaved PNG do
   });
   const frozenPixels = await pngPixels(page, before.base64);
   expect(Math.abs(frozenPixels.foreground - rendered.foreground)).toBeLessThan(
-    rendered.foreground * 0.015,
+    // Browser screenshots resample a fractional CSS canvas; PNG export uses native pixels.
+    rendered.foreground * 0.04,
   );
   expect(frozenPixels.foreground).toBeGreaterThan(2000);
   await drawLine(page, { x: 40, y: 70 }, { x: 260, y: 70 });
@@ -176,9 +178,7 @@ test("frozen model pixels and provenance enter shared annotation, unsaved PNG do
   await page.getByRole("button", { name: "Close Annotate image" }).click();
   await primary.getByRole("button", { name: "Bottom", exact: true }).click();
   await primary.getByRole("button", { name: "Remove Z" }).click();
-  await page
-    .getByLabel("Model source", { exact: true })
-    .selectOption("folder:bracket.stl");
+  await selectModel(page, "folder:bracket.stl");
   await ready(page);
   expect((await modelSources(page))[0]).toEqual(before);
   await page.reload();
@@ -186,6 +186,9 @@ test("frozen model pixels and provenance enter shared annotation, unsaved PNG do
   await expect(page.getByTestId("collection-image")).toContainText(
     "Model snapshot",
   );
+  await page
+    .getByRole("button", { name: "Image collection", exact: true })
+    .click();
   await page
     .getByRole("button", { name: "Annotate rounded-cube.step snapshot.png" })
     .click();
@@ -216,7 +219,9 @@ test("two viewers keep cameras, materials and sections independent through peer 
   await page.getByText("Gallery tools", { exact: true }).click();
   await page.getByLabel("Compare independent viewers").check();
   const primary = await ready(page);
+  await openSections(primary);
   const second = await ready(page, "Comparison viewer");
+  await openSections(second);
   await second.getByRole("button", { name: "Add X plane" }).click();
   await second.getByRole("button", { name: "Left", exact: true }).click();
   const untouched = await canvasPixels(page, second);
@@ -247,14 +252,19 @@ test("two viewers keep cameras, materials and sections independent through peer 
   });
   expect(frozen.model?.camera.projection).toBe("perspective");
   await page.getByRole("button", { name: "Close Annotate image" }).click();
+  await page.getByText("Gallery tools", { exact: true }).click();
   await page.getByRole("button", { name: "Hide primary viewer" }).click();
+  await page.getByText("Gallery tools", { exact: true }).click();
   await expect(primary).toHaveCount(0);
   await second.getByRole("button", { name: "Add Z plane" }).click();
   await second.getByRole("button", { name: "Bottom", exact: true }).click();
   expect((await canvasPixels(page, second)).colors.z).toBeGreaterThan(1000);
   await expect(second).toHaveAttribute("data-state", "ready");
+  await page.getByText("Gallery tools", { exact: true }).click();
   await page.getByRole("button", { name: "Show primary viewer" }).click();
+  await page.getByText("Gallery tools", { exact: true }).click();
   await ready(page);
+  await openSections(primary);
   await expect(
     primary.getByRole("button", { name: "Add X plane" }),
   ).toBeEnabled();
@@ -268,9 +278,7 @@ test("gallery refresh discovers additions, reloads changed bytes and reports mis
   try {
     await page.goto("/debug/models");
     await ready(page);
-    await page
-      .getByLabel("Model source", { exact: true })
-      .selectOption("folder:reload.stl");
+    await selectModel(page, "folder:reload.stl");
     await ready(page);
     await captureModel(page);
     const first = (await modelSources(page))[0]!;
@@ -342,6 +350,7 @@ test("context loss cancels in-flight WASM loading, ignores stale work, and retry
   ).toBeDisabled();
   await viewer(page).getByRole("button", { name: "Retry model" }).click();
   const primary = await ready(page);
+  await openSections(primary);
   expect((await canvasPixels(page, primary)).foreground).toBeGreaterThan(5000);
 });
 
@@ -381,12 +390,13 @@ test("a delayed replaced source cannot overwrite the current model; route teardo
   });
   await page.goto("/debug/models");
   await ready(page);
-  await page
-    .getByLabel("Model source", { exact: true })
-    .selectOption("folder:bracket.stl");
+  await selectModel(page, "folder:bracket.stl");
   await expect.poll(() => !!release).toBe(true);
-  await page.getByLabel("Model source", { exact: true }).selectOption("sample");
+  await selectModel(page, "sample");
   await ready(page);
+  await expect(
+    page.locator('.model-tile[data-model-id="folder:bracket.stl"]'),
+  ).toHaveAttribute("data-state", "unopened");
   release?.();
   await page.unroute("**/__model_gallery/file?**");
   await expect(viewer(page)).toContainText("84 triangles");
@@ -410,6 +420,7 @@ test("model gallery remains usable on a narrow viewport and is linked from the d
   await page.goto("/debug");
   await page.getByRole("link", { name: /03 \/ INSPECT/ }).click();
   const primary = await ready(page);
+  await openSections(primary);
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth),
   ).toBeLessThanOrEqual(390);

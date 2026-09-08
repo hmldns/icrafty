@@ -89,11 +89,14 @@ export function SectionControls({
           ))}
         </div>
       </div>
-      <p className="small">
-        Subtle fills and diagonal hatching show sectioned material. Open or
-        inconsistent meshes can show artifacts. Positions are in viewer
-        millimeters; these are visual sections, not verified CAD measurements.
-      </p>
+      <details className="section-help small">
+        <summary>About visual cuts</summary>
+        <p>
+          Subtle fills and diagonal hatching show sectioned material. Open or
+          inconsistent meshes can show artifacts. Positions are in viewer
+          millimeters; these are visual sections, not verified CAD measurements.
+        </p>
+      </details>
       <div className="row section-display-options">
         <label>
           <input

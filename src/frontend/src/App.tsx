@@ -14,6 +14,9 @@ const ModelGalleryPage = lazy(() =>
 
 export function App() {
   const path = usePathname();
+  const workspace = [ROUTES.camera, ROUTES.models, ROUTES.chat].some(
+    (route) => route === path,
+  );
   const main = useRef<HTMLElement>(null);
   useEffect(() => {
     const pageTitle =
@@ -32,7 +35,7 @@ export function App() {
     main.current?.focus({ preventScroll: true });
   }, [path]);
   return (
-    <div className="app-shell">
+    <div className={`app-shell${workspace ? " app-shell--workspace" : ""}`}>
       <a className="skip-link" href="#main">
         Skip to content
       </a>

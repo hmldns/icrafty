@@ -2,6 +2,7 @@
 @import "./tokens.css";
 @import "./models.css";
 @import "./chat-flow.css";
+@import "./debug-workspaces.css";
 
 @layer base {
   :root {
