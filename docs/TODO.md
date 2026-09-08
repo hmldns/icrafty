@@ -1,0 +1,7 @@
+- [x] arrange director agent
+- [ ] design 3d declarative rendering engine with screenshots, vizual loop for agentic v&v
+- [ ] arange ACP integration best practive and design key MCP tools
+- [ ] debug dimentions grabbig loop and draft image generation loop; 
+ - [ ] grab testing images in advance for eval running that then we can observe and validate running new blind start with these images to refine primpts tools, as test+eval that should have additional py + rich surface to run inside terminal and tmux session
+ - [ ] build this to the moment when we can generete python script for freecad
+ - [ ]

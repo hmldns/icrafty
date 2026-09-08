@@ -1,0 +1,54 @@
+@startuml assets
+!include theme.iuml
+title Crafty — image capture, immutable assets, and annotation lineage
+top to bottom direction
+
+state "Browser capture session" as Capture {
+  [*] --> Camera
+  state "Camera open" as Camera
+  state "Local shot collection" as Shots
+  state "Edit selected shot\nfreehand / text / crop" as Edit
+  Camera --> Shots : button or hotkey
+  Shots --> Camera : rotate object; take another shot
+  Shots --> Shots : delete an unsent shot
+  Shots --> Edit : annotate
+  Edit --> Shots : retain original + edited copy
+}
+
+state "Uploading / staging" as Staging
+state "Ready asset\nimmutable bytes + metadata" as Ready
+state "Referenced ready asset\nmessage / interaction / revision" as Attached
+state "Derived annotation / snapshot\nnew asset identity" as Derived
+state "Rejected / abandoned upload" as Rejected
+state "Unreferenced upload cleanup" as Cleanup
+
+Shots --> Staging : submit retained images
+Staging --> Ready : verify size, format, hash; finalize blob
+Staging --> Rejected : invalid upload / abandoned transfer
+Rejected --> Cleanup : staging TTL
+Ready --> Attached : message transaction references asset IDs
+Ready --> Cleanup : unattached and expired
+Attached --> Derived : annotate photo / draft\nor snapshot a ready model
+Derived --> Staging : upload flattened image\n+ optional editable annotation data
+Attached --> Attached : view / download / agent retrieval
+
+note right of Ready
+  assetId, projectId, kind, MIME, bytes, SHA-256
+  dimensions, normalized orientation, createdAt
+  derivedFromAssetId and sourceRevisionId where applicable
+  Storage key and temporary URL are not the asset identity.
+end note
+note right of Derived
+  Model snapshot records revision + GLB hash + camera pose.
+  Annotation coordinates refer to normalized source pixels.
+  Flattened PNG is directly visible to the agent.
+  Keep the source unchanged; edits create another asset.
+end note
+note bottom of Attached
+  Message/interaction submission waits for all referenced assets to be ready.
+  A failed submission can reuse ready uploads with the same idempotency key.
+  Browser blob URLs and local file paths never become durable references.
+  Clearing the capture tray does not delete published conversation assets.
+  Attachment is a reference relationship; the asset itself remains ready.
+end note
+@enduml

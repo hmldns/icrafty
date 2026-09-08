@@ -1,0 +1,61 @@
+@startuml overview
+!include theme.iuml
+title Crafty — deployment and isolation boundaries
+top to bottom direction
+
+actor "Maker\ncaliper + object" as User
+component "Browser\nReact chat + capture / annotation\ninline images, forms, Three.js models" as Web
+node "DigitalOcean host · Docker Compose" {
+  component "Caddy · public edge\nicrafty.ai · HTTPS / WSS" as Edge
+  node "Application boundary · trusted Python / uv" #E8F3EC {
+    component "API + coordinator\nsole domain state owner\nasset ingestion / revision publication" as API
+    database "Metadata + durable events\nSQLite first" as DB
+    storage "Immutable blobs\nprivate API volume first" as Blobs
+  }
+  node "Agent boundary · one project / owner" #FFF0E5 {
+    component "Python ACP supervisor\n-> Codex ACP adapter (ACP v1 stdio)\n-> Codex App Server (native stdio)" as Agent
+    component "Crafty MCP facade · local stdio\nasset_fetch -> localPath\nasset_publish / model_publish(path)\nrequest input · isolated CAD build" as MCP
+    storage "Chat scratch directories\nprivate agent home + credentials" as Work
+    note bottom of Work
+      No app DB, global blobs,
+      host workspace, or Docker socket.
+    end note
+  }
+  component "Trusted CAD launcher\nfixed images / entrypoints / job mounts\nonly component with container control" as Launcher #E8F3EC
+  node "Disposable execution boundary · each job attempt" #FCE9E7 {
+    component "Build container\nFreeCAD executes generated Python" as CAD
+    component "Isolated verification / preview\nreopen submitted STEP -> GLB -> PNG\nnever execute generated Python" as Verify
+    note bottom of Verify
+      No network, credentials, or Docker socket.
+      Unprivileged; read-only root; dropped caps.
+      CPU / RAM / PID / disk / time limits.
+      Only frozen inputs + bounded job outputs.
+    end note
+  }
+}
+cloud "Model / enabled image services" as Provider
+
+User --> Web
+Web --> Edge : commands / uploads / downloads\napplication event stream + cursor
+Edge --> API
+API -right-> DB : transaction + event
+DB -down[hidden]-> Blobs
+API -[norank]-> Blobs : finalize bytes
+API --> Agent : private scoped channel\ndispatch / acknowledged events
+Agent --> MCP : tool calls
+Agent -right-> Provider : provider egress
+MCP --> Work : materialize / publish bytes
+MCP -[norank]-> API : scoped domain HTTP\nasset / operation IDs
+API --> Launcher : lease / inputs / guarded completion\nlauncher initiates private connection
+Launcher --> CAD : create / stop / destroy
+CAD --> Verify : build -> local file handoff -> model_publish\nseparate verification job (logical lifecycle)
+Verify -[norank]-> Launcher : validated output set
+Agent -[hidden]right-> Launcher
+legend bottom
+  Green: trusted state / orchestration   Orange: agent runtime   Red: generated-code execution
+  Private arrows describe logical exchange; only Caddy has public routes.
+  Agent and local MCP share a file namespace. Worker paths require explicit transfer.
+  Printing is a future additional MCP integration; current product ends at downloads.
+  Design proposal; services are not deployed yet. Protocol detail: acp-turn diagram.
+endlegend
+@enduml

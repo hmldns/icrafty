@@ -1,0 +1,62 @@
+@startuml models
+!include theme.iuml
+title Crafty — local STEP handoff and model publication
+top to bottom direction
+
+state "Build job (when needed)" as Build {
+  state "Queued\nfrozen source + inputs" as BuildQueued
+  state "Building\nisolated FreeCAD attempt" as Building
+  state "Built\nSTEP staged; build job complete" as Built
+  state "Build failed / cancelled" as BuildFailed #FCE9E7
+  BuildQueued -down-> Building
+  Building -down-> Built
+  Building -right-> BuildFailed : error / timeout / Stop
+  BuildQueued -right-> BuildFailed : Stop before execution
+}
+
+state "Local STEP + source files\nagent-visible folder" as Local
+state "Publication operation" as Publication {
+  state "Ingesting\nmodel_publish(stepPath, sourcePath, parentRevisionId)" as Ingesting
+  state "Verifying\nfrozen submitted STEP; isolated attempt" as Verifying
+  state "Complete staged artifact set" as Staged
+  state "Publish gate" as Gate <<choice>>
+  state "Ready revision\nimmutable manifest + durable event" as Ready #E8F3EC
+  state "Failed / cancelled / fenced" as Failed #FCE9E7
+  Ingesting -down-> Verifying : capture exact bytes; enqueue verification
+  Verifying -down-> Staged : valid geometry + GLB + PNG + report
+  Staged -down-> Gate : compare attempt lease + cancellation fence
+  Gate -down-> Ready : commit all references atomically
+  Gate -right-> Failed : stale attempt / Stop
+  Verifying -right-> Failed : invalid geometry / resource limit / Stop
+  Ingesting -right-> Failed : incomplete files / invalid source / Stop
+}
+
+[*] -down-> BuildQueued
+Built -down-> Local : MCP downloads completed output
+Local -down-> Ingesting : explicit submission by agent
+Ready -down-> [*]
+
+note left of Local
+  Existing local STEP + source may enter here.
+  A worker path is not automatically an agent path.
+  Folder contents do not automatically become chat assets.
+end note
+note right of Verifying
+  Reopen the exact submitted STEP.
+  Derive GLB and fixed-camera PNG from that geometry.
+  Record units and coordinate conversion.
+  No generated Python runs in the verifier.
+end note
+note right of Ready
+  revisionId + parentRevisionId + file digests
+  source.py + parameters.json + part.step
+  preview.glb + verification PNGs + validation.json
+  A new design gets a new revision; old files stay intact.
+end note
+note bottom of Publication
+  Build jobs, publication jobs, ACP turns, and revisions have independent states.
+  Retrying unchanged input uses a new attempt ID and the same operation identity.
+  Older completion cannot silently replace a newer selected revision.
+  Local path is a transfer input; assetId / revisionId is the durable identity.
+end note
+@enduml

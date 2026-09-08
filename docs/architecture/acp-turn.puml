@@ -1,0 +1,128 @@
+@startuml acp-turn
+!include theme.iuml
+title Crafty — Codex through ACP, with durable application state
+autonumber
+actor User
+participant "Browser" as UI
+participant "API / durable state" as API
+participant "ACP supervisor" as Relay
+participant "Codex ACP adapter\n+ App Server" as Agent
+participant "Crafty MCP" as MCP
+participant "CAD launcher" as CAD
+
+Relay -> Agent : initialize(protocolVersion=1, capabilities)
+Agent --> Relay : chosen version + image / MCP / resume capabilities
+note over Relay, Agent
+  Register the reader and request handlers before session setup.
+  Drain stderr separately. Authentication uses private agent state.
+end note
+Relay -> Agent : session/new(cwd, mcpServers)
+Agent --> Relay : sessionId
+Relay -> API : bind chatId to sessionId + runtimeEpoch
+
+User -> UI : capture several views; annotate selected images
+UI -> API : upload bytes; finalize assets
+API --> UI : ready asset IDs + source relationships
+UI -> API : submit message(clientMessageId, assetIds, replyTo)
+API -> API : atomically save message + turn + dispatch command
+API --> UI : accepted message + event cursor
+API -> Relay : dispatch once; hold per-chat turn ownership
+Relay -> Agent : session/prompt(text + asset references)
+Agent -> MCP : asset_fetch(assetId)
+MCP -> API : fetch scoped asset bytes
+API --> MCP : verified MIME + bytes + digest
+MCP -> MCP : write into agent-visible chat folder
+MCP --> Agent : assetId + localPath
+Agent -> Agent : open local image with image-view tool
+note over Relay, Agent
+  Keep this request open through the entire v1 turn.
+  Continue reading updates AND agent requests concurrently.
+  Files are the baseline image handoff; opening them provides vision input.
+  ACP inline image blocks are an optional alternative.
+end note
+
+loop text / tool activity during the turn
+  Agent -> Relay : session/update(message chunk or tool patch)
+  Relay -> API : event(epoch, localSeq, raw frame)
+  API -> API : persist projection + durable event sequence
+  API --> UI : event(seq, chatId, turnId, operationId?)
+end
+
+opt the agent requests measurements or photos
+  Agent -> MCP : request_input(schema, imageAssetIds)
+  MCP -> API : create durable interaction
+  API --> MCP : interactionId + typed card data
+  MCP --> Agent : structured result + text fallback
+  API --> UI : interaction.created
+  note over UI, Agent
+    Tool returns promptly. The agent can end its turn.
+    Form or capture submission becomes a later user message.
+    Native ACP elicitation is a separately negotiated capability.
+  end note
+end
+
+opt the agent generates a sketch
+  Agent -> Agent : image generation -> local output file
+  Agent -> MCP : asset_publish(localPath, kind, sourceAssetIds)
+  MCP -> API : ingest completed bytes; create immutable asset
+  API --> MCP : assetId + typed card reference
+  MCP --> Agent : persisted asset reference
+  API --> UI : asset.published
+end
+
+opt the agent generates a part
+  Agent -> MCP : cad_build(sourcePath, inputs)
+  MCP -> API : upload frozen source; create job with active turn scope
+  API --> MCP : jobId + operationId
+  MCP --> Agent : durable job reference
+  CAD -> API : lease job(attemptId)
+  CAD -> CAD : isolated FreeCAD build
+  CAD -> API : stage STEP output; complete build attempt
+  Agent -> MCP : cad_status(jobId) / bounded cad_wait(jobId)
+  MCP -> API : read build state; fetch completed outputs
+  API --> MCP : staged output bytes
+  MCP -> MCP : materialize STEP in agent-visible folder
+  MCP --> Agent : stepPath + sourcePath + jobId
+  Agent -> MCP : model_publish(stepPath, sourcePath, parentRevisionId)
+  MCP -> API : ingest exact local files; create publication operation
+  API --> MCP : operationId + processing card reference
+  MCP --> Agent : durable publication reference
+  CAD -> API : lease verification job
+  CAD -> CAD : reopen submitted STEP -> validate -> GLB + PNG
+  CAD -> API : upload derivatives; complete(attemptId)
+  API -> API : check lease + cancellation fence; publish revision atomically
+  API --> UI : revision.ready(asset manifest)
+  note over Agent, CAD
+    model_publish also accepts an already available local STEP + source.
+    Build completion and model publication have separate job states.
+    Agent can fetch the published verification PNG for visual review.
+  end note
+end
+
+alt ordinary completion
+  Agent --> Relay : original session/prompt response(stopReason)
+  Relay -> API : finish turn; release prompt slot
+else user presses Stop
+  UI -> API : cancel active turn
+  API -> API : revoke job publication for this turn
+  API -> Relay : cancel turn command
+  Relay -> Agent : session/cancel notification (no response expected)
+  API -> CAD : cancel linked foreground jobs
+  CAD -> CAD : stop attempt containers; discard unpublished outputs
+  Agent -> Relay : final updates may still arrive
+  Agent --> Relay : original session/prompt response(cancelled)
+  Relay -> API : mark turn cancelled; release prompt slot
+  note over API, Agent
+    Pending permission requests resolve as cancelled.
+    A deadline without acknowledgement fences the old runtime.
+    Late frames remain diagnostics; they cannot publish a revision.
+  end note
+end
+
+UI -> API : reconnect(after durable event sequence)
+API --> UI : replay application events or snapshot + cursor
+note over UI, Relay
+  Browser reconnect does not create or reload an ACP session.
+  Only runtime recovery uses negotiated session/resume or session/load.
+end note
+@enduml

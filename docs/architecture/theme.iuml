@@ -1,0 +1,23 @@
+skinparam backgroundColor #FAFAF7
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 14
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam ArrowColor #465868
+skinparam ArrowThickness 1.3
+skinparam noteBackgroundColor #FFF3CD
+skinparam noteBorderColor #BC984A
+skinparam componentStyle rectangle
+skinparam componentBackgroundColor #EAF2F8
+skinparam componentBorderColor #53748D
+skinparam databaseBackgroundColor #E8F3EC
+skinparam databaseBorderColor #4D8062
+skinparam packageBorderColor #80929E
+skinparam rectangleBorderColor #80929E
+skinparam stateBackgroundColor #EAF2F8
+skinparam stateBorderColor #53748D
+skinparam sequenceMessageAlign center
+skinparam sequenceParticipantBackgroundColor #EAF2F8
+skinparam sequenceParticipantBorderColor #53748D
+skinparam sequenceLifeLineBorderColor #93A5B1
+hide footbox

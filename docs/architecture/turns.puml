@@ -1,0 +1,60 @@
+@startuml turns
+!include theme.iuml
+title Crafty — prompt turn ownership and recovery
+top to bottom direction
+
+state "Accepted\nmessage + durable dispatch record" as Accepted
+state "Dispatching\nper-chat ownership acquired" as Dispatching
+state "Running\none active session/prompt" as Running
+state "Waiting for protocol permission" as Permission
+state "Cancel requested" as Cancelling #FFF3CD
+state "Completed\nrecord actual stop reason" as Completed #E8F3EC
+state "Cancelled" as Cancelled #FCE9E7
+state "Failed" as Failed #FCE9E7
+state "Interrupted / delivery uncertain" as Interrupted #FFF3CD
+state "Recovering runtime\nnew epoch + capability handshake" as Recovering
+
+[*] --> Accepted
+Accepted --> Dispatching : dispatch command claimed once
+Dispatching --> Running : request sent; no concurrent prompt
+Running --> Permission : session/request_permission
+Permission --> Running : validated response on original request ID
+Running --> Completed : original prompt response
+Permission --> Cancelling : Stop
+Running --> Cancelling : Stop
+Cancelling --> Cancelled : original prompt response = cancelled
+Cancelling --> Completed : completion already won the race
+Running --> Failed : terminal RPC / adapter error
+Dispatching --> Interrupted : crash before delivery is known
+Running --> Interrupted : runtime lost
+Cancelling --> Interrupted : cancellation deadline exceeded
+Permission --> Interrupted : connection lost
+Interrupted --> Recovering : fence old epoch; stop orphan jobs
+Recovering --> [*] : resume/load if supported; release slot\nrequire explicit next message
+Completed --> [*]
+Cancelled --> [*]
+Failed --> [*]
+
+note right of Permission
+  Protocol permission is separate from design approval.
+  Ordinary photo/measurement forms are durable interactions;
+  their MCP request returns without waiting for a browser.
+end note
+note right of Cancelling
+  Cancel is a notification, not a request/response pair.
+  Resolve pending permissions as cancelled.
+  Request cancellation of associated CAD jobs separately.
+  Accept final updates but fence domain publication.
+end note
+note right of Interrupted
+  Never silently resend a prompt after an ambiguous send.
+  Runtime epoch rejects events from replaced processes.
+  Persist user messages independently of agent echoes.
+end note
+note bottom of Recovering
+  Browser disconnect only detaches a subscriber; work continues.
+  API replay uses durable sequence numbers, not timer-based "settling".
+  Session load replay is reconciled separately from live events.
+  Optional queued user messages are dispatched serially after a terminal turn.
+end note
+@enduml

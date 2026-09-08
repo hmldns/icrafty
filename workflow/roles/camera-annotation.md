@@ -15,6 +15,12 @@ deletion, let the user draw and add text, and export annotated images while
 preserving their source identity. Keep permission, loading, empty, and error
 states usable. The gallery should show the real primitives used by those routes.
 
+The nearest milestone is the annotation-to-download loop for evaluation: import
+or capture an image, mark it up, and download the current annotated PNG directly
+from the editor. Download must include the current edits, even before saving a
+revision, and keep the editor open for another iteration. Use clear filenames
+and preserve the original. Broader camera controls support this loop.
+
 Use the initial assignment for concrete acceptance criteria and source material.
 Copy and adapt useful implementation ideas into self-contained local code;
 do not carry over external application dependencies, branding, or path references.
