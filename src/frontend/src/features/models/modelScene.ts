@@ -412,6 +412,32 @@ export class ModelScene {
     };
   }
 
+  /** A bounded copy of this view, with no extra renderer or camera mutation. */
+  async thumbnail(): Promise<Blob> {
+    if (!this.imported || this.disposed)
+      throw new Error("No model preview is available.");
+    this.render();
+    const preview = document.createElement("canvas");
+    preview.width = 192;
+    preview.height = 128;
+    const context = preview.getContext("2d");
+    if (!context) throw new Error("The browser could not make a preview.");
+    const scale = Math.min(
+      preview.width / this.canvas.width,
+      preview.height / this.canvas.height,
+    );
+    const width = this.canvas.width * scale;
+    const height = this.canvas.height * scale;
+    context.drawImage(
+      this.canvas,
+      (preview.width - width) / 2,
+      (preview.height - height) / 2,
+      width,
+      height,
+    );
+    return canvasBlob(preview);
+  }
+
   async snapshot(): Promise<ModelSnapshot> {
     if (!this.imported || !this.source || this.disposed)
       throw new Error("Load a model before taking a snapshot.");

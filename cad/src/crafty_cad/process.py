@@ -66,9 +66,15 @@ class NativeProcess:
                "QT_QPA_PLATFORM": "offscreen", "OMP_NUM_THREADS": "1",
                "OPENBLAS_NUM_THREADS": "1", "XDG_CONFIG_HOME": str(directory / "config"),
                "XDG_CACHE_HOME": str(directory / "cache")}
+        identity = {}
+        if mode == "build" and settings.builder_uid is not None:
+            if os.getuid() != 0:
+                raise CadError("isolation_setup", "Container supervisor must be able to assign the model UID")
+            os.chown(directory, settings.builder_uid, settings.builder_uid)
+            identity = {"user": settings.builder_uid, "group": settings.builder_uid, "extra_groups": []}
         try:
             self.process = subprocess.Popen(self.command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE, cwd=directory, env=env, start_new_session=True)
+                stderr=subprocess.PIPE, cwd=directory, env=env, start_new_session=True, **identity)
         except OSError as exc:
             self.log.close()
             raise CadError("missing_native", f"Cannot launch {settings.native_python}: {exc}") from exc
@@ -76,7 +82,8 @@ class NativeProcess:
         for stream in (self.process.stdout, self.process.stderr):
             os.set_blocking(stream.fileno(), False)
             self.selector.register(stream, selectors.EVENT_READ)
-        self.stats = {"command": self.command, "pid": self.process.pid}
+        self.stats = {"command": self.command, "pid": self.process.pid,
+                      "uid": settings.builder_uid if identity else os.getuid()}
 
     def _log(self, data: bytes):
         remaining = self.settings.log_bytes - self.log_size

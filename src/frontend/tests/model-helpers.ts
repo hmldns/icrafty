@@ -11,6 +11,18 @@ export async function ready(page: Page, label = "Model viewer") {
   return element;
 }
 
+export async function selectModel(page: Page, id: string) {
+  await page
+    .locator(`.model-tile[data-model-id=${JSON.stringify(id)}]`)
+    .click();
+}
+
+export async function openSections(region: Locator) {
+  const toggle = region.getByRole("button", { name: /^Sections/ });
+  if ((await toggle.getAttribute("aria-expanded")) === "false")
+    await toggle.click();
+}
+
 export async function canvasPixels(page: Page, region: Locator) {
   const bytes = await region.locator("canvas").screenshot();
   return pngPixels(page, bytes.toString("base64"));
@@ -29,7 +41,9 @@ export async function pngPixels(page: Page, base64: string) {
     context.drawImage(bitmap, 0, 0);
     bitmap.close();
     const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
-    const background = Array.from(pixels.slice(0, 4));
+    // Sample inside the canvas: a fractional CSS edge can include the toolbar border.
+    const corner = (8 * canvas.width + 8) * 4;
+    const background = Array.from(pixels.slice(corner, corner + 4));
     let foreground = 0;
     let red = 0;
     const colors = { x: 0, y: 0, z: 0, reference: 0 };
@@ -45,7 +59,7 @@ export async function pngPixels(page: Page, base64: string) {
       // Ignore the compositor's rounded crop border; the model stays well inside it.
       const x = (i / 4) % canvas.width;
       const y = Math.floor(i / 4 / canvas.width);
-      if (x < 2 || y < 2 || x >= canvas.width - 2 || y >= canvas.height - 2)
+      if (x < 8 || y < 8 || x >= canvas.width - 8 || y >= canvas.height - 8)
         continue;
       if (
         Math.abs(pixels[i]! - background[0]!) +

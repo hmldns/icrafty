@@ -7,7 +7,7 @@ import {
   makeImage,
   uploadImage,
 } from "./helpers";
-import { captureModel, pngPixels, ready } from "./model-helpers";
+import { captureModel, openSections, pngPixels, ready } from "./model-helpers";
 import {
   addText,
   closeEditor,
@@ -29,6 +29,7 @@ test("real STEP snapshot saves a visible editable copy, then updates that same i
 }) => {
   await page.goto("/debug/models");
   const model = await ready(page);
+  await openSections(model);
   await model.getByRole("button", { name: "Add Z plane" }).click();
   await model.getByLabel("Projection").selectOption("orthographic");
   await captureModel(page);
@@ -89,6 +90,9 @@ test("real STEP snapshot saves a visible editable copy, then updates that same i
   expect(firstSave.marks).toHaveLength(2);
   expect(firstSave.marks.every((mark) => !!mark.outline)).toBe(true);
   await closeEditor(page);
+  await page
+    .getByRole("button", { name: "Image collection", exact: true })
+    .click();
   const sourceCard = collectionCard(page, source.id);
   const copyCard = collectionCard(page, copy.id);
   const sourceThumbnail = await thumbnailPixels(page, sourceCard);
@@ -149,6 +153,9 @@ test("real STEP snapshot saves a visible editable copy, then updates that same i
   );
   await page.reload();
   await ready(page);
+  await page
+    .getByRole("button", { name: "Image collection", exact: true })
+    .click();
   expect((await savedImages(page)).sources).toEqual(copied.sources);
   const reloadedThumbnail = await thumbnailPixels(page, copyCard);
   expect(reloadedThumbnail.red).toBeGreaterThan(100);
