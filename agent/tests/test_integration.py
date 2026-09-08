@@ -63,6 +63,23 @@ def test_partial_mcp_updates_and_binary_normalization():
     assert "secretbytes" not in str(binary)
 
 
+def test_interrupted_tools_stop_without_inventing_results(settings):
+    store = Store(settings)
+    try:
+        sid = store.create_session()["id"]
+        turn = store.create_turn(sid, "stopped", "Generate", [], "digest")
+        store.put_record(sid, {"type": "tool_call", "toolCallId": "image-generation", "turnId": turn["id"],
+                               "name": "tool", "title": "Image generation", "status": "in_progress"})
+        store.finish_turn(sid, turn["id"], "cancelled")
+        record = store.record(sid, "image-generation")
+        assert record["status"] == "failed" and record["terminationReason"] == "cancelled"
+        assert "rawOutput" not in record
+        store.finish_turn(sid, turn["id"], "completed")
+        assert store.session(sid)["turnStatus"] == "cancelled"
+    finally:
+        store.close()
+
+
 @pytest.mark.asyncio
 async def test_real_stdio_lifecycle_images_idempotency_and_resume(settings):
     service = AgentService(settings, "http://127.0.0.1:1")

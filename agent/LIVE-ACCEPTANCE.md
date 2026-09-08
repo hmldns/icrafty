@@ -48,11 +48,12 @@ continuation recovery in session `1d6b24e259af4228914954d82744a0b0`. The optiona
 `--generate` branch is provided for repeat runs; this run did not request another
 generation. Generation was independently executed through the UI in LIVE-2.
 
-**LIVE-6 — Deterministic checks.** Ten Python tests passed, including real stdio
+**LIVE-6 — Deterministic checks.** Eleven Python tests passed, including real stdio
 ACP fixture processes, actual FastMCP initialization/tool registration, image
 immutability and containment, HTTP/origin validation, durable camera and permission
 records, concurrent retries, serialized stop/open, process loss, and exclusive
-data ownership. Five browser integration tests passed, covering upload, streamed
+data ownership. Interrupted tools are marked unsuccessful without inventing a
+tool result. Five browser integration tests passed, covering upload, streamed
 records, typed image/camera components, session switching, permissions, Stop,
 cursor reconnect, camera capture/cleanup, and small-screen error controls.
 Fourteen existing chat/projection/route checks also passed. TypeScript and the
