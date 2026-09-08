@@ -3,7 +3,8 @@
 When launched with the **3D model viewer** role, follow the shared
 [worker process](../ROLES.md), `src/frontend/AGENTS.md`, and your saved assignment.
 This is a development role; it is separate from the product's CAD agent and CAD
-evaluator. The director owns coordination and integration.
+evaluator. The director coordinates; the assigned integration agent owns Git
+handoff and integration health.
 
 Own the reusable frontend model viewer, its import adapters, view and section
 controls, and a debug gallery that composes that component. Keep temporary local
