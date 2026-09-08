@@ -5,6 +5,10 @@ The director assigns each worker its role and task explicitly. Shared product
 context and engineering conventions belong in the root [AGENTS.md](../AGENTS.md).
 Read the [tooling guide](README.md) for commands and recovery procedures.
 
+Task-specific responsibilities can be supplied by a role profile, such as
+[Camera and annotation](roles/camera-annotation.md). The launch prompt names the
+assigned role and profile alongside its task and owned paths.
+
 ## Director
 
 When acting as the director, work in the main checkout. Own task decomposition,
