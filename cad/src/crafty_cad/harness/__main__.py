@@ -21,6 +21,7 @@ from rich.tree import Tree
 
 from .api import CAD_ROOT, Context
 from .reports import publish
+from .presentation import case_details
 from ..files import CadError
 from ..runtime import GeometryRuntime
 from ..settings import Settings
@@ -40,6 +41,9 @@ def main(argv=None):
     run.add_argument("--json", action="store_true")
     run.add_argument("--no-color", action="store_true")
     args = parser.parse_args(argv)
+    if args.runtime == "docker":
+        from .docker_run import run
+        return run(args)
     root = (args.output or CAD_ROOT / "runs" / "verification" / (time.strftime("%Y%m%d-%H%M%S")+"-"+uuid.uuid4().hex[:8])).resolve()
     console = Console(stderr=True, no_color=args.no_color or bool(os.environ.get("NO_COLOR")),
                       force_terminal=False if args.json or not sys.stderr.isatty() else None)
@@ -71,15 +75,13 @@ def main(argv=None):
         if not cases:
             raise CadError("invalid_selection", "No cases selected; no tests ran")
         summary["order"] = [case.suite+"/"+case.name for case in cases]
-        if args.runtime == "docker":
-            raise CadError("missing_prerequisite", "Docker acceptance adapter is not implemented; no tests ran")
         settings = Settings.environment()
         if any(case.native for case in cases):
             with GeometryRuntime(root / "preflight", settings) as runtime:
                 runtime._start()
                 summary["native"] = runtime.native_versions
         console.print(f"Crafty CAD | {args.runtime} | {len(cases)} cases | {root}")
-        with Progress(SpinnerColumn(), TextColumn("{task.description}"), TimeElapsedColumn(),
+        with Progress(SpinnerColumn(), TextColumn("{task.description}"), TextColumn("{task.completed}/{task.total} cases"), TimeElapsedColumn(),
                       console=console, disable=args.json or not console.is_terminal) as progress:
             task = progress.add_task("Starting", total=len(cases))
             for case in cases:
@@ -116,6 +118,7 @@ def main(argv=None):
                     summary["cases"].append(row)
                 progress.advance(task)
                 console.print(f"{row['outcome']}: {case.suite}/{case.name} ({row['duration_seconds']:.3f}s)")
+                case_details(console,row,root)
                 if code == 130:
                     break
     except KeyboardInterrupt:

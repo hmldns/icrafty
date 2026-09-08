@@ -1,8 +1,9 @@
 # Local deterministic gate and correction-trial handoff
 
-Local acceptance executed on 2026-09-08. This is an implementation checkpoint;
-the separate correction trial and executed Docker gate remain required. The
-first native milestone is retained separately in [NATIVE-MILESTONE.md](NATIVE-MILESTONE.md).
+Local acceptance executed on 2026-09-08. This historical checkpoint preceded the
+accepted [separate correction trial](TRIAL-GATE.md) and
+[executed Docker gate](DOCKER-GATE.md). The first native milestone is retained
+separately in [NATIVE-MILESTONE.md](NATIVE-MILESTONE.md).
 
 `make -C cad verify` passed **77/77** cases in 37.552 seconds. Its versioned
 summary and self-contained gallery are retained under

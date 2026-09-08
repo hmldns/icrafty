@@ -24,12 +24,14 @@ class Settings:
     tessellation_mm: float = 0.12
     title_height: int = 112
     grid_padding: int = 12
+    builder_uid: int | None = None
 
     @classmethod
     def environment(cls) -> "Settings":
         return cls(native_python=os.environ.get("CRAFTY_NATIVE_PYTHON", cls.native_python),
                    freecad_lib=os.environ.get("CRAFTY_FREECAD_LIB", cls.freecad_lib),
-                   font=os.environ.get("CRAFTY_FONT", cls.font))
+                   font=os.environ.get("CRAFTY_FONT", cls.font),
+                   builder_uid=65532 if os.environ.get("CRAFTY_CONTAINER") == "1" else None)
 
     def manifest(self) -> dict:
         return asdict(self)
