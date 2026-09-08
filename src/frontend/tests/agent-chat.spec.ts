@@ -108,6 +108,20 @@ test("real mounted components upload, stream, show MCP images, download and rest
   await expect(reply.getByText("A pale", { exact: true })).toBeVisible();
   await expect(reply).toHaveAttribute("aria-busy", "true");
   await expect(reply.getByText("Writing…", { exact: true })).toBeVisible();
+  const caret = reply.locator(".chat-streaming-caret");
+  const blink = await caret.evaluate(async element => {
+    const animation = element.getAnimations()[0]!;
+    animation.pause(); await animation.ready;
+    animation.currentTime = 0;
+    const lit = getComputedStyle(element).opacity;
+    animation.currentTime = Number(animation.effect!.getTiming().duration) * .75;
+    const dark = getComputedStyle(element).opacity;
+    const previous = element.previousElementSibling!.getBoundingClientRect();
+    const cursor = element.getBoundingClientRect();
+    animation.play();
+    return { lit, dark, inline: cursor.x >= previous.right && cursor.top < previous.bottom };
+  });
+  expect(blink).toEqual({ lit: "1", dark: "0", inline: true });
   app.emit("c", "record", { type: "message", id: "reply", author: "crafty", origin: "agent", text: "A pale blue cap.", imageIds: [] });
   await expect(reply.getByText("A pale blue cap.", { exact: true })).toBeVisible();
   await expect(reply).toHaveCount(1);
@@ -115,6 +129,7 @@ test("real mounted components upload, stream, show MCP images, download and rest
     rawOutput: { schema_version: 1, view: "image", image: { assetId: asset.id, versionId: "1" }, caption: "The concept" } });
   app.finish("c");
   await expect(reply.getByText("Writing…", { exact: true })).toHaveCount(0);
+  await expect(caret).toHaveCount(0);
   const card = page.getByRole("article", { name: "workpiece.png", exact: true });
   await expect(card.getByRole("img")).toBeVisible();
   await expect(history(page).getByText("A pale blue cap.", { exact: true })).toHaveCount(1);
@@ -129,6 +144,52 @@ test("real mounted components upload, stream, show MCP images, download and rest
   await choose(page, "New chat");
   await expect(card.getByRole("img")).toBeVisible();
   expect(app.commands.filter(c => c.action === "open")).toHaveLength(0);
+});
+
+test("image generation shows real tool progress and waits for preview bytes", async ({ page }) => {
+  const app = await harness(page);
+  await page.goto("/debug/agent");
+  await expect.poll(() => app.sockets.has("a")).toBe(true);
+  const call = { type: "tool_call" as const, toolCallId: "generation", name: "tool", title: "Image generation" };
+  app.emit("a", "record", { ...call, status: "pending" });
+  const activity = page.getByRole("article", { name: "Image generation", exact: true });
+  await expect(activity).toContainText("Waiting to start…");
+  app.emit("a", "record", { ...call, status: "in_progress" });
+  await expect(activity).toContainText("Generating image…");
+  await expect(activity).toHaveAttribute("aria-busy", "true");
+  await expect(activity.locator(".spinner")).toBeVisible();
+  await activity.locator(".chat-interaction-toggle").click();
+  await expect(activity.getByText("Preview unavailable", { exact: true })).toHaveCount(0);
+  app.emit("a", "record", { ...call, status: "completed" });
+  await expect(activity).toContainText("Completed");
+  await expect(activity.locator(".spinner")).toHaveCount(0);
+  await expect(activity).not.toHaveAttribute("aria-busy", "true");
+
+  const file = await makeImage(page);
+  const image: AgentImage = { id: "generated", versionId: "1", title: "Generated cap", origin: "generated",
+    width: 800, height: 600, size: file.buffer.length, digest: "fixture", mimeType: "image/png",
+    url: "/delayed-generated-cap.png" };
+  let releaseImage!: () => void;
+  const released = new Promise<void>(resolve => { releaseImage = resolve; });
+  await page.route(image.url, async route => {
+    await released;
+    await route.fulfill({ body: file.buffer, contentType: "image/png" });
+  });
+  app.emit("a", "asset", image);
+  app.emit("a", "record", { type: "tool_call", toolCallId: "published", name: "images.show", title: "Cap sketch", status: "completed",
+    rawOutput: { view: "image", image: { assetId: image.id, versionId: "1" }, caption: "The concept" } });
+  const card = page.getByRole("article", { name: "Generated cap", exact: true });
+  await expect(card.getByRole("status")).toHaveText("Loading preview…");
+  await expect(card.locator(".chat-image-preview")).toHaveAttribute("aria-busy", "true");
+  releaseImage();
+  await expect(card.getByRole("img")).toBeVisible();
+  await expect(card.getByRole("status")).toHaveCount(0);
+  expect(await card.getByRole("img").evaluate(element => (element as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+
+  app.emit("a", "record", { ...call, toolCallId: "failed-generation", status: "failed" });
+  const failed = page.locator('[data-tool-call-id="failed-generation"]');
+  await expect(failed).toContainText("Could not complete");
+  await expect(failed.locator(".spinner")).toHaveCount(0);
 });
 
 test("pasted attachments edit in place, retain Undo across chats, and send the saved pixels", async ({ page }) => {
@@ -223,6 +284,10 @@ test("thoughts and replies stream Markdown in compact expandable blocks with run
   const thoughts = page.getByRole("article", { name: "Thinking", exact: true });
   await expect(thoughts.locator("strong").filter({ hasText: "Checking fit" })).toBeVisible();
   await expect(thoughts).toHaveAttribute("data-streaming", "true");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(thoughts.locator(".chat-streaming-caret")).toHaveCSS("animation-name", "none");
+  await expect(thoughts.locator(".chat-streaming-caret")).toHaveCSS("opacity", "1");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   expect((await thoughts.getByRole("button").boundingBox())!.height).toBeLessThan(48);
   const fullThought = "**Checking fit**\n\n- Measure the rim\n- Use `calipers`\n\n[Measurement notes](https://example.test/notes)";
   app.emit("a", "record", { type: "thought", id: "thinking", turnId, text: fullThought });
