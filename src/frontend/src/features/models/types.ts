@@ -35,6 +35,8 @@ export interface SectionPlane {
 export interface SectionAppearance {
   guides: boolean;
   caps: boolean;
+  /** Absent on earlier snapshots, which had plain filled sections. */
+  hatching?: boolean;
 }
 
 /** Supplemental visual reference, in viewer millimeters/Z-up; not source-model geometry. */

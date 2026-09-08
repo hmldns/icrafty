@@ -7,13 +7,30 @@ import {
   type SourceImage,
 } from "../images/types";
 
+const INK = "#252923";
+const PAPER = "#ffffff";
 export const ANNOTATION_COLORS = [
   { name: "Vermilion", value: "#bc402a" },
-  { name: "Ink", value: "#252923" },
-  { name: "Paper", value: "#ffffff" },
+  { name: "Ink", value: INK },
+  { name: "Paper", value: PAPER },
   { name: "Blue", value: "#245fbb" },
   { name: "Green", value: "#32714a" },
 ] as const;
+
+/** Persist the edge on new model marks so editor, drafts and PNGs agree. */
+export function withModelOutline(source: SourceImage, mark: Mark): Mark {
+  if (source.origin !== "model" || mark.outline) return mark;
+  return {
+    ...mark,
+    outline: {
+      color: mark.color.toLowerCase() === PAPER ? INK : PAPER,
+      width:
+        mark.kind === "text"
+          ? Math.max(1.5, mark.fontSize / 20)
+          : Math.max(1.5, mark.width / 4),
+    },
+  };
+}
 
 export function imagePoint(
   clientX: number,
@@ -72,11 +89,34 @@ export function drawMarks(
     context.lineWidth = mark.width;
     context.lineCap = "round";
     context.lineJoin = "round";
+    const stroke = () => {
+      if (mark.outline) {
+        context.strokeStyle = mark.outline.color;
+        context.lineWidth = mark.width + mark.outline.width * 2;
+        context.stroke();
+      }
+      context.strokeStyle = mark.color;
+      context.lineWidth = mark.width;
+      context.stroke();
+    };
     context.beginPath();
     if (mark.kind === "pen") {
       const first = mark.points[0];
       if (first) {
         if (mark.points.length === 1) {
+          if (mark.outline) {
+            context.fillStyle = mark.outline.color;
+            context.arc(
+              first.x,
+              first.y,
+              mark.width / 2 + mark.outline.width,
+              0,
+              Math.PI * 2,
+            );
+            context.fill();
+            context.beginPath();
+            context.fillStyle = mark.color;
+          }
           context.arc(first.x, first.y, mark.width / 2, 0, Math.PI * 2);
           context.fill();
         } else {
@@ -84,20 +124,26 @@ export function drawMarks(
           mark.points
             .slice(1)
             .forEach((point) => context.lineTo(point.x, point.y));
-          context.stroke();
+          stroke();
         }
       }
     } else if (mark.kind === "text") {
       context.font = `600 ${mark.fontSize}px system-ui, sans-serif`;
       context.textBaseline = "top";
+      if (mark.outline) {
+        context.strokeStyle = mark.outline.color;
+        context.lineWidth = mark.outline.width * 2;
+        context.strokeText(mark.text, mark.at.x, mark.at.y);
+      }
       context.fillText(mark.text, mark.at.x, mark.at.y);
     } else if (mark.kind === "rectangle") {
-      context.strokeRect(
+      context.rect(
         mark.from.x,
         mark.from.y,
         mark.to.x - mark.from.x,
         mark.to.y - mark.from.y,
       );
+      stroke();
     } else {
       const angle = Math.atan2(
         mark.to.y - mark.from.y,
@@ -115,7 +161,7 @@ export function drawMarks(
         mark.to.x - head * Math.cos(angle + Math.PI / 6),
         mark.to.y - head * Math.sin(angle + Math.PI / 6),
       );
-      context.stroke();
+      stroke();
     }
     context.restore();
   }

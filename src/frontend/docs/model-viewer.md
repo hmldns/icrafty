@@ -10,6 +10,11 @@ implementation uses visual stencil caps and a labeled synthetic sphere; no CAD
 boolean or exported cut-solid operation was requested. See the implementation
 guide for closed-mesh assumptions and preservation of genuine holes.
 
+Further user refinements on 2026-09-08: keep solid section colors subtle and
+distinct from priority annotation colors, provide useful annotation contrast,
+and show conventional faint section hatching for solid material with a disable
+toggle. Current defaults and measured contrast checks are in the usage guide.
+
 This implementation brief records the viewer assignment and unresolved product
 choices. Canonical product behavior remains in [PRD](../../../docs/PRD.md)
 PRD-14–18, PRD-20, PRD-48, and PRD-50–54. Technical context is

@@ -12,6 +12,7 @@ import {
   IncrementWrapStencilOp,
   LineBasicMaterial,
   LineSegments,
+  LessDepth,
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
@@ -22,9 +23,14 @@ import {
   Vector3,
 } from "three";
 import type { Axis, SectionAppearance, SectionPlane } from "./types";
+import { addSectionHatching } from "./sectionHatching";
 
 export type SolidMesh = Mesh<BufferGeometry, MeshStandardMaterial>;
-export type SectionColors = Record<Axis, Color>;
+export interface SectionColors {
+  planes: Record<Axis, Color>;
+  caps: Record<Axis, Color>;
+  referenceCap: Color;
+}
 
 /** Visual caps follow the winding-count technique in Three.js's clipping stencil example.
  * https://threejs.org/examples/webgl_clipping_stencil.html
@@ -105,8 +111,8 @@ export class SectionVisuals {
           }
           const material = new MeshBasicMaterial({
             color: solid.userData.reference
-              ? solid.material.color
-              : colors[section.axis],
+              ? colors.referenceCap
+              : colors.caps[section.axis],
             side: DoubleSide,
             clippingPlanes: planes.filter((other) => other !== plane),
             stencilWrite: true,
@@ -118,6 +124,14 @@ export class SectionVisuals {
           });
           this.materials.push(material);
           const cap = new Mesh(geometry, material);
+          if (appearance.hatching) {
+            addSectionHatching(
+              material,
+              section.axis,
+              size.length() / 30,
+              solidIndex % 2 === 1,
+            );
+          }
           cap.renderOrder = order + 1;
           cap.onAfterRender = (renderer) => renderer.clearStencil();
           this.group.add(cap);
@@ -125,18 +139,16 @@ export class SectionVisuals {
       }
       if (appearance.guides) {
         const guideMaterial = new MeshBasicMaterial({
-          color: colors[section.axis],
+          color: colors.planes[section.axis],
           side: DoubleSide,
           transparent: true,
           opacity: 0.08,
           depthWrite: false,
-          // Offset the translucent guide from its coplanar solid cap.
-          polygonOffset: true,
-          polygonOffsetFactor: -1,
-          polygonOffsetUnits: -1,
+          // Preserve the cap's neutral color where the guide shares its depth.
+          depthFunc: LessDepth,
         });
         const borderMaterial = new LineBasicMaterial({
-          color: colors[section.axis],
+          color: colors.planes[section.axis],
           transparent: true,
           opacity: 0.8,
           depthWrite: false,

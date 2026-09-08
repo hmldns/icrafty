@@ -43,8 +43,12 @@
   --text-label: 0.75rem;
   --color-model-background: #eeeee5;
   --color-model-surface: #87a89b;
-  --color-section-x: #c14e46;
-  --color-section-y: #388266;
-  --color-section-z: #466dbb;
+  --color-section-x: #95846d;
+  --color-section-y: #6e8991;
+  --color-section-z: #8b7f9e;
+  --color-section-cap-x: #ddd5c9;
+  --color-section-cap-y: #cfdadd;
+  --color-section-cap-z: #d9d4e2;
+  --color-section-cap-reference: #e3dbbe;
   --color-model-reference: #d49724;
 }

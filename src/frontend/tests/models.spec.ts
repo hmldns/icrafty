@@ -222,6 +222,7 @@ test("two viewers keep cameras, materials and sections independent through peer 
   const untouched = await canvasPixels(page, second);
   expect(untouched.colors.x).toBeGreaterThan(1000);
   await primary.getByRole("button", { name: "Add X plane" }).click();
+  await primary.getByLabel("Hatch solid sections").uncheck();
   await primary.getByLabel("Fill cut faces").uncheck();
   await primary.getByLabel("Show section planes").uncheck();
   await primary.getByLabel("Projection").selectOption("orthographic");
@@ -233,12 +234,17 @@ test("two viewers keep cameras, materials and sections independent through peer 
   await expect(second.getByLabel("Projection")).toHaveValue("perspective");
   await expect(second.getByLabel("Fill cut faces")).toBeChecked();
   await expect(second.getByLabel("Show section planes")).toBeChecked();
+  await expect(second.getByLabel("Hatch solid sections")).toBeChecked();
   await captureModel(page, "Comparison viewer");
   const frozen = (await modelSources(page))[0]!;
   expect(frozen.model?.sections).toMatchObject([
     { axis: "x", enabled: true, flipped: false },
   ]);
-  expect(frozen.model?.sectionAppearance).toEqual({ caps: true, guides: true });
+  expect(frozen.model?.sectionAppearance).toEqual({
+    caps: true,
+    guides: true,
+    hatching: true,
+  });
   expect(frozen.model?.camera.projection).toBe("perspective");
   await page.getByRole("button", { name: "Close Annotate image" }).click();
   await page.getByRole("button", { name: "Hide primary viewer" }).click();

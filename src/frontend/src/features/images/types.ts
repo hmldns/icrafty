@@ -8,6 +8,8 @@ interface MarkBase {
   id: string;
   color: string;
   width: number;
+  /** Optional persisted contrast edge; earlier marks keep their original appearance. */
+  outline?: { color: string; width: number };
 }
 export type Mark =
   | (MarkBase & { kind: "pen"; points: Point[] })

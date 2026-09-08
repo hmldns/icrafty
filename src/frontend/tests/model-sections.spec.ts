@@ -76,7 +76,10 @@ test("colored planes and solid cut faces reveal the inner sphere and freeze into
     }),
   ).toBeVisible();
   await expect(
-    page.getByText("Filled cut faces · Plane guides hidden", { exact: true }),
+    page.getByText(
+      "Filled cut faces · Plane guides hidden · Diagonal hatching",
+      { exact: true },
+    ),
   ).toBeVisible();
   await drawLine(page, { x: 40, y: 70 }, { x: 260, y: 70 });
   const download = await downloadCurrent(page);

@@ -90,9 +90,9 @@ export function SectionControls({
         </div>
       </div>
       <p className="small">
-        Colored cut faces fill closed meshes. Open or inconsistent meshes can
-        show artifacts. Positions are in viewer millimeters; these are visual
-        sections, not verified CAD measurements.
+        Subtle fills and diagonal hatching show sectioned material. Open or
+        inconsistent meshes can show artifacts. Positions are in viewer
+        millimeters; these are visual sections, not verified CAD measurements.
       </p>
       <div className="row section-display-options">
         <label>
@@ -117,6 +117,20 @@ export function SectionControls({
             }
           />{" "}
           Fill cut faces
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={!!appearance.hatching}
+            disabled={!appearance.caps}
+            onChange={(event) =>
+              onAppearanceChange({
+                ...appearance,
+                hatching: event.target.checked,
+              })
+            }
+          />{" "}
+          Hatch solid sections
         </label>
       </div>
       {sections.map((section) => {

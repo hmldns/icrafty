@@ -24,6 +24,7 @@ import {
   flattenImage,
   redoHistory,
   undoHistory,
+  withModelOutline,
 } from "./geometry";
 
 export function AnnotationEditor({
@@ -76,9 +77,14 @@ export function AnnotationEditor({
         setError("This image has 300 marks. Clear or undo before adding more.");
         return;
       }
-      update(commitMarks(current, [...current.present, mark]));
+      update(
+        commitMarks(current, [
+          ...current.present,
+          withModelOutline(image.source, mark),
+        ]),
+      );
     },
-    [update],
+    [update, image.source],
   );
   const undo = useCallback(
     () => update(undoHistory(historyRef.current)),

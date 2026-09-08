@@ -22,11 +22,24 @@ or equal to its position; Flip keeps the opposite half. Enable/disable preserves
 the position; Remove deletes the plane. Multiple enabled planes keep their
 intersecting visible region. Empty views after moving cuts past a part are valid.
 
-Enabled planes have translucent guides and matching cut-face colors: X red,
-Y green, Z blue. **Show section planes** toggles the guides; **Fill cut faces**
-toggles the caps. Both start enabled. Guides extend slightly beyond the part and
-follow the plane position. Flipping preserves the axis color. Axis labels and
-numeric controls remain available without relying on color alone.
+Enabled planes have muted translucent guides. Cut faces use pale stone (X),
+cool gray (Y), and lilac gray (Z), with a pale straw fill for the demo sphere.
+These low-saturation fills reserve strong vermilion, blue and green for annotations.
+**Show section planes** toggles the guides; **Fill cut faces** toggles the caps.
+Both start enabled. Guides extend slightly beyond the part and follow the plane
+position. They do not tint the cap itself. Flipping preserves the axis color.
+Axis labels and numeric controls remain available without relying on color alone.
+
+**Hatch solid sections** starts enabled and adds thin, faint, parallel lines at
+45° in each section plane, following the conventional general section-drawing
+treatment. Successive meshes alternate direction so the reference sphere and
+enclosing body can be distinguished. Lines stay anchored in model coordinates
+when orbiting, with spacing derived from the overall bounds; dense lines fade at
+distant zoom levels to reduce moire. The toggle removes only the hatching, keeping
+the fill and cut in place. It is disabled while **Fill cut faces** is off.
+This is general visual hatching, with no inferred material designation or formal
+drawing-standard certification. [Autodesk's section hatch controls](https://help.autodesk.com/cloudhelp/2022/ENU/AutoCAD-Core/files/GUID-04A5B55C-7A62-4C61-9ABA-DFB2C23322B5.htm)
+describe the use of separate hatch angles for successive components.
 
 Stencil caps fill cuts through closed, consistently wound triangle meshes. A
 section through a hollow sleeve stays a ring: the cap preserves its through-hole.
@@ -137,10 +150,24 @@ route on the same origin. Existing v1 image records need no migration: `model`
 metadata is optional, and the database/stores and original source origins remain
 compatible. Snapshot imports use the same image/storage limits as camera images.
 
+New annotations on model snapshots receive a thin contrasting outline: dark ink
+around Paper/white, and Paper/white around the other palette colors. The existing
+`drawMarks` function renders both the editor and PNG output. Each new mark stores
+its outline color and width, so drafts, revisions, restore and unsaved download
+keep the same appearance. The optional field preserves earlier marks as drawn;
+camera/file/paste/web annotation defaults remain unchanged.
+
+The default neutral cap colors exceed 3.5:1 contrast against Vermilion, Ink, Blue
+and Green; actual hatched sleeve pixels are tested at a 3:1 minimum. Every default
+annotation color has at least 4.5:1 contrast against its outline, including white.
+Checks use the [W3C relative-luminance contrast calculation](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html).
+These thresholds cover the default opaque colors; host token overrides and very
+small marks at extreme zoom need separate review.
+
 The optional model metadata includes source identity and supplied artifact,
 revision/evaluation IDs, actual input SHA-256 and byte count, importer/tessellation,
 unit/frame declarations, parser-to-viewer matrix, camera pose and projection
-matrices/frustum, all section settings including guide/cap visibility, supplemental
+matrices/frustum, all section settings including guide/cap/hatch visibility, supplemental
 reference objects when supplied, capture size and timestamp. Display/reference
 fields are optional so earlier model snapshots remain readable. Local samples
 do not invent backend IDs. Readable model/view/section/reference context appears in the

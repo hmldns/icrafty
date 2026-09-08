@@ -7,7 +7,7 @@ import {
 import { LoadingState, Notice } from "../../components/ui/primitives";
 import { decodeImage, errorMessage } from "../images/imageIO";
 import { LIMITS, type Mark, type SourceImage } from "../images/types";
-import { drawMarks, imagePoint } from "./geometry";
+import { drawMarks, imagePoint, withModelOutline } from "./geometry";
 
 export type Tool = Mark["kind"];
 export function AnnotationCanvas({
@@ -129,10 +129,12 @@ export function AnnotationCanvas({
       onAdd({ ...base, kind: "text", at, text: text.trim(), fontSize });
       return;
     }
-    const mark: Mark =
+    const mark: Mark = withModelOutline(
+      source,
       tool === "pen"
         ? { ...base, kind: "pen", points: [at] }
-        : { ...base, kind: tool, from: at, to: at };
+        : { ...base, kind: tool, from: at, to: at },
+    );
     drag.current = { pointerId: event.pointerId, mark };
     event.currentTarget.setPointerCapture(event.pointerId);
     setActive(mark);
