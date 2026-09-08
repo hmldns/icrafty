@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+workflow_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+exec uv run --cache-dir "$workflow_dir/../.builders/uv-cache" --script "$workflow_dir/tools/builders.py" "$@"

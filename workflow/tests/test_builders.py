@@ -12,9 +12,9 @@ import time
 import unittest
 import uuid
 
-SOURCE = Path(__file__).resolve().parents[1]
-SCRIPT = SOURCE / "tools" / "builders.py"
-FAKE = SOURCE / "tests" / "fake_codex.py"
+WORKFLOW_DIR = Path(__file__).resolve().parents[1]
+SCRIPT = WORKFLOW_DIR / "tools" / "builders.py"
+FAKE = WORKFLOW_DIR / "tests" / "fake_codex.py"
 spec = importlib.util.spec_from_file_location("builders", SCRIPT)
 builders = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(builders)
@@ -99,6 +99,9 @@ class BuildersTest(unittest.TestCase):
         self.assertIn("workspace-write", args)
         self.assertFalse(any("dangerously" in a for a in args))
         self.assertIn("assignment generation: 1", args[-1])
+        self.assertIn(str(self.root / "AGENTS.md"), args[-1])
+        self.assertIn(str(WORKFLOW_DIR / "ROLES.md"), args[-1])
+        self.assertIn("follow the Worker section", args[-1])
         self.assertEqual(sum(a.startswith("hooks.") for a in args), len(builders.HOOKS))
 
     def test_notify_fallback_and_deduplication(self):

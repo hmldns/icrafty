@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""A deterministic interactive CLI fixture. Never calls a model or a network."""
+"""Interactive fixture for workflow tests. Never calls a model or a network."""
 
 import json
 import os

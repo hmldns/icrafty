@@ -26,6 +26,7 @@ import uuid
 
 
 SCRIPT = Path(__file__).resolve()
+ROLE_GUIDE = SCRIPT.parents[1] / "ROLES.md"
 HOOKS = ("SessionStart", "UserPromptSubmit", "PermissionRequest", "Stop",
          "Interrupt", "SessionEnd")
 FINAL = {"done", "blocked", "error", "stopped", "merged"}
@@ -113,7 +114,7 @@ class Project:
         if self.config_path.exists():
             self.config = json.loads(self.config_path.read_text())
         elif require:
-            raise Error("Run ./builders init in the director checkout first.")
+            raise Error("Run ./workflow/builders init in the director checkout first.")
 
     @contextmanager
     def db(self):
@@ -230,18 +231,16 @@ Your director coordinates the project in {self.root}.
 Your ONLY working checkout: {w['worktree']}
 Your branch: {w['branch']}; assignment generation: {w['generation']}.
 Owned paths (directory prefixes or globs): {', '.join(w['scope'])}
-Read the shared instructions at {self.root / 'AGENTS.md'} now and after compaction.
-Do not edit that file, other worktrees, or orchestration state. Do not delegate.
-Keep the role narrow. The director alone owns integration.
+Before starting and after compaction, read both:
+- Shared project context and conventions: {self.root / 'AGENTS.md'}
+- Role-based process: {ROLE_GUIDE} (follow the Worker section)
 
 Assignment:
 {task}
 
-When finished: validate, commit only your changes, then run:
+Reporting command (use the status and timing specified in the role guide):
 {command} --status done --summary 'What changed' --tests 'Commands and outcomes'
-If blocked, use the same command with --status blocked and the exact question in
---summary. For findings/scope changes use --status progress. Do not claim done
-without the report. Remain available in this Codex window afterward.
+Other report statuses: progress, blocked, error.
 Your full assignment is also saved at {self.state / 'workers' / w['name'] / 'assignment.md'}.
 """
 
@@ -401,6 +400,8 @@ def launch(p, args):
     validate_scope(args.scope)
     if not args.role.strip():
         raise Error("Worker role must be nonempty.")
+    if not ROLE_GUIDE.is_file():
+        raise Error(f"Missing role guide: {ROLE_GUIDE}. Keep the workflow folder together.")
     with p.lock():
         if any(w["name"] == name for w in p.workers()):
             raise Error(f"Worker {name} already exists. Use steer, assign, or restart.")
