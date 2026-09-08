@@ -5,12 +5,11 @@ Fill in the sections below as project decisions are made.
 
 ## Parallel agent work
 
-Use the [workflow](workflow/README.md) for work parallelized across multiple
-agents. Assign each agent an explicit director or worker role and an initial
-task at startup, then follow the corresponding [role instructions](workflow/ROLES.md)
-for coordination, reporting, and integration. Role-specific instructions apply
-when that role is explicitly assigned. The shared project guidance in this file
-applies to every agent.
+You may be launched with an explicit role and asked to use the workflow for
+parallel work. In that case, read the [role instructions](workflow/ROLES.md) and
+[workflow guide](workflow/README.md), then follow the instructions for your
+assigned role and task. The shared project guidance in this file applies to
+every agent.
 
 ## Project context
 
