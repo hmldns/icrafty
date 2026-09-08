@@ -22,6 +22,16 @@ const paths = {
   info: "M12 8h.01M12 11v6M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z",
   stop: "M6 6h12v12H6z",
   fit: "M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5",
+  section: "m3 8 9-5 9 5-9 5-9-5Zm0 8 9 5 9-5M3 12l9 5 9-5",
+  sliders:
+    "M4 3v7m0 4v7M12 3v2m0 4v12M20 3v12m0 4v2M1 10h6v4H1zM9 5h6v4H9zM17 15h6v4h-6z",
+  axes: "M6 18V3m-3 3 3-3 3 3M6 18h15m-3-3 3 3-3 3M6 18l9-9m-4 0h4v4",
+  floorGrid:
+    "m3 16 7-11 11 3-7 11-11-3Zm2-4 11 3M8 8l11 3M6 17l7-11M10 18l7-11",
+  cube: "m3 7 9-4 9 4v10l-9 4-9-4V7Zm0 0 9 5 9-5M12 12v9",
+  zoomIn: "M10 4a6 6 0 1 1 0 12 6 6 0 0 1 0-12Zm4 10 7 7M7 10h6M10 7v6",
+  zoomOut: "M10 4a6 6 0 1 1 0 12 6 6 0 0 1 0-12Zm4 10 7 7M7 10h6",
+  flip: "M12 3v18M8 6 3 18h5V6Zm8 0 5 12h-5V6Z",
 } as const;
 
 export type IconName = keyof typeof paths;

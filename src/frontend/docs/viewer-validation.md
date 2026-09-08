@@ -127,3 +127,7 @@ Its final suite has 60 passing tests plus the production STEP/WASM check. See th
 [layout measurements, screenshots and validation record](debug-workspaces.md).
 
 See [usage and embedding](viewer-usage.md) and [tooling/provenance](../tooling/README.md).
+
+The later [section-control and orientation acceptance](viewer-orientation-validation.md)
+records grouped icon tools, explicit activation, toggleable world axes/XY grid,
+interactive corner widget, snapshot evidence and the 76-test regression run.

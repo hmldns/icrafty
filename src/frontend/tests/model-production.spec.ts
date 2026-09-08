@@ -23,6 +23,16 @@ test("production emits and loads real STEP, module worker and WASM without the d
   });
   await page.goto("/debug/models");
   const primary = await ready(page);
+  await expect(
+    primary.getByRole("button", { name: "Sections: off" }),
+  ).toBeVisible();
+  await primary.getByRole("button", { name: "Show horizontal grid" }).click();
+  await primary
+    .getByRole("button", { name: "View from +X (right)", exact: true })
+    .click();
+  await expect(
+    primary.getByRole("group", { name: "View orientation", exact: true }),
+  ).toBeVisible();
   await openSections(primary);
   await expect(
     page.getByText(
@@ -52,6 +62,11 @@ test("production emits and loads real STEP, module worker and WASM without the d
   await primary.getByRole("button", { name: "Add X plane" }).click();
   await captureModel(page);
   const source = (await modelSources(page))[0]!;
+  expect(source.model?.sceneAids).toMatchObject({
+    axes: { visible: true },
+    grid: { visible: false },
+    orientationWidget: "excluded",
+  });
   expect(source.model?.sha256).toBe(
     "370c5474e50dc94923f0dacb5113f7258233601620ab530d937c18571869d49e",
   );

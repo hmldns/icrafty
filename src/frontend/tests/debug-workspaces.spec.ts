@@ -82,15 +82,15 @@ for (const viewport of [
       await page.getByLabel("Tile placement").selectOption(placement);
       const canvas = primary.locator("canvas");
       const box = (await canvas.boundingBox())!;
-      expect(box.y).toBeLessThan(viewport.width > 900 ? 350 : 490);
-      expect(box.height).toBeGreaterThan(viewport.width > 900 ? 300 : 320);
+      expect(box.y).toBeLessThan(viewport.width > 900 ? 390 : 530);
+      expect(box.height).toBeGreaterThan(viewport.width > 900 ? 260 : 320);
       if (viewport.width > 900)
         expect(box.y + box.height).toBeLessThanOrEqual(viewport.height);
       await expect(
         primary.getByRole("button", { name: "Snapshot & annotate" }),
       ).toBeInViewport();
       await expect(
-        primary.getByRole("button", { name: "Sections", exact: true }),
+        primary.getByRole("button", { name: "Sections: off", exact: true }),
       ).toBeInViewport();
       expect((await canvasPixels(page, primary)).foreground).toBeGreaterThan(
         5_000,

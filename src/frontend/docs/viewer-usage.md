@@ -24,9 +24,14 @@ perspective/orthographic projection. Presets refit the entire model. Front looks
 from negative Y, right from positive X, top from positive Z. Source changes or
 explicit reload reset the view and sections; changing a camera preserves sections.
 
-In the gallery, open **Sections** beside the zoom controls. Its bounded panel
-keeps the model visible and scrolls to additional settings. Close the panel with
-the same button; section settings remain applied. Add up to one plane on each of
+The leading icon group shows **Sections: off/on (count)**. Click it to enable
+cuts; the first use adds an X plane at the part midpoint and opens the settings.
+Click again to pause every cut without losing positions, flips or the previously
+enabled subset. **Planes** opens/closes the settings independently; closing it
+does not disable sections. These controls remain visible ahead of the camera
+presets, including on narrow screens. The bounded workspace panel keeps the model
+visible and scrolls internally; individual planes come before the collapsible
+appearance settings. Add up to one plane on each of
 X/Y/Z, then move it with the slider or numerical
 millimeter position. Sliders span mesh bounds; numbers may go beyond them. Planes
 stay in the viewer's world frame. Normally a plane keeps coordinates greater than
@@ -75,6 +80,41 @@ or cut exports. Triangulation and faceting can be visible. Mesh bounds are frami
 aids, not verified CAD evidence. This viewer has no CAD evaluator, FreeCAD
 execution, GLB generation or backend connection.
 
+## Scene axes, grid and orientation widget
+
+The **Axes** and **Grid** icon buttons independently show/hide world helpers.
+Both start on, with pressed state shown visually and exposed to assistive tools.
+The preference lasts for that viewer instance, including source changes. Moving
+the tile dock or changing these toggles preserves the camera and section settings.
+World axes originate at the retained source origin (0,0,0); their length is 1.25
+times the largest normalized model extent. They can lie outside the fitted view
+for models authored far from the origin. Muted X/Y/Z colors match the corner key.
+
+The grid is **XY, horizontal in the viewer's millimeter / Z-up frame**, including
+Y-up or meter/inch STL inputs after their declared conversion. It sits 0.1% of
+the largest extent below the model's minimum Z to avoid coplanar depth artifacts.
+Its center snaps to world-aligned grid spacing near the model's XY center. Spacing
+uses a 1/2/5 decade step at least one tenth of the largest extent, with a fixed
+20 × 20 cells. Grid lines are subtle and depth tested; they may be visible through
+real holes or in front of the part in bottom views. This is a framing aid, not a
+measurement tool or a physical floor at Z=0.
+
+The small **bottom-right orientation widget always remains present**, regardless
+of scene-helper toggles. Filled buttons label positive axes; outlined minus
+buttons label negative axes. It tracks orbit, presets and projection changes.
+Click an axis for the corresponding fitted standard view; drag the widget to
+orbit the same camera/target as the model canvas. Focus the widget for 15° arrow-key
+rotation, or tab to axis buttons and press Enter/Space. Canvas arrow keys still
+pan. Helpers and widget are per instance, excluded from fit bounds and section/cap
+geometry, and require no additional WebGL renderer or animation loop.
+
+World axes/grid **are captured when shown**; the corner widget and toolbars are
+**excluded from source PNGs and tile thumbnails**. Optional `sceneAids` provenance
+records axes origin/length/visibility, grid XY plane/center/spacing/size/visibility
+and the widget exclusion. Earlier model snapshots without this field remain
+valid. Human-readable helper context appears in the common editor's source details.
+See [orientation acceptance](viewer-orientation-validation.md) for browser evidence.
+
 ## Reusable component
 
 Import `ModelViewer` and the public types from `src/features/models/`. Import the
@@ -114,7 +154,7 @@ not access IndexedDB. Every viewer owns its WebGL context, geometries/materials,
 cameras, clipping state, controls and resize observer. No mutable model cache is
 shared. Resources and pending import workers are released on replacement/unmount.
 
-`layout="workspace"` opts into the compact toolbar and collapsible section panel.
+`layout="workspace"` opts into the compact workspace and collapsible section panel.
 Place it in a grid/flex area with a bounded height; the stage fills the remaining
 space. The default `layout="document"` retains the standalone document layout.
 Neither layout needs the gallery or its stylesheet wrapper to import a model.
@@ -164,6 +204,8 @@ does not modify the PNG or copied context. The adapter validates that PNG throug
 `prepareImage`, adds an immutable original source with origin `model`, and opens
 the existing `AnnotationEditor`. Camera intake uses this same `ImageWorkspace`.
 
+**Save as new image** makes an editable copy; **Update this image** saves the
+current image and keeps previous saves in history. Both use the shared editor.
 Undo/redo, autosaved drafts, saved revisions, and current-unsaved-edit PNG download
 remain the original editor implementations. Download keeps the editor open and
 does not require a saved revision. Source pixels remain unchanged. Captures appear
@@ -195,7 +237,7 @@ The optional model metadata includes source identity and supplied artifact,
 revision/evaluation IDs, actual input SHA-256 and byte count, importer/tessellation,
 unit/frame declarations, parser-to-viewer matrix, camera pose and projection
 matrices/frustum, all section settings including guide/cap/hatch visibility, supplemental
-reference objects when supplied, capture size and timestamp. Display/reference
+reference objects when supplied, scene helpers, capture size and timestamp. Display/reference
 fields are optional so earlier model snapshots remain readable. Local samples
 do not invent backend IDs. Readable model/view/section/reference context appears in the
 editor's source details. PNG downloads contain pixels; the full structured
@@ -238,6 +280,8 @@ WASM compilation; deployment-specific CSP is not tested by this spike.
 
 Primary upstream references: [OCCT import API](https://github.com/kovacsv/occt-import-js),
 [Three.js OrbitControls](https://threejs.org/docs/pages/OrbitControls.html),
+[AxesHelper](https://threejs.org/docs/pages/AxesHelper.html),
+[GridHelper](https://threejs.org/docs/pages/GridHelper.html),
 [STLLoader](https://threejs.org/docs/pages/STLLoader.html),
 [material clipping](https://threejs.org/docs/pages/Material.html),
 [stencil section example](https://threejs.org/examples/webgl_clipping_stencil.html), and

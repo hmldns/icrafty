@@ -73,6 +73,18 @@ export function ModelSourceContext({ model }: { model: ModelProvenance }) {
           </dd>
         </div>
       )}
+      {model.sceneAids && (
+        <div>
+          <dt>Scene aids</dt>
+          <dd>
+            Axes {model.sceneAids.axes.visible ? "shown" : "hidden"} ·{" "}
+            {model.sceneAids.grid.visible
+              ? `XY grid, ${Number(model.sceneAids.grid.spacing.toPrecision(6))} mm spacing`
+              : "Grid hidden"}{" "}
+            · corner widget excluded
+          </dd>
+        </div>
+      )}
       {model.source.revisionId && (
         <div>
           <dt>Model revision</dt>

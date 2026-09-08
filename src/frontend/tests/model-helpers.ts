@@ -18,13 +18,25 @@ export async function selectModel(page: Page, id: string) {
 }
 
 export async function openSections(region: Locator) {
-  const toggle = region.getByRole("button", { name: /^Sections/ });
+  const toggle = region.getByRole("button", { name: "Section settings" });
   if ((await toggle.getAttribute("aria-expanded")) === "false")
     await toggle.click();
 }
 
+/** Geometry-only pixel checks should not mistake grid/axis lines for a cap or hole. */
+export async function hideSceneAids(region: Locator) {
+  for (const name of ["Show scene axes", "Show horizontal grid"]) {
+    const toggle = region.getByRole("button", { name, exact: true });
+    if ((await toggle.getAttribute("aria-pressed")) === "true")
+      await toggle.click();
+  }
+}
+
 export async function canvasPixels(page: Page, region: Locator) {
-  const bytes = await region.locator("canvas").screenshot();
+  // The corner widget is DOM UI, intentionally absent from source PNGs.
+  const bytes = await region
+    .locator("canvas")
+    .screenshot({ style: ".model-orientation { visibility: hidden; }" });
   return pngPixels(page, bytes.toString("base64"));
 }
 
