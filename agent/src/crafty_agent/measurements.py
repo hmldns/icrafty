@@ -27,12 +27,19 @@ class DimensionField(BaseModel):
         return self
 
 
+class MeasurementGuide(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    image_id: str = Field(min_length=1, max_length=120)
+    field_ids: list[str] = Field(min_length=1, max_length=12)
+
+
 class DimensionRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     title: str = Field(min_length=1, max_length=160)
     caption: str = Field(default="", max_length=2000)
     fields: list[DimensionField] = Field(min_length=1, max_length=12)
     image_ids: list[str] = Field(default_factory=list, max_length=8)
+    guides: list[MeasurementGuide] = Field(default_factory=list, max_length=3)
 
     @model_validator(mode="after")
     def unique_ids(self):
@@ -40,6 +47,14 @@ class DimensionRequest(BaseModel):
             raise ValueError("Measurement field IDs must be unique")
         if len(set(self.image_ids)) != len(self.image_ids):
             raise ValueError("Image references must be unique")
+        if len({guide.image_id for guide in self.guides}) != len(self.guides):
+            raise ValueError("Use each measurement guide once")
+        field_ids = {field.id for field in self.fields}
+        for guide in self.guides:
+            if len(set(guide.field_ids)) != len(guide.field_ids) or set(guide.field_ids) - field_ids:
+                raise ValueError("Guide field_ids must name distinct fields from this request")
+            if guide.image_id in self.image_ids:
+                raise ValueError("Measurement guides are separate from original reference photos")
         return self
 
 
@@ -52,16 +67,23 @@ class DimensionAnswer(BaseModel):
 def result(interaction: dict) -> dict:
     return {"schema_version": 1, "view": "measurements", "requestId": interaction["id"],
             **{key: interaction[key] for key in ("title", "caption", "fields", "photos", "answers", "status")},
+            "guides": interaction.get("guides", []),
             "summary": "Measurements submitted" if interaction["status"] == "answered" else "Measurements requested"}
 
 
 def create_request(store, sid: str, request: DimensionRequest) -> dict:
     state = store.session(sid)
     photos = [{"assetId": aid, "versionId": store.asset(sid, aid)["versionId"]} for aid in request.image_ids]
+    guides = []
+    for guide in request.guides:
+        image = store.asset(sid, guide.image_id)
+        if image["origin"] != "generated":
+            raise ValueError("Use a published instructional sketch as a measurement guide, not an uploaded source photo")
+        guides.append({"image": {"assetId": image["id"], "versionId": image["versionId"]}, "fieldIds": guide.field_ids})
     interaction = {"id": identifier(), "kind": "measurements", "turnId": state["activeTurnId"],
                    "generation": state["generation"], "toolCallId": None, "createdAt": now(),
                    "title": request.title, "caption": request.caption,
-                   "fields": [field.model_dump() for field in request.fields], "photos": photos,
+                   "fields": [field.model_dump() for field in request.fields], "photos": photos, "guides": guides,
                    "status": "awaiting_answers", "answers": {}}
     store.put_interaction(sid, interaction)
     return result(interaction)
@@ -115,7 +137,8 @@ def prepare_answer(store, sid: str, request_id: str, answers: dict):
     record = store.record(sid, interaction["toolCallId"]) if interaction["toolCallId"] else None
     if record:
         record = {**record, "rawOutput": result(updated)}
-    return "\n".join(lines), [photo["assetId"] for photo in interaction["photos"]], updated, record
+    # The existing form retains its images; answers do not duplicate them in chat.
+    return "\n".join(lines), [], updated, record
 
 
 def install_routes(app, service, scoped):

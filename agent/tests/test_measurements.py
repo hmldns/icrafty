@@ -63,7 +63,7 @@ async def test_measurement_answers_are_scoped_atomic_and_idempotent(settings):
         assert len(messages) == 2
         assert "Inside diameter: 83.4 mm" in messages[-1]["text"]
         assert "Seat depth: not measured / unknown" in messages[-1]["text"]
-        assert messages[-1]["imageIds"] == [asset["id"]]
+        assert messages[-1]["imageIds"] == []
         assert (await client.post(answer_url, json={**answer, "answers": {"diameter": "85"}})).status_code == 400
         late = {**record, "rawOutput": result}
         bind_result(service.store, sid, late, turn["id"])
@@ -77,6 +77,56 @@ async def test_measurement_answers_are_scoped_atomic_and_idempotent(settings):
         assert service.store.record(sid, "measure-tool")["rawOutput"]["answers"] == interaction["answers"]
         await service.stop(sid)
         assert service.store.snapshot(sid)["interactions"][-1]["status"] == "answered"
+
+
+@pytest.mark.asyncio
+async def test_measurement_guides_are_scoped_mapped_and_retained(settings):
+    app = create_app(settings)
+    async with app.router.lifespan_context(app), httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://testserver"
+    ) as client:
+        service = app.state.service
+        sid = (await client.post("/api/agent/sessions")).json()["session"]["id"]
+        source = service.store.add_image(sid, png(), "Original mug", "upload")
+        guide = service.store.add_image(sid, png(), "Caliper placement A–B", "generated")
+        other = service.store.create_session()["id"]
+        foreign = service.store.add_image(other, png(), "Other guide", "generated")
+        form = {"title": "Measure with the sketch", "image_ids": [source["id"]],
+                "fields": [{"id": "A", "label": "A — Inside diameter", "unit": "mm"}],
+                "guides": [{"image_id": guide["id"], "field_ids": ["A"]}]}
+        runtime = service.runtime(sid)
+        await service.prompt(sid, "ask-guides", "slow", [])
+        headers = {"Authorization": f"Bearer {runtime.token}"}
+        path = f"/internal/mcp/{sid}/dimensions"
+        assert (await client.post(path, json={**form, "guides": [{"image_id": foreign["id"], "field_ids": ["A"]}]}, headers=headers)).status_code == 404
+        assert (await client.post(path, json={**form, "guides": [{"image_id": guide["id"], "field_ids": ["missing"]}]}, headers=headers)).status_code == 422
+        assert (await client.post(path, json={**form, "guides": form["guides"] * 4}, headers=headers)).status_code == 422
+        assert (await client.post(path, json={**form, "guides": [{"image_id": source["id"], "field_ids": ["A"]}], "image_ids": []}, headers=headers)).status_code == 400
+        response = await client.post(path, json=form, headers=headers)
+        assert response.status_code == 200, response.text
+        value = response.json()
+        expected = [{"image": {"assetId": guide["id"], "versionId": guide["versionId"]}, "fieldIds": ["A"]}]
+        assert value["guides"] == expected
+        text, images, answered, _ = prepare_answer(service.store, sid, value["requestId"], {"A": "20"})
+        assert "A — Inside diameter: 20 mm" in text and images == []
+        assert answered["guides"] == expected and answered["photos"][0]["assetId"] == source["id"]
+        await runtime.cancel()
+
+
+def test_guide_publisher_retains_the_real_image_reference_without_an_image_card(tmp_path, monkeypatch):
+    from crafty_agent import mcp_forms
+    image = tmp_path / "guide.png"
+    image.write_bytes(png())
+    monkeypatch.setenv("CRAFTY_MCP_WORKSPACE", str(tmp_path))
+    monkeypatch.setenv("CRAFTY_MCP_GENERATED_ROOT", str(tmp_path / "generated"))
+    calls = []
+    def publish(path, **kwargs):
+        calls.append((path, kwargs))
+        return {"schema_version": 1, "view": "image", "image": {"assetId": "published", "versionId": "1"}}
+    monkeypatch.setattr(mcp_forms, "call", publish)
+    result = mcp_forms.publish_measurement_guide(str(image), "Caliper placement")
+    assert calls[0][0] == "/publish" and calls[0][1]["body"] == image.read_bytes()
+    assert result["view"] == "measurement_guide" and result["image"]["assetId"] == "published"
 
 
 @pytest.mark.asyncio

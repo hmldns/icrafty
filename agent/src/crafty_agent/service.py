@@ -17,6 +17,7 @@ from .config import Settings
 from .normalize import compact, merge_tool
 from .store import Store, encode, identifier, now
 from . import measurements
+from .measurement_guidance import MEASUREMENT_GUIDANCE
 
 
 class BusyError(ValueError):
@@ -43,7 +44,7 @@ assumptions, and state those assumptions. Do not demand a form before following 
 You are operating the chat, not developing its software. Keep code, exports and drafts inside this
 session workspace. Do not inspect credentials, other sessions, or parent project files. Do not spawn
 agents or change system configuration. Answer concisely. Image generation can take a few minutes.
-"""
+""" + MEASUREMENT_GUIDANCE
 
 
 class Runtime:
