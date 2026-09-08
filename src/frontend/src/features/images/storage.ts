@@ -48,7 +48,7 @@ function database(): Promise<IDBDatabase> {
       connection = undefined;
       reject(
         new Error(
-          "Local storage is waiting for another Crafty tab. Close other tabs and reload.",
+          "Local storage is waiting for another icrafty tab. Close other tabs and reload.",
         ),
       );
     };

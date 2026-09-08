@@ -4,7 +4,7 @@ import { databaseSnapshot, drawLine, makeImage, uploadImage } from "./helpers";
 test("drop and paste add local images; deletion removes the source, draft and revisions", async ({
   page,
 }) => {
-  await page.goto("/camera");
+  await page.goto("/debug/camera");
   const file = await makeImage(page, "detail.png");
   await page.locator(".dropzone").evaluate((element, base64) => {
     const transfer = new DataTransfer();
@@ -94,7 +94,7 @@ test("drop and paste add local images; deletion removes the source, draft and re
 test("URL import reads a CORS-enabled image and keeps a local original", async ({
   page,
 }) => {
-  await page.goto("/camera");
+  await page.goto("/debug/camera");
   const file = await makeImage(page, "web-detail.png", 640, 480);
   await page.route("https://images.example.test/detail.png", (route) =>
     route.fulfill({
@@ -123,7 +123,7 @@ test("URL import reads a CORS-enabled image and keeps a local original", async (
 test("URL network/CORS, HTTP, decode, oversized response and unsafe-protocol errors are actionable", async ({
   page,
 }) => {
-  await page.goto("/camera");
+  await page.goto("/debug/camera");
   await page.getByRole("tab", { name: "Image URL", exact: true }).click();
   const url = page.getByLabel("Web image URL", { exact: true });
   const submit = page.getByRole("button", { name: "Add from URL" });
@@ -175,7 +175,7 @@ test("URL network/CORS, HTTP, decode, oversized response and unsafe-protocol err
 test("invalid files and excessive image dimensions leave the collection intact", async ({
   page,
 }) => {
-  await page.goto("/camera");
+  await page.goto("/debug/camera");
   const input = page.getByLabel("Choose image files");
   await input.setInputFiles({
     name: "sketch.svg",
@@ -203,7 +203,7 @@ test("invalid files and excessive image dimensions leave the collection intact",
 });
 
 test("closing the route cancels a pending URL import", async ({ page }) => {
-  await page.goto("/camera");
+  await page.goto("/debug/camera");
   let requested = false;
   let finish: (() => void) | undefined;
   const wait = new Promise<void>((resolve) => {

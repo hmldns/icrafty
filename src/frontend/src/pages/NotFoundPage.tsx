@@ -1,5 +1,5 @@
 import { EmptyState } from "../components/ui/primitives";
-import { Link } from "../router";
+import { Link, ROUTES } from "../router";
 
 export function NotFoundPage() {
   return (
@@ -10,7 +10,7 @@ export function NotFoundPage() {
         icon="fit"
         title="Let’s find your way back."
         action={
-          <Link href="/" className="button button--primary">
+          <Link href={ROUTES.directory} className="button button--primary">
             Back to the workshop
           </Link>
         }

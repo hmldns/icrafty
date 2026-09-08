@@ -5,7 +5,7 @@ test("explicit camera start, repeated button/Space captures, typed input and sto
   page,
 }) => {
   await instrumentCamera(page);
-  await page.goto("/camera");
+  await page.goto("/debug/camera");
   expect(await page.evaluate(() => window.testCamera.calls.length)).toBe(0);
   await page.getByRole("button", { name: "Open camera", exact: true }).click();
   expect(await page.evaluate(() => window.testCamera.calls.length)).toBe(0);
@@ -55,7 +55,7 @@ test("explicit camera start, repeated button/Space captures, typed input and sto
 
 test("navigation unmount stops every media track", async ({ page }) => {
   await instrumentCamera(page);
-  await page.goto("/camera");
+  await page.goto("/debug/camera");
   await page.getByRole("button", { name: "Open camera", exact: true }).click();
   await page.getByRole("button", { name: "Start camera", exact: true }).click();
   await expect(
@@ -69,7 +69,7 @@ test("late camera permission cannot leave a stream alive after close", async ({
   page,
 }) => {
   await instrumentCamera(page, true);
-  await page.goto("/camera");
+  await page.goto("/debug/camera");
   await page.getByRole("button", { name: "Open camera", exact: true }).click();
   await page.getByRole("button", { name: "Start camera", exact: true }).click();
   await expect
@@ -94,7 +94,7 @@ for (const [name, message] of [
         throw new DOMException("Camera test", name);
       };
     }, name);
-    await page.goto("/camera");
+    await page.goto("/debug/camera");
     await page
       .getByRole("button", { name: "Open camera", exact: true })
       .click();

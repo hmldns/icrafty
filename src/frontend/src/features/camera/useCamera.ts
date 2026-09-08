@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { canvasBlob, prepareImage } from "../images/imageIO";
 import type { SourceImage } from "../images/types";
+import { CAMERA_ASPECTS, cameraCrop, type CameraAspectId } from "./framing";
 
 export function cameraError(error: unknown): string {
   const name = error instanceof Error ? error.name : "";
@@ -23,6 +24,8 @@ export function useCamera(
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [deviceId, setDeviceId] = useState("");
+  const [aspectId, setAspectId] = useState<CameraAspectId>("1:1");
+  const aspect = CAMERA_ASPECTS.find((option) => option.id === aspectId)!;
   const [phase, setPhase] = useState<"off" | "requesting" | "live">("off");
   const [error, setError] = useState("");
   const [capturing, setCapturing] = useState(false);
@@ -162,13 +165,28 @@ export function useCamera(
     const controller = new AbortController();
     captureAbort.current = controller;
     try {
+      const crop = cameraCrop(video.videoWidth, video.videoHeight, aspect);
+      if (!crop.outputWidth || !crop.outputHeight)
+        throw new Error(
+          "This camera frame is too small. Choose another camera.",
+        );
       const canvas = document.createElement("canvas");
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      canvas.width = crop.outputWidth;
+      canvas.height = crop.outputHeight;
       const context = canvas.getContext("2d");
       if (!context)
         throw new Error("Canvas is unavailable. Try a different browser.");
-      context.drawImage(video, 0, 0);
+      context.drawImage(
+        video,
+        crop.x,
+        crop.y,
+        crop.width,
+        crop.height,
+        0,
+        0,
+        canvas.width,
+        canvas.height,
+      );
       const blob = await canvasBlob(canvas);
       const source = await prepareImage(
         blob,
@@ -190,12 +208,14 @@ export function useCamera(
       captureLock.current = false;
       if (alive.current) setCapturing(false);
     }
-  }, [onCapture, phase]);
+  }, [onCapture, phase, aspect]);
 
   return {
     videoRef,
     devices,
     deviceId,
+    aspect,
+    setAspectId,
     phase,
     error,
     capturing,

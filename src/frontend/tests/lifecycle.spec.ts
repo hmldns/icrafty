@@ -11,7 +11,7 @@ import {
 test("draft storage failure stays candid, permits export, and can be retried", async ({
   page,
 }) => {
-  await page.goto("/camera");
+  await page.goto("/debug/camera");
   await uploadImage(page);
   await page.evaluate(() => {
     window.testDraftBlocked = true;
@@ -62,7 +62,7 @@ test("thumbnail and download object URLs are released after their use", async ({
       revoke(url);
     };
   });
-  await page.goto("/camera");
+  await page.goto("/debug/camera");
   await uploadImage(page);
   await downloadCurrent(page);
   await page.getByRole("button", { name: "Close Annotate image" }).click();
@@ -117,7 +117,7 @@ test("switching devices releases the old stream and requests the selected camera
       return stream;
     };
   });
-  await page.goto("/camera");
+  await page.goto("/debug/camera");
   await page.getByRole("button", { name: "Open camera", exact: true }).click();
   await page.getByRole("button", { name: "Start camera", exact: true }).click();
   await expect(

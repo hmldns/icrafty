@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, type CSSProperties } from "react";
 import {
   Badge,
   Button,
@@ -11,6 +11,7 @@ import { Icon } from "../../components/ui/Icon";
 import { isTypingTarget } from "../images/imageIO";
 import type { SourceImage } from "../images/types";
 import { useCamera } from "./useCamera";
+import { CAMERA_ASPECTS, type CameraAspectId } from "./framing";
 
 export function CameraPanel({
   onCapture,
@@ -68,7 +69,33 @@ export function CameraPanel({
           Close camera
         </Button>
       </div>
-      <div className="camera-preview">
+      <div className="camera-framing">
+        <SelectField
+          label="Aspect ratio"
+          value={camera.aspect.id}
+          onChange={(event) =>
+            camera.setAspectId(event.target.value as CameraAspectId)
+          }
+          disabled={camera.capturing}
+        >
+          {CAMERA_ASPECTS.map((aspect) => (
+            <option key={aspect.id} value={aspect.id}>
+              {aspect.label}
+            </option>
+          ))}
+        </SelectField>
+        <p>Choose your frame. Captures match what you see.</p>
+      </div>
+      <div
+        className="camera-preview"
+        data-testid="camera-preview"
+        data-aspect={camera.aspect.id}
+        style={
+          {
+            "--camera-aspect": camera.aspect.width / camera.aspect.height,
+          } as CSSProperties
+        }
+      >
         <video
           ref={camera.videoRef}
           muted

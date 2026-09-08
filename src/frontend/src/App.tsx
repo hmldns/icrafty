@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Icon } from "./components/ui/Icon";
-import { Link, usePathname } from "./router";
+import { Link, ROUTES, usePathname } from "./router";
 import { DirectoryPage } from "./pages/DirectoryPage";
 import { CameraPage } from "./pages/CameraPage";
 import { GalleryPage } from "./pages/GalleryPage";
@@ -10,7 +10,15 @@ export function App() {
   const path = usePathname();
   const main = useRef<HTMLElement>(null);
   useEffect(() => {
-    document.title = `Crafty · ${path === "/" ? "The workshop" : path === "/camera" ? "Camera & annotation" : path === "/gallery" ? "Component gallery" : "Page not found"}`;
+    const pageTitle =
+      path === ROUTES.directory
+        ? "The workshop"
+        : path === ROUTES.camera
+          ? "Camera & annotation"
+          : path === ROUTES.gallery
+            ? "Component gallery"
+            : "Page not found";
+    document.title = `icrafty · ${pageTitle}`;
     main.current?.focus({ preventScroll: true });
   }, [path]);
   return (
@@ -20,25 +28,32 @@ export function App() {
       </a>
       <header className="site-header">
         <div className="site-header-inner">
-          <Link className="brand" href="/" aria-label="Crafty home">
+          <Link
+            className="brand"
+            href={ROUTES.directory}
+            aria-label="icrafty home"
+          >
             <span className="brand-mark" aria-hidden="true">
               c
             </span>
-            crafty<span className="brand-period">.</span>
+            icrafty<span className="brand-period">.</span>
           </Link>
           <nav aria-label="Main navigation">
-            <Link href="/" aria-current={path === "/" ? "page" : undefined}>
+            <Link
+              href={ROUTES.directory}
+              aria-current={path === ROUTES.directory ? "page" : undefined}
+            >
               Workshop
             </Link>
             <Link
-              href="/camera"
-              aria-current={path === "/camera" ? "page" : undefined}
+              href={ROUTES.camera}
+              aria-current={path === ROUTES.camera ? "page" : undefined}
             >
               Camera & annotate
             </Link>
             <Link
-              href="/gallery"
-              aria-current={path === "/gallery" ? "page" : undefined}
+              href={ROUTES.gallery}
+              aria-current={path === ROUTES.gallery ? "page" : undefined}
             >
               UI gallery
             </Link>
@@ -50,11 +65,11 @@ export function App() {
         </div>
       </header>
       <main id="main" ref={main} tabIndex={-1} className="main-content">
-        {path === "/" ? (
+        {path === ROUTES.directory ? (
           <DirectoryPage />
-        ) : path === "/camera" ? (
+        ) : path === ROUTES.camera ? (
           <CameraPage />
-        ) : path === "/gallery" ? (
+        ) : path === ROUTES.gallery ? (
           <GalleryPage />
         ) : (
           <NotFoundPage />
@@ -62,7 +77,7 @@ export function App() {
       </main>
       <footer className="site-footer">
         <span>
-          Crafty <span className="footer-divider">/</span> A little ingenuity
+          icrafty <span className="footer-divider">/</span> A little ingenuity
           goes a long way.
         </span>
         <span>
