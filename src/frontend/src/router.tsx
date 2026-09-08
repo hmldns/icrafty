@@ -9,6 +9,7 @@ export const ROUTES = {
   camera: "/debug/camera",
   gallery: "/debug/gallery",
   models: "/debug/models",
+  chat: "/debug/chat",
 } as const;
 
 const redirects: Readonly<Record<string, string>> = {

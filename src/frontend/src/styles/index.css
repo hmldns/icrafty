@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "./tokens.css";
 @import "./models.css";
+@import "./chat-flow.css";
 
 @layer base {
   :root {

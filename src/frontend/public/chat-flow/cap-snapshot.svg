@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480">
+<defs>
+  <linearGradient id="ceramic" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#adc3ab"/><stop offset="1" stop-color="#6c8976"/></linearGradient>
+  <linearGradient id="inside" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#455c4e"/><stop offset="1" stop-color="#96ad94"/></linearGradient>
+  <linearGradient id="cap" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#a9c5b7"/><stop offset="1" stop-color="#729683"/></linearGradient>
+  <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#dcded3" stroke-width="1"/></pattern>
+</defs>
+<rect width="640" height="480" fill="#eeeee5"/><rect width="640" height="480" fill="url(#grid)" opacity=".45"/>
+<path d="M100 348l220-123 225 127-222 128Z" fill="url(#grid)" stroke="#dcded3"/>
+  <ellipse cx="330" cy="344" rx="196" ry="47" fill="#252923" opacity=".08"/>
+  <path d="M121 220v67c0 123 398 123 398 0v-67" fill="#688a79" stroke="#4f6f5d" stroke-width="3"/>
+  <path d="M121 258c0 124 398 124 398 0" fill="none" stroke="#adc8b7" stroke-width="3"/>
+  <ellipse cx="320" cy="219" rx="199" ry="107" fill="url(#cap)" stroke="#4f6f5d" stroke-width="3"/>
+  <ellipse cx="320" cy="219" rx="170" ry="85" fill="#739984" stroke="#557863" stroke-width="3"/>
+  <ellipse cx="320" cy="225" rx="157" ry="71" fill="#acc5b5" stroke="#87aa96" stroke-width="2"/>
+  <path d="M163 213c6-43 80-80 157-80" fill="none" stroke="#d7e3d4" stroke-width="4" stroke-linecap="round"/>
+  <g stroke="#3c6047" stroke-width="2" fill="none"><path d="M78 403v-50m0 50 43-25m-43 25-27-17"/></g>
+  <g fill="#656a60" font-family="monospace" font-size="14"><text x="72" y="342">Z</text><text x="129" y="379">X</text><text x="34" y="385">Y</text></g>
+</svg>

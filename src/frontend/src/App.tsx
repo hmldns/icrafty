@@ -4,6 +4,7 @@ import { Link, ROUTES, usePathname } from "./router";
 import { DirectoryPage } from "./pages/DirectoryPage";
 import { CameraPage } from "./pages/CameraPage";
 import { GalleryPage } from "./pages/GalleryPage";
+import { ChatDebugPage } from "./pages/ChatDebugPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 const ModelGalleryPage = lazy(() =>
   import("./pages/ModelGalleryPage").then((module) => ({
@@ -24,7 +25,9 @@ export function App() {
             ? "Component gallery"
             : path === ROUTES.models
               ? "Model gallery"
-              : "Page not found";
+              : path === ROUTES.chat
+                ? "Chat flow mock"
+                : "Page not found";
     document.title = `icrafty · ${pageTitle}`;
     main.current?.focus({ preventScroll: true });
   }, [path]);
@@ -45,7 +48,7 @@ export function App() {
             </span>
             icrafty<span className="brand-period">.</span>
           </Link>
-          <nav aria-label="Main navigation">
+          <nav aria-label="Main navigation" className="debug-navigation">
             <Link
               href={ROUTES.directory}
               aria-current={path === ROUTES.directory ? "page" : undefined}
@@ -70,6 +73,12 @@ export function App() {
             >
               Models
             </Link>
+            <Link
+              href={ROUTES.chat}
+              aria-current={path === ROUTES.chat ? "page" : undefined}
+            >
+              Chat
+            </Link>
           </nav>
           <span className="header-note">
             <span />
@@ -88,6 +97,8 @@ export function App() {
           <Suspense fallback={<p role="status">Opening the model gallery…</p>}>
             <ModelGalleryPage />
           </Suspense>
+        ) : path === ROUTES.chat ? (
+          <ChatDebugPage />
         ) : (
           <NotFoundPage />
         )}
