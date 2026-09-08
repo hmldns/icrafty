@@ -4,6 +4,8 @@ import {
   modelSources,
   pngPixels,
   ready,
+  selectModel,
+  openSections,
   canvasPixels,
 } from "./model-helpers";
 
@@ -21,6 +23,7 @@ test("production emits and loads real STEP, module worker and WASM without the d
   });
   await page.goto("/debug/models");
   const primary = await ready(page);
+  await openSections(primary);
   await expect(
     page.getByText(
       "Local folder discovery is available with the development server.",
@@ -56,9 +59,7 @@ test("production emits and loads real STEP, module worker and WASM without the d
     2000,
   );
   await page.getByRole("button", { name: "Close Annotate image" }).click();
-  await page
-    .getByLabel("Model source", { exact: true })
-    .selectOption("solid-demo");
+  await selectModel(page, "solid-demo");
   await ready(page);
   expect(assets.some((url) => /\/assets\/solid-block-.+\.stl$/.test(url))).toBe(
     true,

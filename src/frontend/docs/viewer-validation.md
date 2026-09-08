@@ -121,4 +121,9 @@ Those warnings did not prevent the production browser import; they are not
 suppressed. WASM download size is ~7.6 MB (~3.1 MB gzip). No large-model latency,
 memory ceiling, exact topology preservation or CAD-evaluator capability is claimed.
 
+The subsequent workspace-layout assignment preserves these capabilities and adds
+dockable file tiles, bounded previews and compact model/camera/mock-chat pages.
+Its final suite has 60 passing tests plus the production STEP/WASM check. See the
+[layout measurements, screenshots and validation record](debug-workspaces.md).
+
 See [usage and embedding](viewer-usage.md) and [tooling/provenance](../tooling/README.md).

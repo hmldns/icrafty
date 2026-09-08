@@ -3,6 +3,7 @@
 @import "./models.css";
 @import "./chat-flow.css";
 @import "./agent-chat.css";
+@import "./debug-workspaces.css";
 
 @layer base {
   :root {

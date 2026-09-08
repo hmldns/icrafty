@@ -19,6 +19,12 @@ saved session selection, streamed replies, image input, native image generation,
 MCP image/camera cards, and download/reattach controls. Start the separate
 [uv backend](../../agent/README.md) with `make agent-dev` from the repository root.
 
+The operational debug pages use a compact shared header and bounded working
+regions. Model-file tiles can sit beside, above or below one active viewer;
+the placement is remembered in this browser. Camera actions and the mock-chat
+composer stay near their working surfaces. See [debug workspace controls and
+layout acceptance](docs/debug-workspaces.md).
+
 The viewer has muted X/Y/Z section planes, pale cut-face fills and optional faint
 diagonal hatching for closed meshes. New model annotations have contrasting
 outlines. Select **Solid block + inner sphere demo** to inspect the caps and their

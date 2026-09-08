@@ -6,6 +6,15 @@ links to it. The supplied STEP fixture works in both development and production;
 local file selection also works without the development relay. See the
 [tooling guide](../tooling/README.md) for folder overrides and sample provenance.
 
+Select a file tile, use **Import model**, or drop a STEP/STL on the workbench.
+**Tile placement** moves the selector beside, above or below the active viewer;
+it never remounts the viewer. Wide screens default to a side dock, narrow screens
+to a horizontal strip. The preference is remembered per browser origin. Tiles
+gain an actual preview after opening the model; unopened files say **Not previewed**.
+**Refresh & reload** clears stale previews and discovers/reloads current files.
+The full source dropdown, independent-viewer comparison and folder/sample details
+are in **Gallery tools**. See [workspace layout](debug-workspaces.md).
+
 ## View and section controls
 
 Drag to orbit, right-drag or Shift-drag to pan, scroll to zoom. One-finger touch
@@ -15,7 +24,10 @@ perspective/orthographic projection. Presets refit the entire model. Front looks
 from negative Y, right from positive X, top from positive Z. Source changes or
 explicit reload reset the view and sections; changing a camera preserves sections.
 
-Add up to one plane on each of X/Y/Z, then move it with the slider or numerical
+In the gallery, open **Sections** beside the zoom controls. Its bounded panel
+keeps the model visible and scrolls to additional settings. Close the panel with
+the same button; section settings remain applied. Add up to one plane on each of
+X/Y/Z, then move it with the slider or numerical
 millimeter position. Sliders span mesh bounds; numbers may go beyond them. Planes
 stay in the viewer's world frame. Normally a plane keeps coordinates greater than
 or equal to its position; Flip keeps the opposite half. Enable/disable preserves
@@ -102,6 +114,16 @@ not access IndexedDB. Every viewer owns its WebGL context, geometries/materials,
 cameras, clipping state, controls and resize observer. No mutable model cache is
 shared. Resources and pending import workers are released on replacement/unmount.
 
+`layout="workspace"` opts into the compact toolbar and collapsible section panel.
+Place it in a grid/flex area with a bounded height; the stage fills the remaining
+space. The default `layout="document"` retains the standalone document layout.
+Neither layout needs the gallery or its stylesheet wrapper to import a model.
+`onLoad` optionally receives `{ source, state, preview? }` notifications. A ready
+notification includes one 192 × 128 PNG of the initial view when preview encoding
+succeeds. It uses the existing renderer without changing the camera. Preview
+failure does not fail model loading; cancelled loads cannot publish late previews.
+The host owns any object URLs it creates for the returned Blob.
+
 Optional `initialSections` accepts a stable array of section settings to apply
 when loading a source. Optional `referenceObjects` accepts a stable array of
 `ReferenceSphere` values (`kind: "sphere"`, human-readable `label`, `center`,
@@ -149,6 +171,11 @@ as “Model snapshot” in the shared collection and remain available from the c
 route on the same origin. Existing v1 image records need no migration: `model`
 metadata is optional, and the database/stores and original source origins remain
 compatible. Snapshot imports use the same image/storage limits as camera images.
+
+On the model page, **Image collection** opens the common collection in a bounded
+drawer. Opening/closing it and adding snapshots do not resize the model canvas.
+Escape closes the drawer and returns focus to its button. The camera page presents
+that same collection alongside capture controls on wide screens.
 
 New annotations on model snapshots receive a thin contrasting outline: dark ink
 around Paper/white, and Paper/white around the other palette colors. The existing
