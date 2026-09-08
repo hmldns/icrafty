@@ -129,7 +129,7 @@ test("inline 3D rotates, snapshots a fixed view, and releases the renderer on co
   await expect(model.locator(".chat-inline-model")).toHaveAttribute("data-state", "ready");
 });
 
-test("camera starts explicitly, captures into the item and composer, and cleans up on collapse and leave", async ({ page }) => {
+test("one click starts a draggable camera; collapsed mini capture preserves its stream until leaving", async ({ page }) => {
   await instrumentCamera(page);
   await page.addInitScript(() => {
     window.testUrls = { created: new Set(), revoked: new Set() };
@@ -141,34 +141,80 @@ test("camera starts explicitly, captures into the item and composer, and cleans 
   const camera = cameraItem(page);
   expect(await page.evaluate(() => window.testCamera.calls.length)).toBe(0);
   await camera.getByRole("button", { name: "Open camera", exact: true }).click();
-  expect(await page.evaluate(() => window.testCamera.calls.length)).toBe(0);
-  await camera.getByRole("button", { name: "Start camera", exact: true }).click();
-  await expect(camera.getByRole("button", { name: "Capture image", exact: true })).toBeEnabled();
-  await camera.getByRole("button", { name: "Capture image", exact: true }).click();
+  const widget = page.getByRole("region", { name: "Camera widget", exact: true });
+  await expect(widget.getByRole("button", { name: "Capture image", exact: true })).toBeEnabled();
+  expect(await page.evaluate(() => window.testCamera.calls.length)).toBe(1);
+  await widget.getByRole("button", { name: "Capture image", exact: true }).click();
   await expect(camera.getByRole("list", { name: "Camera photos" }).getByRole("listitem")).toHaveCount(3);
   const url = await selectedPhotos(page).getByRole("img").getAttribute("src");
   expect(url).toMatch(/^blob:/);
   await camera.locator(".chat-interaction-toggle").click();
-  await expect.poll(() => trackStates(page)).toEqual(["ended"]);
+  await expect(widget).toHaveAttribute("data-compact", "true");
+  await expect(camera.getByText("Camera live", { exact: true })).toBeVisible();
+  expect(await trackStates(page)).toEqual(["live"]);
+  await expect(widget).toHaveCSS("width", "240px");
+  const before = (await widget.boundingBox())!;
+  const handle = widget.getByRole("button", { name: "Move camera", exact: true });
+  const handleBox = (await handle.boundingBox())!;
+  await page.mouse.move(handleBox.x + 15, handleBox.y + 15);
+  await page.mouse.down();
+  await page.mouse.move(handleBox.x - 140, handleBox.y - 65, { steps: 8 });
+  await page.mouse.up();
+  expect((await widget.boundingBox())!.x).toBeLessThan(before.x - 100);
+  await widget.getByRole("button", { name: "Capture image", exact: true }).click();
+  await expect(selectedPhotos(page).getByRole("img")).toHaveCount(2);
+  await widget.getByRole("button", { name: "Enlarge camera", exact: true }).click();
+  await expect(widget).toHaveAttribute("data-compact", "false");
+  expect(await page.evaluate(() => window.testCamera.calls.length)).toBe(1);
+  await widget.getByRole("button", { name: "Shrink camera", exact: true }).click();
   await camera.locator(".chat-interaction-toggle").click();
   await expect(camera.getByRole("button", { name: "Attached Camera photo 1, v1" })).toBeDisabled();
   await page.getByRole("button", { name: "Send", exact: true }).click();
-  await expect(localInputs(page).getByRole("img")).toHaveAttribute("src", url!);
+  await expect(localInputs(page).getByRole("img").first()).toHaveAttribute("src", url!);
+  await expect(localInputs(page).getByRole("img")).toHaveCount(2);
   await page.getByRole("link", { name: "Workshop", exact: true }).click();
+  await expect.poll(() => trackStates(page)).toEqual(["ended"]);
+  await expect(widget).toHaveCount(0);
   expect(await page.evaluate((url) => window.testUrls.revoked.has(url!), url)).toBe(true);
 });
 
-test("collapsing a pending camera request also stops a late permission result", async ({ page }) => {
+test("closing a minimized pending camera stops a late permission result", async ({ page }) => {
   await instrumentCamera(page, true);
   await page.goto("/debug/chat");
   const camera = cameraItem(page);
   await camera.getByRole("button", { name: "Open camera", exact: true }).click();
-  await camera.getByRole("button", { name: "Start camera", exact: true }).click();
   await expect.poll(() => page.evaluate(() => !!window.testCamera.release)).toBe(true);
   await camera.locator(".chat-interaction-toggle").click();
+  const widget = page.getByRole("region", { name: "Camera widget", exact: true });
+  await expect(widget).toHaveAttribute("data-compact", "true");
+  await widget.getByRole("button", { name: "Close camera", exact: true }).click();
   await page.evaluate(() => window.testCamera.release!());
   await expect.poll(() => trackStates(page)).toEqual(["ended"]);
   await expect(selectedPhotos(page)).toHaveCount(0);
+});
+
+test("mobile floating camera captures and moves by keyboard without restarting", async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await instrumentCamera(page);
+  await page.goto("/debug/chat");
+  await cameraItem(page).getByRole("button", { name: "Open camera", exact: true }).click();
+  const widget = page.getByRole("region", { name: "Camera widget", exact: true });
+  await expect(widget.getByRole("button", { name: "Capture image", exact: true })).toBeEnabled();
+  await widget.getByRole("button", { name: "Shrink camera", exact: true }).click();
+  await expect(widget.getByRole("button", { name: "Capture image", exact: true })).toBeInViewport();
+  const handle = widget.getByRole("button", { name: "Move camera", exact: true });
+  await handle.focus();
+  await handle.press("ArrowUp");
+  await handle.press("ArrowLeft");
+  await widget.getByRole("button", { name: "Capture image", exact: true }).click();
+  await expect(selectedPhotos(page).getByRole("img")).toHaveCount(1);
+  await page.setViewportSize({ width: 320, height: 740 });
+  await expect(widget.getByRole("button", { name: "Capture image", exact: true })).toBeInViewport();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
+  expect(await page.evaluate(() => window.testCamera.calls.length)).toBe(1);
+  await page.screenshot({ path: testInfo.outputPath("camera-mini-mobile.png") });
+  await widget.getByRole("button", { name: "Close camera", exact: true }).click();
+  await expect.poll(() => trackStates(page)).toEqual(["ended"]);
 });
 
 for (const width of [390, 320]) {

@@ -1,0 +1,30 @@
+.camera-widget { position: fixed; right: 12px; bottom: 96px; z-index: 80; width: min(410px, calc(100vw - 24px)); max-height: calc(100dvh - 108px); border-radius: var(--radius-lg); box-shadow: var(--shadow-dialog); transition: width .18s ease; }
+.camera-widget .camera-panel { padding: var(--space-3); max-height: calc(100dvh - 108px); overflow: auto; }
+.camera-widget-heading { display: flex; align-items: center; gap: var(--space-1); margin-bottom: var(--space-2); }
+.camera-widget-drag { display: flex; align-items: center; gap: var(--space-2); flex: 1; min-width: 0; padding: var(--space-2) var(--space-1); cursor: grab; touch-action: none; user-select: none; text-align: left; font-size: var(--text-small); font-weight: 600; }
+.camera-widget-drag:active { cursor: grabbing; }
+.camera-widget-heading .badge { font-size: .625rem; padding-inline: var(--space-1); }
+.camera-widget-heading .button { padding: var(--space-1); min-width: 28px; min-height: 28px; }
+.camera-widget .camera-framing { margin-bottom: var(--space-2); gap: var(--space-2); }
+.camera-widget .camera-framing p { display: none; }
+.camera-widget .camera-preview { width: min(100%, calc(min(34dvh, 280px) * var(--camera-aspect))); }
+.camera-widget .camera-controls { gap: var(--space-2); margin-top: var(--space-2); flex-wrap: wrap; }
+.camera-widget .camera-controls > div:first-child { flex: 1 0 100%; max-width: none; }
+.camera-widget .camera-controls > .row { justify-content: flex-end; width: 100%; }
+.camera-widget .camera-controls .button { font-size: var(--text-label); padding: var(--space-2) var(--space-3); }
+.camera-widget .camera-caption { font-size: .6875rem; margin-top: var(--space-2); }
+.camera-widget .camera-placeholder { padding: var(--space-2); }
+.camera-widget .camera-placeholder > svg, .camera-widget .camera-placeholder h3, .camera-widget .camera-placeholder > p { display: none; }
+.camera-widget .loading-state { font-size: var(--text-label); }
+.camera-widget--compact { width: 240px; max-width: calc(100vw - 24px); }
+.camera-widget--compact .camera-panel { padding: var(--space-2); }
+.camera-widget--compact .camera-framing,
+.camera-widget--compact .camera-controls > div:first-child,
+.camera-widget--compact .camera-controls .button:first-child,
+.camera-widget--compact .camera-caption > span { display: none; }
+.camera-widget--compact .camera-preview { width: min(100%, calc(min(20dvh, 130px) * var(--camera-aspect))); }
+.camera-widget--compact .camera-controls > .row { justify-content: center; }
+.camera-widget--compact .camera-caption { text-align: center; }
+@media (prefers-reduced-motion: reduce) {
+  .camera-widget, .chat-interaction-body { transition: none; }
+}

@@ -60,8 +60,15 @@ them, and remain available after a reload. `ChatMarkdown` uses
 for messages and thoughts, without enabling raw HTML. `AgentActivity` shows
 animated dots while the turn runs, including before its first output; permission
 waits have a distinct label. Reduced-motion settings disable the dot animation.
-Browser camera permission is requested only after Start camera; collapse, close,
-navigation, and session switch release media tracks.
+**Open camera** requests browser permission and starts the floating camera in one
+action. `ChatCamera` owns that widget outside individual disclosures, while
+`CameraWidget` reuses `useCamera` and `CameraView`. Card collapse minimizes it;
+Capture stays available and resizing preserves the same video element and stream.
+Drag the handle or use its arrow keys; resize keeps it inside the viewport.
+Close/Stop, navigation, request removal, and session switch release tracks,
+including a permission response that arrives after closing. Reopening stored
+history never starts the camera. Disclosure animations release other item bodies
+after their short exit transition, with collapsed content inert immediately.
 
 For a sample MCP inspection, send `Call crafty_images.list_images.`, expand
 **List chat images**, and open **Tool details**. Use

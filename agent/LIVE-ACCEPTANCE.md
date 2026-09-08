@@ -92,3 +92,16 @@ combining composer editing with the current collection save/copy implementation.
 Source bytes and earlier submitted attachments stayed unchanged; editable marks
 and Undo survived chat switches. The production build passed. Browser scenarios
 use an explicit application-API fixture; the real-provider results are in LIVE-8.
+
+**LIVE-10 — Floating camera follow-up.** Browser checks on 2026-09-08 verified one
+permission request from Open camera, repeated captures into the originating card
+and composer, a persistent live stream while the card collapses or the widget
+resizes, mouse dragging, keyboard movement, and 390/320 px containment. Closing a
+minimized pending request releases a late permission result; leaving the route
+or switching chats releases all tracks. Existing standalone camera controls and
+model cleanup continue to pass. The first run passed 21 of 22 checks; the drag
+test initially clicked before the shrink animation had settled. Waiting for the
+visible size to settle corrected that test, and all three floating-camera checks
+passed on rerun. A fake-media mobile screenshot is retained in the browser test
+output. The frontend type check and production build passed. Physical camera
+capture was not used for these automated checks.

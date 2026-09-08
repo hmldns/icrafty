@@ -1,4 +1,4 @@
-import { useEffect, type CSSProperties } from "react";
+import { useEffect, type CSSProperties, type ReactNode } from "react";
 import {
   Badge,
   Button,
@@ -21,6 +21,16 @@ export function CameraPanel({
   onClose: () => void;
 }) {
   const camera = useCamera(onCapture);
+  return <CameraView camera={camera} onClose={onClose} />;
+}
+
+/** Shared preview, framing, capture, and keyboard behavior for inline and floating cameras. */
+export function CameraView({ camera, onClose, heading, compact = false }: {
+  camera: ReturnType<typeof useCamera>;
+  onClose: () => void;
+  heading?: ReactNode;
+  compact?: boolean;
+}) {
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
       if (
@@ -49,8 +59,8 @@ export function CameraPanel({
     return () => window.removeEventListener("keydown", keydown);
   }, [camera.phase, camera.capture]);
   return (
-    <Card className="camera-panel">
-      <div className="section-heading">
+    <Card className={`camera-panel${compact ? " camera-panel--compact" : ""}`}>
+      {heading ?? <div className="section-heading">
         <div className="row">
           <Icon name="camera" />
           <h2>Camera</h2>
@@ -68,7 +78,7 @@ export function CameraPanel({
         >
           Close camera
         </Button>
-      </div>
+      </div>}
       <div className="camera-framing">
         <SelectField
           label="Aspect ratio"

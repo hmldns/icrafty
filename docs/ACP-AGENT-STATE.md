@@ -63,6 +63,11 @@ versions and are independently retained. The tool can be completed while the
 capture request awaits the user. Capturing attaches a photo to the request and
 composer; submitting it creates a later user message. Reopening history never
 automatically opens a physical camera.
+The browser conversation owns one active floating camera and its temporary
+position, size, and phase. Collapsing the originating request minimizes this
+widget while preserving its live stream and capture action. Closing it or leaving
+the conversation releases the stream. These browser states are not replayed from
+stored interaction JSON and do not cause camera startup after recovery.
 
 **ACP-STATE-9 — Tool call record.** Preserve tool-call ID, known server/tool name,
 title, status, arguments, result, error, and domain references. Missing fields in

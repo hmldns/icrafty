@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "../../components/ui/primitives";
 import type { ItemActions, ItemRendererResolver } from "./ItemRendererRegistry";
 import { InteractionItemFrame } from "./InteractionItemFrame";
+import { ChatCamera } from "./ChatCamera";
 import type { HistoryItem } from "./historyTypes";
 
 /** Timeline knows order and expansion, while the injected registry owns item presentation. */
@@ -28,6 +29,7 @@ export function ChatHistory({ items, itemRenderer, actions }: {
   }
 
   return (
+    <ChatCamera items={items} actions={actions} expanded={expanded}>
     <section className="chat-history" aria-labelledby="chat-history-title">
       <div className="chat-history-heading">
         <h2 id="chat-history-title">Conversation</h2>
@@ -65,5 +67,6 @@ export function ChatHistory({ items, itemRenderer, actions }: {
       </div>
       {awayFromEnd && <Button className="chat-jump" size="small" icon="right" onClick={jumpToEnd}>Latest</Button>}
     </section>
+    </ChatCamera>
   );
 }

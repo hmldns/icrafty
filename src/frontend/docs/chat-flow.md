@@ -13,10 +13,12 @@ including newly captured photos and model snapshots.
 
 ## Try the interactions
 
-- In the camera item, attach either illustrated photo. **Open camera**, then
-  **Start camera**, uses the existing capture component and explicitly requests
-  camera access. A new capture appears in that history item and in the composer.
-  Closing the camera, collapsing its item, or leaving the route stops its tracks.
+- In the camera item, attach either illustrated photo. **Open camera** starts
+  the floating camera in one explicit action. A capture appears in the history
+  item and composer. Collapsing the card minimizes the live widget; Capture stays
+  available. Drag its handle, or use arrow keys, and choose **Enlarge camera** or
+  **Shrink camera** without restarting the stream. Close/Stop or leaving the
+  route stops its tracks, including a late permission response.
 - The image item shows a fixed annotated revision inline. **Attach image** keeps
   that exact version. **Versions & details**, a photo thumbnail, or **Photos** in
   the composer opens the secondary image picker.
@@ -68,7 +70,8 @@ and display values for one version; rendering a submitted image never follows an
 asset's current-version pointer. Captures and snapshots use owned blob URLs, which
 remain valid across item collapse and are revoked when the surface unmounts.
 
-The camera view embeds the existing `CameraPanel`. The compact model view reuses
+The conversation-owned camera widget reuses `useCamera` and `CameraView`, the
+same capture and framing implementation used by `CameraPanel`. The compact model view reuses
 `ModelScene` and `importModel`; it owns and disposes its canvas, import operation,
 and renderer. Shared camera/model/image contracts and persistence are unchanged.
 

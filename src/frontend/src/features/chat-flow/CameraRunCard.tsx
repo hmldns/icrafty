@@ -1,22 +1,17 @@
-import { useState } from "react";
 import { Button } from "../../components/ui/primitives";
-import { CameraPanel } from "../camera/CameraPanel";
+import { useChatCamera } from "./ChatCamera";
 import { defineItemRenderer, type ItemActions } from "./ItemRendererRegistry";
 import type { CameraItem } from "./historyTypes";
 import { sameVersion, versionKey } from "./types";
 
-/** A camera request is an inline history item; its capture lifetime ends on collapse. */
+/** A request owns capture references; the conversation owns the active floating camera. */
 export function CameraRunCard({ item, actions }: { item: CameraItem; actions: ItemActions }) {
-  const [cameraOpen, setCameraOpen] = useState(false);
+  const camera = useChatCamera();
+  const cameraOpen = camera?.activeId === item.id;
   const illustrationCount = item.photos.filter((photo) => photo.illustrative).length;
   return (
     <div className="chat-camera-item">
       <p className="chat-item-intro">{item.caption}</p>
-      {cameraOpen && (
-        <div className="chat-inline-camera">
-          <CameraPanel onCapture={(image) => actions.capture(item, image)} onClose={() => setCameraOpen(false)} />
-        </div>
-      )}
       <ul className="chat-capture-grid" aria-label="Camera photos">
         {item.photos.map((photo) => {
           const attached = actions.attachments.some((selected) => sameVersion(selected, photo));
@@ -35,9 +30,7 @@ export function CameraRunCard({ item, actions }: { item: CameraItem; actions: It
           );
         })}
       </ul>
-      {!cameraOpen && (
-        <Button size="small" icon="camera" onClick={() => setCameraOpen(true)}>Open camera</Button>
-      )}
+      <Button size="small" icon="camera" onClick={() => camera?.open(item)}>{cameraOpen ? "Show camera" : "Open camera"}</Button>
       <p className="chat-fixture-note">
         {illustrationCount > 0 && `Includes ${illustrationCount} illustrative photos. `}
         New captures stay in this conversation.

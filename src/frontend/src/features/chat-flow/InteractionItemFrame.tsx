@@ -1,6 +1,7 @@
-import { useId, type ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import { Icon, type IconName } from "../../components/ui/Icon";
 import type { HistoryItem } from "./historyTypes";
+import { useChatCamera } from "./ChatCamera";
 
 const statusLabels = { pending: "Ready", in_progress: "In progress", completed: "Done", failed: "Failed" } as const;
 
@@ -15,6 +16,14 @@ export function InteractionItemFrame({ item, icon, label, expanded, onToggle, ch
 }) {
   const bodyId = useId();
   const tool = "tool" in item ? item.tool : null;
+  const camera = useChatCamera();
+  const cameraActive = item.type === "camera" && camera?.activeId === item.id;
+  const [keepContent, setKeepContent] = useState(expanded);
+  useEffect(() => {
+    if (expanded) { setKeepContent(true); return; }
+    const timer = window.setTimeout(() => setKeepContent(false), 180);
+    return () => window.clearTimeout(timer);
+  }, [expanded]);
   return (
     <article className="chat-interaction" aria-label={item.title} data-item-type={item.type} data-tool-call-id={tool?.toolCallId} data-tool-status={tool?.status}
       data-streaming={item.type === "thought" && item.streaming || undefined}>
@@ -22,11 +31,12 @@ export function InteractionItemFrame({ item, icon, label, expanded, onToggle, ch
         <span className="chat-interaction-icon">{item.type === "thought" && item.streaming
           ? <span className="spinner" aria-hidden="true" /> : <Icon name={icon} size={16} />}</span>
         <span className="chat-interaction-name"><span className="sr-only">{label}</span><strong>{item.title}</strong></span>
+        {cameraActive && <span className="chat-camera-live">{camera.phase === "live" ? "Camera live" : camera.phase === "requesting" ? "Starting camera…" : "Camera off"}</span>}
         <span className="chat-interaction-summary">{item.summary}</span>
         <span className="chat-disclosure"><Icon name="right" size={16} /></span>
       </button>
-      <div id={bodyId} hidden={!expanded} className="chat-interaction-body">
-        {expanded && <>
+      <div id={bodyId} aria-hidden={!expanded} inert={!expanded} data-expanded={expanded} className="chat-interaction-body">
+        <div className="chat-interaction-content">{(expanded || keepContent) && <>
           {children}
           {tool && <details className="chat-tool-details">
             <summary>Tool details <span>{statusLabels[tool.status]}</span></summary>
@@ -34,7 +44,7 @@ export function InteractionItemFrame({ item, icon, label, expanded, onToggle, ch
             <p>Input</p><pre>{JSON.stringify(tool.rawInput, null, 2) ?? "Not supplied"}</pre>
             <p>Result</p><pre>{JSON.stringify(tool.rawOutput, null, 2) ?? "Not supplied"}</pre>
           </details>}
-        </>}
+        </>}</div>
       </div>
     </article>
   );

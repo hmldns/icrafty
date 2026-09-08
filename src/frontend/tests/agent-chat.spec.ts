@@ -273,10 +273,13 @@ test("MCP camera captures upload into the request and composer and release track
   const card = page.getByRole("article", { name: "Camera request", exact: true });
   expect(await page.evaluate(() => window.testCamera.calls.length)).toBe(0);
   await card.getByRole("button", { name: "Open camera", exact: true }).click();
-  await card.getByRole("button", { name: "Start camera", exact: true }).click();
-  await card.getByRole("button", { name: "Capture image", exact: true }).click();
+  const widget = page.getByRole("region", { name: "Camera widget", exact: true });
+  await widget.getByRole("button", { name: "Capture image", exact: true }).click();
   await expect(card.getByRole("list", { name: "Camera photos" }).getByRole("listitem")).toHaveCount(1);
   await expect(page.getByRole("list", { name: "Selected attachments" }).getByRole("img")).toHaveCount(1);
+  await card.locator(".chat-interaction-toggle").click();
+  await expect(widget).toHaveAttribute("data-compact", "true");
+  expect(await trackStates(page)).toEqual(["live"]);
   await choose(page, "Handle repair");
   await expect.poll(() => trackStates(page)).toEqual(["ended"]);
   await choose(page, "Mug repair");

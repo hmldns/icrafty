@@ -107,7 +107,8 @@ opens that card. Camera permission/capture remains an explicit browser action.
 Save captured images as assets and offer them in the composer; the user submits
 the resulting image message as a later turn. Distinguish completion of the MCP
 request from completion of the requested human interaction. Stop camera tracks
-on close, collapse, session change, and unmount.
+on explicit stop/close, session change, and unmount. Collapsing an active camera
+card keeps the same stream in the visible mini widget defined by M-ACP-25.
 
 **M-ACP-14 — MCP event capture.** Merge ACP `tool_call` and `tool_call_update` by
 session and tool-call ID, preserving absent fields across patches. Normalize the
@@ -201,3 +202,16 @@ after reload or cancellation. Use compact tool/thought headers, bounded thought
 content, and a visible running animation above the composer, including the wait
 before text arrives. Permission waits use a distinct status; completion and Stop
 settlement remove the running state. Honor reduced-motion preferences.
+
+**M-ACP-25 — Floating camera lifecycle.** A single explicit Open camera action
+starts the browser camera and opens a movable overlay owned by the conversation.
+Keep one active camera widget per conversation. Its live/off/starting status and
+Capture action remain visible in the small view. Drag its handle or use keyboard
+arrows to move it, clamp it to the viewport, and offer quick enlarge/shrink
+controls. Minimize an active widget when its originating card collapses; keep its
+video element and stream mounted through card changes and resizing. Animate
+disclosures and resizing, respecting reduced motion. Closing/stopping, changing
+session, leaving the route, or removing the owning request releases tracks,
+including late permission results. Restored history never starts a camera by
+itself. Widget position and size are temporary browser presentation state; stored
+camera requests and capture references retain their separate durable lifecycle.

@@ -18,6 +18,7 @@ export function cameraError(error: unknown): string {
 
 export function useCamera(
   onCapture: (source: SourceImage) => Promise<unknown>,
+  autoStart = false,
 ) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -125,6 +126,16 @@ export function useCamera(
     },
     [deviceId, refreshDevices, release, stop],
   );
+
+  const startOnOpen = useRef(start);
+  startOnOpen.current = start;
+  useEffect(() => {
+    // The owner enables this only after an explicit Open camera action.
+    // Deferring one microtask avoids duplicate permission requests in Strict Mode.
+    let cancelled = false;
+    if (autoStart) queueMicrotask(() => { if (!cancelled) void startOnOpen.current(); });
+    return () => { cancelled = true; };
+  }, [autoStart]);
 
   useEffect(() => {
     const video = videoRef.current;

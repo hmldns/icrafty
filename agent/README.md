@@ -184,7 +184,10 @@ Do not scan and publish every file written by Codex.
 camera interaction, returns `requestId`, `view: "camera"`, empty `photos`, and
 `interactionStatus: "awaiting_capture"`, then completes promptly. The tool's
 result links it to the originating ACP tool call. The user explicitly starts
-the browser camera, captures images, then sends them in a later message.
+the browser camera with **Open camera**, captures images, then sends them in a
+later message. The draggable widget keeps a mini live preview and Capture action
+when its chat card collapses. **Shrink camera** and **Enlarge camera** change its
+size without restarting the stream. Close/Stop or leaving the chat stops it.
 
 ## Composition and verification
 
