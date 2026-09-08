@@ -90,6 +90,11 @@ and keeps the editor open. Save revision creates a separate snapshot containing
 editable marks and flattened PNG bytes. Saved marks can be restored without
 changing the original; restoration is also undoable.
 
+Each collection card also has a Download PNG button. It downloads the image with
+its current draft marks, or the untouched image if there are no marks, without
+opening the editor or saving a new revision. Downloads keep the source resolution
+and get distinct filenames. Failed exports can be retried from the same card.
+
 ## Storage and limits
 
 IndexedDB stores original blobs in `sources`, editable history in `drafts`, and

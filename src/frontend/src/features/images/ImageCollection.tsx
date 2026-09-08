@@ -10,6 +10,7 @@ import { Icon } from "../../components/ui/Icon";
 import { errorMessage } from "./imageIO";
 import type { CollectionImage } from "./types";
 import { useObjectUrl } from "./useObjectUrl";
+import { useImageDownload } from "./useImageDownload";
 
 function ImageCard({
   image,
@@ -21,6 +22,7 @@ function ImageCard({
   onDelete: () => void;
 }) {
   const url = useObjectUrl(image.source.blob);
+  const { download, downloading, error, status } = useImageDownload(image);
   const marks = image.draft.history.present.length;
   return (
     <article
@@ -78,6 +80,23 @@ function ImageCard({
             </Badge>
           )}
         </div>
+        <Button
+          className="image-card-download"
+          size="small"
+          icon="download"
+          aria-label={`Download PNG for ${image.source.name}`}
+          title={
+            marks ? "Download with current marks" : "Download image as PNG"
+          }
+          disabled={downloading}
+          onClick={() => void download()}
+        >
+          {downloading ? "Exporting…" : "Download PNG"}
+        </Button>
+        <span className="sr-only" role="status">
+          {status}
+        </span>
+        {error && <Notice tone="error">{error}</Notice>}
       </div>
     </article>
   );
@@ -102,7 +121,7 @@ export function ImageCollection({
           <h2 id="collection-title">Your image collection</h2>
           <Badge>{images.length} / 40</Badge>
         </div>
-        <p>Choose an image to annotate</p>
+        <p>Annotate an image or download its current PNG</p>
       </div>
       {images.length ? (
         <div className="image-grid">
