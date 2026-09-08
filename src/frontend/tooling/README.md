@@ -65,6 +65,24 @@ and [upstream repository](https://github.com/kovacsv/occt-import-js). Three.js u
 its upstream MIT license. Keep these upstream notices with redistributed bundles;
 the viewer does not replace either dependency's license terms.
 
+## Evaluated CAD gallery samples
+
+The gallery also includes native FreeCAD STEP exports copied byte-for-byte from
+the CAD builder's executed checks:
+
+- [`evaluated-cap.step`](models/evaluated-cap.step): the local-gate cap, with a
+  36 mm bore, 2 mm roof, and 10 mm cavity depth.
+- [`evaluated-placed-cylinder.step`](models/evaluated-placed-cylinder.step): the
+  native-milestone cylinder translated by (7, -4, 3) mm and rotated 30° about X.
+
+Open `/debug/models`, press **Refresh & reload**, and choose either filename in
+**Model source**. These additions use the existing development folder catalog.
+[`evaluated-samples.json`](evaluated-samples.json) records their exact byte hashes,
+evaluator checkpoints, source/run/geometry identity, existing clean-STEP-reopen
+results, and matching rendered-image paths. The recorded reopen checks cover
+millimeter units, validity, solid count, bounds, and volume. The native outputs
+were copied without re-exporting or rerunning CAD acceptance.
+
 ## STL fixtures and embedding example
 
 [`bracket.stl`](models/bracket.stl) is a synthetic asymmetric L-bracket, generated

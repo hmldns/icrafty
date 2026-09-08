@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "path_convention": "file is relative to tooling; source_run and existing_render.path are relative to the repository root; comparison.path is relative to source_run.",
+  "samples": [
+    {
+      "file": "models/evaluated-cap.step",
+      "sha256": "bbe02c8657af6c2715e1d84571fe6eb6ad2ba989f5522ae6539bf51d49912500",
+      "size_bytes": 5177,
+      "evaluator_checkpoint": "aeecdf71ecec065dbcca00b498e0ba2a7edaf90a",
+      "source_run": ".worktrees/cad-service/cad/runs/verification/20260908-144409-67d0e3a7/exports/requested-only-and-clean-reopen/step",
+      "run_id": "61bebab67ffb4f669d770c917ccbc8a4",
+      "result_sha256": "96167e16b0bf3091965c637967a4534038a4dc8e7e17e5453107cd6091d0c254",
+      "artifact_id": "cap",
+      "geometry_digest": "f3165def383f70ae6108f407e8649053f462c2bd01a72427d568bf4d2d63aae7",
+      "source_sha256": "640db82b6698b4024f8b46890351d6626b8cad1e06022988e33a3ac23035ac2c",
+      "request_sha256": "7bd2afda08eff42fb1202ce1a031849241652aab84e9c4e789a12447883ea241",
+      "units": "mm",
+      "frame": "right-handed-Z-up",
+      "clean_reopen": {
+        "method": "clean-step-reopen@1",
+        "passed": true,
+        "checks": {
+          "bounds": true,
+          "solid_count": true,
+          "units_mm": true,
+          "validity": true,
+          "volume": true
+        },
+        "tolerances": {
+          "length_absolute_mm": 1e-06,
+          "relative": 1e-09,
+          "volume_absolute_mm3": 1e-05
+        }
+      },
+      "comparison": {
+        "path": "control/cap/comparison.json",
+        "sha256": "e52cfef58a59bfd6e1aaf008111951e1f82fd064cb57e18b1f765774c402de79"
+      },
+      "existing_render": {
+        "path": ".worktrees/cad-service/cad/runs/verification/20260908-144409-67d0e3a7/geometry/cap/evaluation-1/artifacts/grid.png",
+        "sha256": "4aadcdbcb55d514006a8acb307e2d1cdb5041de95827e9532c962e73f04c608c",
+        "geometry_digest": "f3165def383f70ae6108f407e8649053f462c2bd01a72427d568bf4d2d63aae7"
+      }
+    },
+    {
+      "file": "models/evaluated-placed-cylinder.step",
+      "sha256": "c447f8f448029e415e5a1df5670ae401d97d9f771067dae18d3ea86b425322cb",
+      "size_bytes": 3608,
+      "evaluator_checkpoint": "38df2687240b8339a962393cf8a65a9957c01623",
+      "source_run": ".worktrees/cad-service/cad/runs/native-milestone-1/query-2",
+      "run_id": "35ee6a447fc74053b3420ab2831bed6a",
+      "result_sha256": "78e8352631638205079eca35ae57512cf1b253b96a4e36d209a1496b05a7b957",
+      "artifact_id": "part",
+      "geometry_digest": "a7fe3989d472ed0fbb6e172960be1b95bb896898e75ad21bd3186f76867e2dfe",
+      "source_sha256": "cc01bd7103f87a433c944ac6b44de767c0f062de49d896207ada45df262ddfc8",
+      "request_sha256": "995e3ca50025debe424c8bb1349a37261e074ceebb68b7143292be764c07656e",
+      "units": "mm",
+      "frame": "right-handed-Z-up",
+      "clean_reopen": {
+        "method": "clean-step-reopen@1",
+        "passed": true,
+        "checks": {
+          "bounds": true,
+          "solid_count": true,
+          "units_mm": true,
+          "validity": true,
+          "volume": true
+        },
+        "tolerances": {
+          "length_absolute_mm": 1e-06,
+          "relative": 1e-09,
+          "volume_absolute_mm3": 1e-05
+        }
+      },
+      "comparison": {
+        "path": "control/part/comparison.json",
+        "sha256": "1e8dcf76b0a9bb66d12e9864cd6d26db961ab5ffb8158a343d69fac6c303072e"
+      },
+      "existing_render": {
+        "path": ".worktrees/cad-service/cad/runs/native-milestone-1/query-0/artifacts/iso.png",
+        "sha256": "593dcf4c78730afa5bb341be210003e4f833000e04d064232261c7aa001e7ec7",
+        "geometry_digest": "a7fe3989d472ed0fbb6e172960be1b95bb896898e75ad21bd3186f76867e2dfe"
+      }
+    }
+  ]
+}

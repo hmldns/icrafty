@@ -1,4 +1,6 @@
-# Preserve the byte identity of pinned upstream files, including their whitespace.
+# Preserve pinned upstream and evaluated native bytes, including their whitespace.
 tooling/models/rounded-cube.step -text whitespace=-blank-at-eol
+tooling/models/evaluated-cap.step -text whitespace=-blank-at-eol
+tooling/models/evaluated-placed-cylinder.step -text whitespace=-blank-at-eol
 tooling/licenses/occt-import-js-LGPL-2.1.txt -text
 tooling/models/*.stl -text
