@@ -28,11 +28,25 @@
 .repair-sample .repair-sample-note { font-size: .6875rem; }
 .repair-sample-photos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-1); }
 .repair-sample-photos img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--radius-sm); }
-.chat-measurements { display: grid; gap: var(--space-4); padding: var(--space-4); font-size: var(--text-small); }
+.chat-measurements { display: grid; gap: var(--space-4); padding: var(--space-4); font-size: var(--text-small); container-type: inline-size; }
+.measurement-references { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--space-2); font-size: .75rem; color: var(--color-muted); }
 .measurement-photos { display: flex; flex-wrap: wrap; gap: var(--space-2); list-style: none; padding: 0; margin: 0; }
-.measurement-photos li { width: 100px; }
-.measurement-photos button { display: grid; gap: var(--space-1); width: 100%; text-align: left; font-size: .6875rem; color: var(--color-muted); }
-.measurement-photos img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--radius-sm); }
+.measurement-photos li { min-width: 0; }
+.measurement-photos button { display: block; padding: var(--space-1) var(--space-2); text-align: left; overflow-wrap: anywhere; border: 1px solid var(--color-line); border-radius: var(--radius-sm); color: var(--color-ink); }
+.measurement-photos button:hover { background: var(--color-soft); }
+.measurement-guide-group { display: grid; align-items: start; gap: var(--space-4); min-width: 0; }
+.measurement-guide-group + .measurement-guide-group { padding-top: var(--space-4); border-top: 1px solid var(--color-line); }
+.measurement-guide { margin: 0; min-width: 0; }
+.measurement-guide figcaption { display: flex; justify-content: space-between; gap: var(--space-2); margin-bottom: var(--space-2); font-size: .75rem; color: var(--color-muted); }
+.measurement-guide figcaption > span:first-child { color: var(--color-ink); font-weight: 600; }
+.measurement-guide-image { display: block; width: 100%; overflow: hidden; border: 1px solid var(--color-line); border-radius: var(--radius-sm); background: var(--color-paper); cursor: zoom-in; }
+.measurement-guide-image img { display: block; width: 100%; height: auto; max-height: 560px; object-fit: contain; }
+.measurement-guide-image:focus-visible { outline-offset: -4px; }
+.measurement-guide-loading { display: flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: 160px; padding: var(--space-4); border: 1px solid var(--color-line); border-radius: var(--radius-sm); background: var(--color-soft); color: var(--color-muted); }
+.measurement-guide-group .measurement-fields { grid-template-columns: minmax(0, 1fr); }
+@container (min-width: 760px) {
+  .measurement-guide-group { grid-template-columns: minmax(0, 1.4fr) minmax(260px, 1fr); }
+}
 .chat-measurements form { display: grid; gap: var(--space-4); }
 .measurement-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: var(--space-4); }
 .measurement-field { display: grid; gap: var(--space-2); align-content: start; min-width: 0; }

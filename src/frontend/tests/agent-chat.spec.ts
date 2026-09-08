@@ -232,7 +232,9 @@ test("main repair surface sends sample photos and measurement answers in the rea
     photos: [{ assetId: image.id, versionId: "1" }], status: "awaiting_answers", answers: {} };
   app.emit("c", "record", { type: "tool_call", toolCallId: "measure", name: "measurements.request", title: "Request measurements", status: "completed", rawOutput: form });
   const card = page.getByRole("article", { name: "Measure the rim", exact: true });
-  await expect(card.getByRole("list", { name: "Measurement reference photos" }).getByRole("img")).toHaveCount(1);
+  await expect(card.getByRole("list", { name: "Measurement reference photos" }).getByRole("img")).toHaveCount(0);
+  await expect(card.getByRole("button", { name: `Inspect source photo: ${image.title}`, exact: true })).toBeVisible();
+  await expect(history(page).getByRole("img")).toHaveCount(4);
   await card.getByLabel("Inside diameter · mm").fill("83.4");
   await card.getByLabel("Intended fit").fill("Lift-off dust cover");
   await expect(card.getByRole("button", { name: "Send measurements", exact: true })).toBeDisabled();
@@ -264,6 +266,99 @@ test("main repair surface sends sample photos and measurement answers in the rea
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: "Show repairs", exact: true })).toBeFocused();
   await expect(page.getByRole("button", { name: "New repair", exact: true })).not.toBeVisible();
+});
+
+test("measurement sketches group questions once, inspect images and keep source photos as links", async ({ page }) => {
+  const app = await harness(page);
+  const file = await makeImage(page);
+  const names = { source: "Original mug photo", opening: "Caliper inside the opening", depth: "Depth rod at the seat", outside: "Caliper outside the rim" };
+  for (const [id, title] of Object.entries(names)) {
+    app.bytes.set(id, file.buffer);
+    app.emit("a", "asset", { id, versionId: "1", title, origin: id === "source" ? "upload" : "generated", width: 800, height: 600,
+      mimeType: "image/png", size: file.buffer.length, digest: "fixture-image", url: `/api/agent/sessions/a/images/${id}` });
+  }
+  app.emit("a", "record", { type: "message", id: "photo", author: "you", origin: "agent", text: "Help me measure this mug", imageIds: ["source"] });
+  const form = { view: "measurements", requestId: "guide-form", title: "Measure with the sketches", caption: "Match the letters on each sketch to the questions.",
+    fields: [{ id: "inside", label: "A · Inside diameter", kind: "number", unit: "mm", hint: "Use the small inside jaws." },
+      { id: "depth", label: "B · Seat depth", kind: "number", unit: "mm" },
+      { id: "outside", label: "C · Outside diameter", kind: "number", unit: "mm" }, { id: "fit", label: "Intended fit", kind: "text" }],
+    photos: [{ assetId: "source", versionId: "1" }],
+    guides: [{ image: { assetId: "opening", versionId: "1" }, fieldIds: ["inside"] },
+      { image: { assetId: "depth", versionId: "1" }, fieldIds: ["inside", "depth"] },
+      { image: { assetId: "outside", versionId: "1" }, fieldIds: ["outside"] }], status: "awaiting_answers", answers: {} };
+  app.emit("a", "record", { type: "tool_call", toolCallId: "measure", name: "measurements.request", title: "Request dimensions", status: "completed", rawOutput: form });
+  await page.goto("/");
+  const card = page.getByRole("article", { name: form.title, exact: true });
+  const groups = card.locator(".measurement-guide-group");
+  await expect(groups).toHaveCount(3);
+  await expect(card.getByRole("img")).toHaveCount(3);
+  await expect(history(page).getByRole("img", { name: names.source, exact: true })).toHaveCount(1);
+  await expect(card.getByRole("list", { name: "Measurement reference photos" }).getByRole("img")).toHaveCount(0);
+  await expect(groups.nth(0).getByLabel("A · Inside diameter · mm", { exact: true })).toHaveCount(1);
+  await expect(groups.nth(1).getByLabel("B · Seat depth · mm", { exact: true })).toHaveCount(1);
+  await expect(groups.nth(2).getByLabel("C · Outside diameter · mm", { exact: true })).toHaveCount(1);
+  await expect(card.locator("label")).toHaveCount(4);
+  await expect(card.getByLabel("A · Inside diameter · mm", { exact: true })).toHaveCount(1);
+  await card.getByLabel("A · Inside diameter · mm", { exact: true }).fill("83.4");
+  await card.getByLabel("Intended fit", { exact: true }).fill("Dust cover");
+  await card.getByRole("button", { name: `Enlarge sketch 2: ${names.depth}`, exact: true }).click();
+  const viewer = page.getByRole("dialog", { name: "Images in this chat", exact: true });
+  await expect(viewer.getByRole("region", { name: "Selected image" }).getByRole("img")).toHaveAttribute("src", "/api/agent/sessions/a/images/depth");
+  await page.keyboard.press("Escape");
+  await card.getByRole("button", { name: `Inspect source photo: ${names.source}`, exact: true }).click();
+  await expect(viewer.getByRole("region", { name: "Selected image" }).getByRole("img")).toHaveAttribute("src", "/api/agent/sessions/a/images/source");
+  await page.keyboard.press("Escape");
+  await card.locator(".chat-interaction-toggle").click();
+  await expect(card.locator(".chat-interaction-body")).toHaveCSS("height", "0px");
+  await card.locator(".chat-interaction-toggle").click();
+  await expect(card.getByLabel("A · Inside diameter · mm", { exact: true })).toHaveValue("83.4");
+  await expect(card.getByLabel("Intended fit", { exact: true })).toHaveValue("Dust cover");
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+  expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(844);
+  await expect(page.getByRole("textbox", { name: "Message (optional)" })).toBeVisible();
+  const firstImage = await groups.nth(0).getByRole("img").boundingBox();
+  const firstField = await groups.nth(0).getByLabel("A · Inside diameter · mm", { exact: true }).boundingBox();
+  expect(firstField!.y).toBeGreaterThan(firstImage!.y + firstImage!.height);
+  await card.getByRole("button", { name: "Send measurements", exact: true }).click();
+  await expect(card.getByText("Measurements sent", { exact: true })).toBeVisible();
+  expect(app.commands.filter(command => command.action === "measurements")).toHaveLength(1);
+  expect(app.commands.at(-1)!.body.answers).toEqual({ inside: "83.4", fit: "Dust cover" });
+  await expect(card.getByText("Not measured", { exact: true })).toHaveCount(2);
+  app.finish("a");
+  await page.reload();
+  await expect(card.getByRole("img")).toHaveCount(3);
+  await expect(card.getByText("83.4 mm", { exact: true })).toBeVisible();
+  await expect(history(page).getByRole("img", { name: names.source, exact: true })).toHaveCount(1);
+});
+
+test("measurement forms keep answers while late guide assets and preview bytes arrive", async ({ page }) => {
+  const app = await harness(page);
+  const file = await makeImage(page);
+  const image = { assetId: "late-guide", versionId: "1" };
+  const form = { view: "measurements", requestId: "late-form", title: "Measure the opening", caption: "Use the inside jaws.",
+    fields: [{ id: "inside", label: "A · Inside diameter", kind: "number", unit: "mm" }], photos: [],
+    guides: [{ image, fieldIds: ["inside"] }], status: "awaiting_answers", answers: {} };
+  app.emit("a", "record", { type: "tool_call", toolCallId: "measure", name: "measurements.request", title: form.title, status: "completed", rawOutput: form });
+  await page.goto("/");
+  const card = page.getByRole("article", { name: form.title, exact: true });
+  await expect(card.getByText("Loading measurement sketch…", { exact: true })).toBeVisible();
+  await card.getByLabel("A · Inside diameter · mm", { exact: true }).fill("82.5");
+  let release!: () => void;
+  const waitForBytes = new Promise<void>(resolve => { release = resolve; });
+  await page.route("**/images/late-guide", async route => {
+    await waitForBytes;
+    await route.fulfill({ body: file.buffer, contentType: "image/png" });
+  });
+  app.emit("a", "asset", { id: image.assetId, versionId: image.versionId, title: "Opening measurement", origin: "generated", width: 800, height: 600,
+    mimeType: "image/png", size: file.buffer.length, digest: "fixture-image", url: "/api/agent/sessions/a/images/late-guide" });
+  await expect(card.getByText("Loading preview…", { exact: true })).toBeVisible();
+  await expect(card.getByLabel("A · Inside diameter · mm", { exact: true })).toHaveValue("82.5");
+  await expect(card.getByRole("button", { name: "Send measurements", exact: true })).toBeEnabled();
+  release();
+  await expect(card.getByRole("img", { name: "Opening measurement", exact: true })).toBeVisible();
+  await expect(card.getByText("Loading measurement sketch…", { exact: true })).toHaveCount(0);
+  await expect(card.getByLabel("A · Inside diameter · mm", { exact: true })).toHaveValue("82.5");
 });
 
 test("real mounted components upload, stream, show MCP images, download and restore saved history", async ({ page }) => {
