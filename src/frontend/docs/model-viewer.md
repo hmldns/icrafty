@@ -4,6 +4,12 @@ Implementation: [usage and embedding](viewer-usage.md), [local tooling and sampl
 provenance](../tooling/README.md). The numbered brief below remains the assignment
 scope; the implementation guide records supported behavior and limits.
 
+User refinement on 2026-09-08: show section planes with distinct colors, fill the
+visible cut faces of solid meshes, and add an inner-sphere demonstration. The
+implementation uses visual stencil caps and a labeled synthetic sphere; no CAD
+boolean or exported cut-solid operation was requested. See the implementation
+guide for closed-mesh assumptions and preservation of genuine holes.
+
 This implementation brief records the viewer assignment and unresolved product
 choices. Canonical product behavior remains in [PRD](../../../docs/PRD.md)
 PRD-14–18, PRD-20, PRD-48, and PRD-50–54. Technical context is

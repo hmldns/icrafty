@@ -22,11 +22,33 @@ or equal to its position; Flip keeps the opposite half. Enable/disable preserves
 the position; Remove deletes the plane. Multiple enabled planes keep their
 intersecting visible region. Empty views after moving cuts past a part are valid.
 
-These are visual mesh cuts, with double-sided surfaces and **no caps** at cut
-boundaries. They produce no new solids, exact section curves, measurements, or
-cut exports. Triangulation, faceting, back faces and open edges can be visible.
-Mesh bounds are framing aids, not verified CAD evidence. This viewer has no CAD
-evaluator, FreeCAD execution, GLB generation or backend connection.
+Enabled planes have translucent guides and matching cut-face colors: X red,
+Y green, Z blue. **Show section planes** toggles the guides; **Fill cut faces**
+toggles the caps. Both start enabled. Guides extend slightly beyond the part and
+follow the plane position. Flipping preserves the axis color. Axis labels and
+numeric controls remain available without relying on color alone.
+
+Stencil caps fill cuts through closed, consistently wound triangle meshes. A
+section through a hollow sleeve stays a ring: the cap preserves its through-hole.
+This is a visual fill, not a CAD boolean or solidity check. Open, inconsistently
+wound, intersecting or nonmanifold geometry can produce artifacts. Separate meshes
+are capped independently; topology split across meshes cannot define a reliable
+common interior. Very close or coplanar surfaces can show depth artifacts.
+Disable **Fill cut faces** to inspect the uncapped mesh when needed. Capping adds
+two mesh passes and a cap pass per enabled plane per mesh, so large assemblies
+can cost substantially more to render. No large-assembly performance is claimed.
+
+Choose **Solid block + inner sphere demo** in the gallery to inspect the effect.
+It starts with X/Z cuts through a synthetic block and a gold sphere of radius
+10 mm at its center. Moving the cuts through and beyond the sphere exposes its
+colored cross-sections or removes it from view. This sphere is supplemental demo
+geometry, explicitly identified in snapshots; it is not added to imported files.
+The supplied STEP and the demo both work in production without the folder relay.
+
+These visual sections produce no new solids, exact section curves, measurements,
+or cut exports. Triangulation and faceting can be visible. Mesh bounds are framing
+aids, not verified CAD evidence. This viewer has no CAD evaluator, FreeCAD
+execution, GLB generation or backend connection.
 
 ## Reusable component
 
@@ -66,6 +88,14 @@ Its only image helper dependency is the shared PNG encoding utility, which does
 not access IndexedDB. Every viewer owns its WebGL context, geometries/materials,
 cameras, clipping state, controls and resize observer. No mutable model cache is
 shared. Resources and pending import workers are released on replacement/unmount.
+
+Optional `initialSections` accepts a stable array of section settings to apply
+when loading a source. Optional `referenceObjects` accepts a stable array of
+`ReferenceSphere` values (`kind: "sphere"`, human-readable `label`, `center`,
+positive `radius`). Coordinates are viewer millimeters/Z-up. The reference objects
+are rendered and sectioned with the source; source framing and position slider
+bounds remain based on the imported model. Replacing either array reloads the
+viewer. These props are used for the gallery demo; ordinary embeddings omit them.
 
 For a runnable independent example, open `/tooling/embedding.html` in development.
 It passes a Blob, deliberately declares meters/Y-up, supplies example provenance
@@ -110,8 +140,10 @@ compatible. Snapshot imports use the same image/storage limits as camera images.
 The optional model metadata includes source identity and supplied artifact,
 revision/evaluation IDs, actual input SHA-256 and byte count, importer/tessellation,
 unit/frame declarations, parser-to-viewer matrix, camera pose and projection
-matrices/frustum, all section settings, capture size and timestamp. Local samples
-do not invent backend IDs. Readable model/view/section context appears in the
+matrices/frustum, all section settings including guide/cap visibility, supplemental
+reference objects when supplied, capture size and timestamp. Display/reference
+fields are optional so earlier model snapshots remain readable. Local samples
+do not invent backend IDs. Readable model/view/section/reference context appears in the
 editor's source details. PNG downloads contain pixels; the full structured
 provenance stays with the original source in the local collection, not embedded
 in PNG metadata or exported as a CAD artifact.
@@ -153,5 +185,6 @@ WASM compilation; deployment-specific CSP is not tested by this spike.
 Primary upstream references: [OCCT import API](https://github.com/kovacsv/occt-import-js),
 [Three.js OrbitControls](https://threejs.org/docs/pages/OrbitControls.html),
 [STLLoader](https://threejs.org/docs/pages/STLLoader.html),
-[material clipping](https://threejs.org/docs/pages/Material.html), and
+[material clipping](https://threejs.org/docs/pages/Material.html),
+[stencil section example](https://threejs.org/examples/webgl_clipping_stencil.html), and
 [Vite workers](https://vite.dev/guide/features.html#web-workers).

@@ -14,6 +14,11 @@ and a removable attachment strip. Choose a version and add a local mock input;
 earlier inputs keep their chosen images. This [chat flow mock](docs/chat-flow.md)
 resets when you leave or refresh and does not send messages to an agent.
 
+The viewer has colored X/Y/Z section planes and visual cut-face fills for closed
+meshes. Select **Solid block + inner sphere demo** to inspect the caps and their
+snapshot/annotation output. [Section behavior and limits](docs/viewer-usage.md)
+explain the distinction from CAD geometry operations.
+
 ## Run
 
 Use Node.js 22.12 or newer and npm. From `src/frontend/`:

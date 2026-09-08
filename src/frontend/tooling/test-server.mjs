@@ -5,7 +5,12 @@ import { createServer } from "vite";
 const root = new URL("./.test-models/server/", import.meta.url);
 await rm(root, { recursive: true, force: true });
 await mkdir(root, { recursive: true });
-for (const name of ["bracket.stl", "rounded-cube.step"])
+for (const name of [
+  "bracket.stl",
+  "rounded-cube.step",
+  "solid-block.stl",
+  "sleeve.stl",
+])
   await copyFile(
     new URL(`./models/${name}`, import.meta.url),
     new URL(name, root),

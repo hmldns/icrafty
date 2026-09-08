@@ -47,6 +47,29 @@ export function ModelSourceContext({ model }: { model: ModelProvenance }) {
         <dt>Model fingerprint</dt>
         <dd title={`SHA-256 ${model.sha256}`}>{model.sha256.slice(0, 16)}…</dd>
       </div>
+      {model.sectionAppearance && (
+        <div>
+          <dt>Section display</dt>
+          <dd>
+            {model.sectionAppearance.caps
+              ? "Filled cut faces"
+              : "Unfilled cuts"}{" "}
+            ·{" "}
+            {model.sectionAppearance.guides
+              ? "Plane guides shown"
+              : "Plane guides hidden"}
+          </dd>
+        </div>
+      )}
+      {!!model.referenceObjects?.length && (
+        <div>
+          <dt>Reference objects</dt>
+          <dd>
+            {model.referenceObjects.map((object) => object.label).join(", ")} ·
+            supplemental geometry
+          </dd>
+        </div>
+      )}
       {model.source.revisionId && (
         <div>
           <dt>Model revision</dt>

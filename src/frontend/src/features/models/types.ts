@@ -32,6 +32,19 @@ export interface SectionPlane {
   enabled: boolean;
 }
 
+export interface SectionAppearance {
+  guides: boolean;
+  caps: boolean;
+}
+
+/** Supplemental visual reference, in viewer millimeters/Z-up; not source-model geometry. */
+export interface ReferenceSphere {
+  kind: "sphere";
+  label: string;
+  center: Vector3Tuple;
+  radius: number;
+}
+
 export interface CameraState {
   projection: Projection;
   position: Vector3Tuple;
@@ -69,6 +82,9 @@ export interface ModelProvenance {
   };
   camera: CameraState;
   sections: SectionPlane[];
+  /** Absent on snapshots captured before visual caps/guides were supported. */
+  sectionAppearance?: SectionAppearance;
+  referenceObjects?: ReferenceSphere[];
   capture: { width: number; height: number; createdAt: string };
 }
 
