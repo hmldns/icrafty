@@ -3,7 +3,8 @@
 CAD-RUN-14 passed on 2026-09-08. The separate `cad-cap-correction` worker used
 service checkpoint `aeecdf71ecec065dbcca00b498e0ba2a7edaf90a`, included in its
 baseline `7dfa335388224fd151fbcda562cac510d21089c9`. The service builder did not
-launch or perform the correction. Docker acceptance remains the next required gate.
+launch or perform the correction. The subsequent executed Docker acceptance is
+recorded in [DOCKER-GATE.md](DOCKER-GATE.md).
 
 The collector recorded **2/8 evaluations** and **135.27897667884827/1200 seconds**.
 The unchanged wrong source failed seven of ten fixed checks. After inspecting

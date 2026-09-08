@@ -3,10 +3,10 @@
 Standalone FreeCAD evaluator and retained geometry API. The local implementation
 builds cylinders, sleeves and closed-end caps, measures delivered geometry in a
 clean native process, renders requested PNGs, and exports STEP only on demand.
-The separate correction trial passed with independently captured tool evidence
-([trial acceptance](TRIAL-GATE.md)); the executed Docker gate remains required
-before this assignment is complete. MCP/ACP, chat, printing and product agent sessions are
-outside this module.
+The first core passed [77 local checks](LOCAL-GATE.md), the separate correction
+trial with [independent tool evidence](TRIAL-GATE.md), and
+[83 executed Docker checks](DOCKER-GATE.md). MCP/ACP, chat, printing and product
+agent sessions are outside this module.
 
 Read the canonical [M-CAD contract](../docs/M-CAD.md),
 [implementation brief](../docs/CAD-IMPLEMENTATION.md),
@@ -151,7 +151,9 @@ estimated native shape memory, 300 s idle expiry and 1800 s absolute lifetime.
 Every report records the effective settings and measured process peaks/timings.
 RSS/process/output monitoring samples every 40 ms and may observe an overshoot
 before termination; OS address-space, CPU and per-file limits are also applied.
-These are local process controls, not an executed Docker isolation claim.
+These local process controls also run inside the container. The separate
+[Docker boundary](docker/README.md) adds kernel-enforced isolation and resource
+limits, with actual pressure and recovery evidence in [DOCKER-GATE.md](DOCKER-GATE.md).
 
 The supervisor owns subprocess trees, terminates descendants and reaps them before
 cancellation completes. Cooperative query/raster cancellation normally preserves
@@ -195,7 +197,8 @@ passed, 1 assertion/trial failure, 2 invalid setup/harness failure, 130 interrup
 Make may summarize these with its own nonzero code. Empty/unknown selections,
 missing prerequisites or unimplemented required suites cannot go green.
 `--no-color` and `NO_COLOR` are supported; captured output disables live refresh.
-Rich shows progress, outcomes, durations and artifact paths.
+Rich shows completed/total progress, outcomes, durations, actual values and
+criteria, geometry build/reuse counts, and an artifact tree.
 
 Each fresh `runs/verification/RUN_ID/` retains `summary.json`, exact requests,
 evaluator results, bounded logs, snapshots, source revisions, images/sidecars,
@@ -205,7 +208,7 @@ negatives, unexpected failures, missing prerequisites and interruptions distinct
 The first broad run, including a discovered BRep feature normalization defect, is
 retained as `runs/local-first`; subsequent reports retain the corrected behavior.
 
-## Separate cap trial and remaining stages
+## Separate cap trial
 
 The director launches a separate correction worker using
 [fixtures/trial-cap/TASK.md](fixtures/trial-cap/TASK.md). This service builder does
@@ -228,9 +231,29 @@ transcript; the collector does not claim to infer that a person/agent viewed a f
 evidence. A missing trial records `missing_prerequisite` and exits 2. A collector
 control test is not the separately coordinated correction trial.
 
-`verify-docker` currently reports an explicit missing adapter rather than passing.
-Executed Docker packaging/isolation acceptance follows local and separate-trial
-acceptance. Bolt/nut bodies, thread/custom-nut pairs and complex fixture families
+## Isolated Docker and remaining stages
+
+After the local and separate-trial gates, build the pinned image and execute the
+same deterministic inputs and expectations under Docker:
+
+```sh
+make -C cad image-docker
+make -C cad verify-docker
+uv run --directory cad --cache-dir .uv-cache --locked python -m crafty_cad.docker evaluate \
+  --request examples/cylinder/request.json --output runs/docker-cylinder-001
+```
+
+The image is built offline from the byte-locked native/runtime dependency closure.
+Its root and private inputs are read-only, output is a private bounded tmpfs,
+networking is disabled, and generated source has a separate unprivileged UID.
+The host validates captured files and atomically finalizes its result. Docker
+sessions expose retained geometry operations and capture recovery snapshots on
+ensure. See [packaging, operation and limits](docker/README.md) and the
+[executed acceptance report](DOCKER-GATE.md) for exact versions, commands,
+measurements, failures and limitations. A stale image or missing prerequisite
+fails explicitly.
+
+Bolt/nut bodies, thread/custom-nut pairs and complex fixture families
 are named subsequent CAD-RUN-16 stages; their selection and method gaps are listed
 in the fixture expectations. No arbitrary-shape, global wall-thickness, printability,
 thread-fit or physical-fit claim follows from this cap gate.
