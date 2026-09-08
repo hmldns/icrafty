@@ -112,6 +112,7 @@ export function CameraView({ camera, onClose, heading, compact = false }: {
           playsInline
           aria-label="Live camera preview"
         />
+        {camera.phase === "live" && camera.shutter > 0 && <span key={camera.shutter} className="camera-shutter-flash" aria-hidden="true" />}
         {camera.phase !== "live" && (
           <div className="camera-placeholder">
             {camera.phase === "requesting" ? (
@@ -167,7 +168,7 @@ export function CameraView({ camera, onClose, heading, compact = false }: {
             onClick={() => void camera.capture()}
             disabled={camera.phase !== "live" || camera.capturing}
           >
-            {camera.capturing ? "Capturing…" : "Capture image"}
+            Capture image
           </Button>
         </div>
       </div>

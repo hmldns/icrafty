@@ -25,6 +25,9 @@
 .camera-widget--compact .camera-preview { width: min(100%, calc(min(20dvh, 130px) * var(--camera-aspect))); }
 .camera-widget--compact .camera-controls > .row { justify-content: center; }
 .camera-widget--compact .camera-caption { text-align: center; }
+.camera-shutter-flash { position: absolute; inset: 0; z-index: 2; pointer-events: none; background: var(--color-paper); opacity: 0; animation: camera-shutter .24s ease-out; }
+@keyframes camera-shutter { from { opacity: .8; } to { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) {
   .camera-widget, .chat-interaction-body { transition: none; }
+  .camera-shutter-flash { animation: none; }
 }
