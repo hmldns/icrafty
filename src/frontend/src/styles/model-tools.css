@@ -1,0 +1,158 @@
+/* Shared by embedded viewers and the compact debug workspace. */
+.model-viewer .model-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+.model-tools-primary,
+.model-tool-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+  max-width: 100%;
+}
+.model-tools-primary {
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.model-tool-group {
+  border-right: 1px solid var(--color-line);
+  padding-right: var(--space-2);
+}
+.model-tool-group:last-child {
+  border-right: 0;
+  padding-right: 0;
+}
+.model-tool-group .button {
+  gap: var(--space-1);
+  padding-inline: var(--space-2);
+}
+.model-viewer .model-toolbar [aria-controls] {
+  order: initial;
+}
+.model-viewer .model-toolbar .button[aria-pressed="true"],
+.model-viewer .model-toolbar .button[aria-expanded="true"] {
+  background: var(--color-success-soft);
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+.model-view-presets {
+  max-width: 100%;
+  overflow-x: auto;
+  padding: var(--space-1);
+  margin: calc(-1 * var(--space-1));
+}
+.model-viewer .model-toolbar .field {
+  flex-wrap: nowrap;
+}
+.model-viewer .model-tool-group .field {
+  flex-shrink: 1;
+}
+.model-viewer .model-toolbar .input {
+  padding-left: var(--space-2);
+}
+.section-appearance {
+  margin-top: var(--space-3);
+  font-size: var(--text-small);
+}
+.model-orientation {
+  position: absolute;
+  right: var(--space-2);
+  bottom: var(--space-2);
+  width: var(--model-orientation-size);
+  z-index: 1;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-paper) 92%, transparent);
+  user-select: none;
+}
+.orientation-drag {
+  width: 100%;
+  aspect-ratio: 1;
+  position: relative;
+  touch-action: none;
+  cursor: grab;
+  border-radius: var(--radius-md);
+}
+.orientation-drag:active {
+  cursor: grabbing;
+}
+.orientation-drag > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.orientation-ring {
+  fill: none;
+  stroke: var(--color-line);
+}
+.orientation-drag line {
+  stroke: var(--axis-color);
+  stroke-width: 2;
+}
+.model-orientation [data-axis="x"] {
+  --axis-color: var(--color-axis-x);
+}
+.model-orientation [data-axis="y"] {
+  --axis-color: var(--color-axis-y);
+}
+.model-orientation [data-axis="z"] {
+  --axis-color: var(--color-axis-z);
+}
+.orientation-drag line[data-sign="-1"] {
+  stroke-dasharray: 3 3;
+}
+.orientation-axis {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--axis-color);
+  border: 1px solid var(--axis-color);
+  color: var(--color-paper);
+  font-size: var(--text-label);
+  font-weight: 600;
+  line-height: 1;
+  touch-action: none;
+}
+.orientation-axis[data-sign="-1"] {
+  color: var(--axis-color);
+  background: var(--color-paper);
+}
+.orientation-axis:focus-visible {
+  z-index: 30 !important;
+}
+.orientation-axis:hover:not(:disabled) {
+  box-shadow: 0 0 0 2px var(--color-line);
+}
+.orientation-axis:disabled {
+  opacity: 0.5;
+}
+.orientation-hint {
+  display: block;
+  font-size: 0.625rem;
+  text-align: center;
+  color: var(--color-muted);
+  padding-bottom: var(--space-1);
+}
+@media (max-width: 600px) {
+  .model-viewer .model-toolbar {
+    gap: var(--space-2);
+  }
+  .model-tool-group {
+    padding-right: var(--space-1);
+  }
+  .model-tool-group .button {
+    padding-inline: 6px;
+  }
+  .model-tool-group .field {
+    gap: var(--space-1);
+  }
+  .model-viewer--workspace .model-stage {
+    height: clamp(280px, calc(100dvh - 504px), 360px);
+  }
+}

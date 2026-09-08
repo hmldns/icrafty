@@ -360,7 +360,8 @@ test("a delayed replaced source cannot overwrite the current model; route teardo
   page,
 }) => {
   await page.addInitScript(() => {
-    const state = { activeWorkers: 0, deletedBuffers: 0 };
+    const state = { activeWorkers: 0, deletedBuffers: 0, liveBuffers: 0 };
+    const buffers = new Set<WebGLBuffer>();
     Object.assign(window, { viewerLifecycle: state });
     const OriginalWorker = window.Worker;
     window.Worker = class extends OriginalWorker {
@@ -378,8 +379,17 @@ test("a delayed replaced source cannot overwrite the current model; route teardo
       }
     };
     const original = WebGL2RenderingContext.prototype.deleteBuffer;
+    const create = WebGL2RenderingContext.prototype.createBuffer;
+    WebGL2RenderingContext.prototype.createBuffer = function () {
+      const buffer = create.call(this);
+      if (buffer) buffers.add(buffer);
+      state.liveBuffers = buffers.size;
+      return buffer;
+    };
     WebGL2RenderingContext.prototype.deleteBuffer = function (buffer) {
       state.deletedBuffers++;
+      if (buffer) buffers.delete(buffer);
+      state.liveBuffers = buffers.size;
       return original.call(this, buffer);
     };
   });
@@ -407,12 +417,14 @@ test("a delayed replaced source cannot overwrite the current model; route teardo
     () =>
       (
         window as unknown as {
-          viewerLifecycle: { activeWorkers: number; deletedBuffers: number };
+          viewerLifecycle: { activeWorkers: number; deletedBuffers: number; liveBuffers: number };
         }
       ).viewerLifecycle,
   );
   expect(lifecycle.activeWorkers).toBe(0);
   expect(lifecycle.deletedBuffers).toBeGreaterThan(0);
+  // Includes model, axes and grid buffers; hidden helpers must be disposed too.
+  expect(lifecycle.liveBuffers).toBe(0);
 });
 
 test("model gallery remains usable on a narrow viewport and is linked from the directory", async ({
