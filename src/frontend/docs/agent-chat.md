@@ -97,6 +97,12 @@ For a sample MCP inspection, send `Call crafty_images.list_images.`, expand
 **List chat images**, and open **Tool details**. Use
 `Call crafty_images.request_camera.` to inspect an interactive camera result.
 
+[CAD result rendering](cad-chat.md) adds operation progress, rendered views,
+computed checks and requested STEP downloads to this same registry. It uses
+backend-owned `cad.result` records and the existing immutable image catalog.
+Camera capture gives a short preview flash at the actual frame grab; the button
+label stays steady while the PNG is prepared and uploaded.
+
 Run the backend with `make agent-dev` and frontend with `make frontend-dev` from
 the repository root.
 Vite proxies HTTP and WebSocket `/api/agent` to localhost:8787, configurable with

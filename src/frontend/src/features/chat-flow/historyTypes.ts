@@ -1,4 +1,5 @@
 import type { ChatInput, PhotoAttachment } from "./types";
+import type { CadResult } from "../cad-chat/types";
 
 export interface MessageRecord extends ChatInput {
   readonly type: "message";
@@ -35,6 +36,10 @@ export interface ChatModel {
   readonly name: string;
   readonly url: string;
   readonly format: "stl" | "step";
+  readonly revisionId?: string;
+  readonly evaluationId?: string;
+  readonly sha256?: string;
+  readonly sizeBytes?: number;
 }
 
 export interface MessageItem extends MessageRecord {}
@@ -73,6 +78,11 @@ export interface GenericToolItem extends ToolItemBase {
   readonly type: "tool";
 }
 
+export interface CadItem extends ToolItemBase {
+  readonly type: "cad";
+  readonly result: CadResult;
+}
+
 export interface DimensionField {
   readonly id: string;
   readonly label: string;
@@ -91,4 +101,4 @@ export interface MeasurementItem extends ToolItemBase {
   readonly answers: Readonly<Record<string, string | number>>;
 }
 
-export type HistoryItem = MessageItem | ThoughtItem | CameraItem | ImageItem | ModelItem | GenericToolItem | MeasurementItem;
+export type HistoryItem = MessageItem | ThoughtItem | CameraItem | ImageItem | ModelItem | GenericToolItem | MeasurementItem | CadItem;

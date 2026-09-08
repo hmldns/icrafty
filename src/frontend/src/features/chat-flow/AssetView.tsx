@@ -59,6 +59,7 @@ export function AssetView({
     "model-snapshot": "Model snapshot",
     upload: "Uploaded image",
     generated: "Generated image",
+    cad: "CAD render",
   } as const;
   const versionCount = assets.reduce((count, item) => count + item.versions.length, 0);
 

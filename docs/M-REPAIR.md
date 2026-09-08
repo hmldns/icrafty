@@ -46,6 +46,8 @@ iterations. Its MCP handoff publishes real images, computed checks and requested
 exports into the same repair. Preserve operation/revision identity, scoped files
 and retained geometry; do not make assistant prose authoritative verification.
 This parallel integration must fit the main chat without depending on a debug URL.
+The [CAD result renderer](../src/frontend/docs/cad-chat.md) defines the browser
+projection, evidence display, file checks and on-demand 3D preview.
 
 **REPAIR-7 — Demonstration.** Test the product route, actual sample byte ingestion,
 typed form creation, validation, submission, retry, streaming continuation and

@@ -10,7 +10,7 @@ export interface AgentImage {
   mimeType: string;
   size: number;
   digest: string;
-  origin: "upload" | "generated";
+  origin: "upload" | "generated" | "cad";
   url: string;
 }
 
