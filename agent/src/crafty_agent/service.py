@@ -16,6 +16,7 @@ from .acp import AcpConnection, AcpError
 from .config import Settings
 from .normalize import compact, merge_tool
 from .store import Store, encode, identifier, now
+from . import measurements
 
 
 class BusyError(ValueError):
@@ -33,6 +34,12 @@ Python/SVG drawing for requested AI image generation. Use crafty_images.list_ima
 for existing session images; inspect pixels with the image view tool when a file path was provided.
 Use crafty_images.request_camera when a fresh photo would help: it mounts a camera card and returns
 immediately; the human sends their capture in a later turn. Never wait indefinitely for a capture.
+When dimensions or fit details are missing, use crafty_forms.request_dimensions to ask a small set
+of useful questions in the chat. Link relevant uploaded images by ID, explain where to place the
+caliper in each hint, and use explicit units. Never infer precise dimensions from unscaled photos.
+Use text fields for the intended fit/function. End the turn after requesting measurements; the user
+submits answers later. Unknown dimensions stay unknown. Honor an explicit request to proceed using
+assumptions, and state those assumptions. Do not demand a form before following that request.
 You are operating the chat, not developing its software. Keep code, exports and drafts inside this
 session workspace. Do not inspect credentials, other sessions, or parent project files. Do not spawn
 agents or change system configuration. Answer concisely. Image generation can take a few minutes.
@@ -114,7 +121,8 @@ class Runtime:
                               "CRAFTY_MCP_URL": self.owner.base_url, "CRAFTY_MCP_SESSION": self.sid,
                               "CRAFTY_MCP_TOKEN": self.token, "CRAFTY_MCP_WORKSPACE": str(self.workspace),
                               "CRAFTY_MCP_GENERATED_ROOT": str(codex_state / "generated_images")}.items()]}
-                params = {"cwd": str(self.workspace), "mcpServers": [server]}
+                forms = {**server, "name": "crafty_forms", "args": ["-m", "crafty_agent.mcp_forms"]}
+                params = {"cwd": str(self.workspace), "mcpServers": [server, forms]}
                 method = "session/new"
                 if state["acpSessionId"]:
                     self.recovering = True
@@ -184,6 +192,11 @@ class Runtime:
             record = merge_tool(previous, update)
             record.update(turnId=state["activeTurnId"], generation=self.generation)
             result = record.get("rawOutput")
+            if record.get("name") == "measurements.request" and isinstance(result, dict) and result.get("requestId"):
+                try:
+                    measurements.bind_result(self.owner.store, self.sid, record, state["activeTurnId"])
+                except (KeyError, ValueError):
+                    record.update(status="failed", rawOutput={"error": "Measurement request reference is invalid"})
             if record.get("name") == "camera.capture" and isinstance(result, dict) and result.get("requestId"):
                 try:
                     interaction = self.owner.store.interaction(self.sid, result["requestId"])
@@ -350,7 +363,12 @@ class AgentService:
             temp.replace(target)
         return target
 
-    async def prompt(self, sid: str, client_id: str, text: str, images: list[str]) -> dict:
+    async def prompt(self, sid: str, client_id: str, text: str, images: list[str], *, measurement_response: tuple[str, dict] | None = None) -> dict:
+        interaction = tool_record = None
+        if measurement_response:
+            text, images, interaction, tool_record = measurements.prepare_answer(self.store, sid, *measurement_response)
+            # Bind idempotency to the request as well as its human-readable answers.
+            client_id = f'measurement:{measurement_response[0]}:{client_id}'
         if not text.strip() and not images:
             raise ValueError("A message needs text or an image")
         if len(text) > 40000 or len(images) > 8 or len(set(images)) != len(images):
@@ -374,8 +392,10 @@ class AgentService:
                 return previous
             if self.store.session(sid)["activeTurnId"]:
                 raise BusyError("Wait for this turn to finish, or stop it before sending another message")
+            if interaction and self.store.interaction(sid, interaction["id"])["status"] == "answered":
+                raise ValueError("These measurements were already submitted; send a new message to correct them")
             await runtime.ensure()
-            turn = self.store.create_turn(sid, client_id, text, images, digest)
+            turn = self.store.create_turn(sid, client_id, text, images, digest, interaction=interaction, tool_record=tool_record)
             runtime.cancelled = False
             runtime.turn_task = asyncio.create_task(runtime.run_turn(turn))
             return turn

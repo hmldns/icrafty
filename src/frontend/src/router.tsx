@@ -5,6 +5,7 @@ import {
 } from "react";
 
 export const ROUTES = {
+  repair: "/",
   directory: "/debug",
   camera: "/debug/camera",
   gallery: "/debug/gallery",
@@ -14,7 +15,6 @@ export const ROUTES = {
 } as const;
 
 const redirects: Readonly<Record<string, string>> = {
-  "/": ROUTES.directory,
   "/camera": ROUTES.camera,
   "/gallery": ROUTES.gallery,
 };

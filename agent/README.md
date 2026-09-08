@@ -1,8 +1,8 @@
 # Codex ACP integration
 
 This uv module runs real Codex conversations with images and sample MCP tools.
-The app mounts its reusable React consumer at `/debug/agent`; `/debug/chat`
-remains the independent chat-flow rehearsal.
+The app mounts its reusable React consumer at `/` for repairs and `/debug/agent`
+for runtime inspection; `/debug/chat` remains the independent chat-flow rehearsal.
 
 Review [M-ACP](../docs/M-ACP.md), [agent state](../docs/ACP-AGENT-STATE.md),
 and the [interaction diagram](../docs/architecture/rendered/acp-integration.svg).
@@ -21,11 +21,15 @@ make agent-dev
 ```
 
 In another terminal run `make mf`, then open
-<http://localhost:5187/debug/agent>. The backend binds to `127.0.0.1:8787`.
-Select **New chat**, attach a PNG/JPEG/WebP with **Photos**, and send a message.
+<http://localhost:5187/>. The backend binds to `127.0.0.1:8787`.
+Select **New repair**, attach a PNG/JPEG/WebP with **Photos**, and send a message,
+or choose **Try the mug cap** to submit the four supplied sample photographs.
+The agent can request caliper values through an inline form; **Send measurements**
+saves its answers and starts the next turn. Unanswered fields remain unknown.
+See [main experience contract](../docs/M-REPAIR.md) and [samples](../samples/README.md).
 For generation, ask for a sketch and its publication in chat. The image card
 opens inspection, download, and attachment selection. **Stop** cancels a turn;
-**Suspend** closes its process tree while retaining the conversation. Sending
+**Suspend** on `/debug/agent` closes its process tree while retaining the conversation. Sending
 another message or choosing **Resume chat** restores it.
 
 Paste an image into the message input, then click its thumbnail to annotate it.
@@ -115,6 +119,11 @@ cross this boundary. Interactive schemas are at the backend's `/docs`.
   `?download=true` sets the attachment filename.
 - `POST /sessions/{id}/captures/{toolCallId}` accepts `assetId`, linking an
   already uploaded image to the durable camera request. It does not submit a turn.
+- `GET /samples` lists the supplied sample and its allowlisted photo URLs.
+- `POST /sessions/{id}/measurements/{requestId}` accepts `clientMessageId` and an
+  `answers` object keyed by requested field IDs. It validates and atomically
+  commits answers, the updated tool result and a new user turn; retrying the same
+  command is idempotent. Changed accepted answers cannot replace old history.
 - `WS /sessions/{id}/events?after={cursor}` replays committed events after the
   snapshot cursor, then immediately forwards newly committed events to each
   subscriber. There is no polling interval. Clients upsert by record identity and
@@ -142,6 +151,13 @@ and extend the command/catalog schema, never reinterpret old `imageIds` as a
 mutable current revision.
 
 ## Sample MCP tools
+
+`crafty_forms.request_dimensions(title, fields, caption="", image_ids=[])` creates
+a durable inline form through a separate stdio MCP server. Fields have stable
+IDs, labels, a number/text kind, explicit numeric units, and optional caliper
+hints. References must belong to this chat. It returns immediately; the user
+submits in a later turn. The backend owns form state and validation, and the
+agent receives submitted answers as ordinary user content with photo references.
 
 To inspect a real call in the live page, send `Call crafty_images.list_images.`
 Expand **List chat images**, then **Tool details** to see its arguments, status,

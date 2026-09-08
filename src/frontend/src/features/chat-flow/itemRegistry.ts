@@ -5,7 +5,8 @@ import { modelItemEntry } from "./items/ModelItemView";
 import { messageItemEntry } from "./items/MessageItemView";
 import { genericToolItemEntry } from "./items/GenericToolItemView";
 import { thoughtItemEntry } from "./items/ThoughtItemView";
+import { measurementItemEntry } from "./items/MeasurementItemView";
 
 export const chatItemRenderer = createItemRenderer([
-  messageItemEntry, thoughtItemEntry, cameraItemEntry, imageItemEntry, modelItemEntry, genericToolItemEntry,
+  messageItemEntry, thoughtItemEntry, cameraItemEntry, imageItemEntry, modelItemEntry, genericToolItemEntry, measurementItemEntry,
 ]);

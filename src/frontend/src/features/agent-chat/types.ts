@@ -45,7 +45,7 @@ export interface AgentMessage {
 export type AgentRecord = AgentMessage | ThoughtRecord | ToolCallRecord;
 export interface AgentInteraction {
   id: string;
-  kind: "camera" | "permission";
+  kind: "camera" | "permission" | "measurements";
   status: string;
   turnId: string;
   generation: number;
@@ -77,4 +77,5 @@ export interface AgentDraft {
   text: string;
   imageIds: string[];
   edits?: Record<string, DraftImageEdit>;
+  submission?: { id: string; text: string; imageIds: string[] };
 }

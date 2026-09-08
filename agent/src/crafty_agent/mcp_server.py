@@ -12,11 +12,11 @@ from mcp.server.fastmcp import FastMCP
 mcp = FastMCP("Crafty images")
 
 
-def call(path: str, *, method="GET", body: bytes | None = None, query: dict | None = None):
+def call(path: str, *, method="GET", body: bytes | None = None, query: dict | None = None, content_type="application/octet-stream"):
     url = os.environ["CRAFTY_MCP_URL"] + "/internal/mcp/" + os.environ["CRAFTY_MCP_SESSION"] + path
     if query:
         url += "?" + urlencode(query)
-    request = Request(url, data=body, method=method, headers={"Authorization": "Bearer " + os.environ["CRAFTY_MCP_TOKEN"], "Content-Type": "application/octet-stream"})
+    request = Request(url, data=body, method=method, headers={"Authorization": "Bearer " + os.environ["CRAFTY_MCP_TOKEN"], "Content-Type": content_type})
     try:
         with urlopen(request, timeout=30) as response:
             return json.load(response)

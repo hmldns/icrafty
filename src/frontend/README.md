@@ -1,11 +1,13 @@
 # icrafty frontend
 
-A local image collection and annotation workspace built with React, TypeScript,
-Vite, and Tailwind. The debug tools live under `/debug`: `/debug` is the workshop
+A repair chat, image collection and annotation workspace built with React,
+TypeScript, Vite, and Tailwind. `/` opens the main saved repair experience with
+sample mug photos and inline dimension questions. The debug tools live under
+`/debug`: `/debug` is the workshop
 directory, `/debug/camera` is the capture and annotation workspace, and
 `/debug/gallery` demonstrates the app's shared components. `/debug/models` opens
-the STEP/STL viewer and connected snapshot/annotation workspace. The root `/` redirects
-to `/debug` for now. Previous `/camera` and `/gallery` links redirect to their new
+the STEP/STL viewer and connected snapshot/annotation workspace.
+Previous `/camera` and `/gallery` links redirect to their new
 locations. Redirects replace the current history entry and retain query strings
 and fragments. Existing local image collections remain available on the same origin.
 
@@ -16,7 +18,8 @@ resets when you leave or refresh and does not send messages to an agent.
 
 `/debug/agent` mounts the real [Codex chat integration](docs/agent-chat.md), with
 saved session selection, streamed replies, image input, native image generation,
-MCP image/camera cards, and download/reattach controls. Start the separate
+MCP image/camera/measurement cards, and download/reattach controls. `/` composes
+the same component with repair controls and the supplied-photo sample. Start the separate
 [uv backend](../../agent/README.md) with `make agent-dev` from the repository root.
 
 The operational debug pages use a compact shared header and bounded working

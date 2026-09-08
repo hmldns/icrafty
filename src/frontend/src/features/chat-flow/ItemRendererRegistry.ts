@@ -11,6 +11,8 @@ export interface ItemActions {
   attach: (photo: PhotoAttachment) => void;
   capture: (item: CameraItem, image: SourceImage) => Promise<void>;
   snapshot: (item: ModelItem, snapshot: ModelSnapshot) => void;
+  answerMeasurements?: (requestId: string, clientMessageId: string, answers: Record<string, string>) => Promise<void>;
+  measurementsBusy?: boolean;
 }
 
 export interface ItemRendererEntry {
@@ -19,6 +21,7 @@ export interface ItemRendererEntry {
   readonly icon: IconName;
   readonly variant: "message" | "interaction";
   readonly initiallyExpanded: boolean;
+  readonly retainContent?: boolean;
   render: (item: HistoryItem, actions: ItemActions) => ReactNode;
 }
 

@@ -215,3 +215,12 @@ session, leaving the route, or removing the owning request releases tracks,
 including late permission results. Restored history never starts a camera by
 itself. Widget position and size are temporary browser presentation state; stored
 camera requests and capture references retain their separate durable lifecycle.
+
+**M-ACP-26 — Main repair and measurement forms.** The main `/` surface mounts the
+same saved conversation components, with a reusable supplied-photo sample and
+repair-oriented controls. A separate `crafty_forms` MCP surface creates typed
+measurement interactions, including image references and number/text fields.
+Answer submission commits the interaction, updated tool result and next user turn
+atomically, with idempotent retries. Numeric answers retain explicit units and
+unanswered fields remain unknown. See [M-REPAIR.md](M-REPAIR.md) for the main
+surface and acceptance contract; CAD integration remains a separate module handoff.

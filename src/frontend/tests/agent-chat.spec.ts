@@ -72,6 +72,14 @@ async function harness(page: Page) {
           result = { id: body.clientMessageId };
         } else if (action === "cancel" || action === "permissions") {
           finish(id); result = state;
+        } else if (action === "measurements") {
+          const record = state.records.find(r => r.type === "tool_call" && (r.rawOutput as any)?.requestId === parts[3])!;
+          if (record.type === "tool_call") {
+            emit(id, "record", { ...record, rawOutput: { ...(record.rawOutput as object), status: "answered", answers: body.answers } });
+            emit(id, "record", { type: "message", id: body.clientMessageId, author: "you", origin: "agent", text: "Measurements submitted", imageIds: [] });
+            emit(id, "session", { ...state.session, activeTurnId: body.clientMessageId, turnStatus: "running" });
+          }
+          result = { id: body.clientMessageId };
         } else if (action === "captures") {
           const record = state.records.find(r => r.type === "tool_call" && r.toolCallId === parts[3])!;
           emit(id, "record", { ...record, rawOutput: { schema_version: 1, view: "camera", caption: "Show the rim",
@@ -89,6 +97,58 @@ async function harness(page: Page) {
 
 const history = (page: Page) => page.getByRole("list", { name: "Chat history", exact: true });
 const choose = (page: Page, title: string) => page.getByRole("complementary", { name: "Chats" }).getByRole("list").getByRole("button", { name: new RegExp(title) }).click();
+
+test("main repair surface sends sample photos and measurement answers in the real components", async ({ page }) => {
+  const app = await harness(page);
+  const file = await makeImage(page);
+  const sample = { id: "mug-cap", title: "A cap for my mug", description: "Four views of the mug.", prompt: "I need a cap. Ask for measurements.",
+    photos: ["side", "rim", "top", "angle"].map(id => ({ id, title: `Mug ${id}`, url: `/sample-${id}.png`, digest: "fixture" })) };
+  await page.route("**/api/agent/samples", route => route.fulfill({ json: { samples: [sample] } }));
+  await page.route("**/sample-*.png", route => route.fulfill({ body: file.buffer, contentType: "image/png" }));
+  await page.goto("/");
+  await expect(page).toHaveURL("/?repair=a");
+  await expect(page).toHaveTitle("icrafty · Your repairs");
+  await expect(page.getByRole("complementary", { name: "Repairs" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "UI gallery", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Try the mug cap", exact: true }).click();
+  await expect(history(page).getByRole("img")).toHaveCount(4);
+  expect(app.commands.filter(command => command.action === "images")).toHaveLength(4);
+  const sent = app.commands.find(command => command.action === "messages")!;
+  expect(sent.body.text).toBe(sample.prompt);
+  expect(sent.body.imageIds).toHaveLength(4);
+  const image = app.states.get("c")!.assets[0]!;
+  const form = { view: "measurements", requestId: "rim-measurements", title: "Measure the rim", caption: "Use your caliper.",
+    fields: [{ id: "diameter", label: "Inside diameter", kind: "number", unit: "mm", hint: "Place the small jaws inside the rim." },
+      { id: "depth", label: "Seat depth", kind: "number", unit: "mm" }, { id: "fit", label: "Intended fit", kind: "text" }],
+    photos: [{ assetId: image.id, versionId: "1" }], status: "awaiting_answers", answers: {} };
+  app.emit("c", "record", { type: "tool_call", toolCallId: "measure", name: "measurements.request", title: "Request measurements", status: "completed", rawOutput: form });
+  const card = page.getByRole("article", { name: "Measure the rim", exact: true });
+  await expect(card.getByRole("list", { name: "Measurement reference photos" }).getByRole("img")).toHaveCount(1);
+  await card.getByLabel("Inside diameter · mm").fill("83.4");
+  await card.getByLabel("Intended fit").fill("Lift-off dust cover");
+  await expect(card.getByRole("button", { name: "Send measurements", exact: true })).toBeDisabled();
+  app.finish("c");
+  await card.locator(".chat-interaction-toggle").click();
+  await expect(card.locator(".chat-interaction-body")).toHaveCSS("height", "0px");
+  await card.locator(".chat-interaction-toggle").click();
+  await expect(card.getByLabel("Inside diameter · mm")).toHaveValue("83.4");
+  await card.getByRole("button", { name: "Send measurements", exact: true }).click();
+  await expect(card.getByText("Measurements sent", { exact: true })).toBeVisible();
+  expect(app.commands.filter(command => command.action === "measurements")).toHaveLength(1);
+  expect(app.commands.at(-1)!.body.answers).toEqual({ diameter: "83.4", fit: "Lift-off dust cover" });
+  await expect(card.getByText("Not measured", { exact: true })).toBeVisible();
+  app.emit("c", "record", { type: "message", id: "after-measurements", author: "crafty", origin: "agent", text: "I can now draft the cap with that fit.", imageIds: [] });
+  app.finish("c");
+  await expect(history(page).getByText("I can now draft the cap with that fit.", { exact: true })).toBeVisible();
+  await expect(page).toHaveURL("/?repair=c");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await expect(card.getByText("83.4 mm", { exact: true })).toBeVisible();
+  await expect(history(page).getByText("Measurements submitted", { exact: true })).toHaveCount(1);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+  await expect(page.getByRole("textbox", { name: "Message (optional)" })).toBeVisible();
+});
 
 test("real mounted components upload, stream, show MCP images, download and restore saved history", async ({ page }) => {
   const app = await harness(page);

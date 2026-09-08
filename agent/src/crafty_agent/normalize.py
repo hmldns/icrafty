@@ -56,6 +56,8 @@ def merge_tool(previous: dict | None, update: dict) -> dict:
         record["content"] = compact(update["content"])
     if record.get("server") == "crafty_images":
         record["name"] = {"publish_image": "images.show", "fetch_image": "images.show", "request_camera": "camera.capture"}.get(record.get("tool"), record["name"])
+    if record.get("server") == "crafty_forms" and record.get("tool") == "request_dimensions":
+        record["name"] = "measurements.request"
     result = record.get("rawOutput")
     if isinstance(result, dict) and (result.get("error") or result.get("isError")):
         record["status"] = "failed"

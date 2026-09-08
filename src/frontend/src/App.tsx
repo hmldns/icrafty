@@ -6,6 +6,7 @@ import { CameraPage } from "./pages/CameraPage";
 import { GalleryPage } from "./pages/GalleryPage";
 import { ChatDebugPage } from "./pages/ChatDebugPage";
 import { AgentDebugPage } from "./pages/AgentDebugPage";
+import { RepairPage } from "./pages/RepairPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 const ModelGalleryPage = lazy(() =>
   import("./pages/ModelGalleryPage").then((module) => ({
@@ -15,13 +16,14 @@ const ModelGalleryPage = lazy(() =>
 
 export function App() {
   const path = usePathname();
+  const product = path === ROUTES.repair;
   const workspace = [ROUTES.camera, ROUTES.models, ROUTES.chat].some(
     (route) => route === path,
   );
   const main = useRef<HTMLElement>(null);
   useEffect(() => {
     const pageTitle =
-      path === ROUTES.directory
+      path === ROUTES.repair ? "Your repairs" : path === ROUTES.directory
         ? "The workshop"
         : path === ROUTES.camera
           ? "Camera & annotation"
@@ -36,7 +38,7 @@ export function App() {
     main.current?.focus({ preventScroll: true });
   }, [path]);
   return (
-    <div className={`app-shell${workspace ? " app-shell--workspace" : ""}${path === ROUTES.agent ? " app-shell--agent" : ""}`}>
+    <div className={`app-shell${workspace ? " app-shell--workspace" : ""}${path === ROUTES.agent ? " app-shell--agent" : ""}${product ? " app-shell--repair" : ""}`}>
       <a className="skip-link" href="#main">
         Skip to content
       </a>
@@ -44,7 +46,7 @@ export function App() {
         <div className="site-header-inner">
           <Link
             className="brand"
-            href={ROUTES.directory}
+            href={ROUTES.repair}
             aria-label="icrafty home"
           >
             <span className="brand-mark" aria-hidden="true">
@@ -53,6 +55,7 @@ export function App() {
             icrafty<span className="brand-period">.</span>
           </Link>
           <nav aria-label="Main navigation" className="debug-navigation">
+            {product ? <Link href={ROUTES.repair} aria-current="page">Your repairs</Link> : <>
             <Link
               href={ROUTES.directory}
               aria-current={path === ROUTES.directory ? "page" : undefined}
@@ -84,6 +87,7 @@ export function App() {
               Chat
             </Link>
             <Link href={ROUTES.agent} aria-current={path === ROUTES.agent ? "page" : undefined}>Live chat</Link>
+            </>}
           </nav>
           <span className="header-note">
             <span />
@@ -92,7 +96,7 @@ export function App() {
         </div>
       </header>
       <main id="main" ref={main} tabIndex={-1} className="main-content">
-        {path === ROUTES.directory ? (
+        {product ? <RepairPage /> : path === ROUTES.directory ? (
           <DirectoryPage />
         ) : path === ROUTES.camera ? (
           <CameraPage />

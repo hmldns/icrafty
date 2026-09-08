@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 test("directory, deep links, history navigation and fallback are usable", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/debug");
   await expect(page).toHaveURL("/debug");
   await expect(page).toHaveTitle("icrafty · The workshop");
   await expect(page.getByRole("link", { name: "icrafty home" })).toBeVisible();
@@ -47,7 +47,6 @@ test("old routes redirect without extra history entries and retain query strings
   page,
 }) => {
   for (const [oldPath, newPath] of [
-    ["/", "/debug"],
     ["/camera", "/debug/camera"],
     ["/gallery", "/debug/gallery"],
   ]) {

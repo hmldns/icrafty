@@ -57,6 +57,7 @@ export function ChatHistory({ items, itemRenderer, actions }: {
                   <InteractionItemFrame
                     item={item} icon={renderer.icon} label={renderer.label}
                     expanded={isExpanded}
+                    retainContent={renderer.retainContent}
                     onToggle={() => setExpanded((current) => ({ ...current, [item.id]: !isExpanded }))}
                   >{content}</InteractionItemFrame>
                 ) : content}
