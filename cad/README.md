@@ -3,8 +3,9 @@
 Standalone FreeCAD evaluator and retained geometry API. The local implementation
 builds cylinders, sleeves and closed-end caps, measures delivered geometry in a
 clean native process, renders requested PNGs, and exports STEP only on demand.
-The separate correction trial and executed Docker gate are required before this
-assignment is complete. MCP/ACP, chat, printing and product agent sessions are
+The separate correction trial passed with independently captured tool evidence
+([trial acceptance](TRIAL-GATE.md)); the executed Docker gate remains required
+before this assignment is complete. MCP/ACP, chat, printing and product agent sessions are
 outside this module.
 
 Read the canonical [M-CAD contract](../docs/M-CAD.md),
