@@ -20,13 +20,17 @@ throughout design. The first possible example is a replacement mug cap.
   before editing it. The [implementation brief](docs/CAD-IMPLEMENTATION.md) defines
   the first delivery and later stages.
 - [src/frontend/](src/frontend/README.md) contains the React/TypeScript app and
-  the implemented browser-local capture, annotation, and download flow. Read its
+  the main repair workspace at `/`, plus capture, annotation, and download tools. Read its
   [local guidance](src/frontend/AGENTS.md) before editing it.
 - [agent/](agent/README.md) is the Python/uv local Codex ACP integration, with
   private session workspaces, durable state, image ingestion, and sample MCP tools.
   Read its [guidance](agent/AGENTS.md), [module spec](docs/M-ACP.md), and
   [state contract](docs/ACP-AGENT-STATE.md). `/debug/agent` mounts its real React
-  consumer; `/debug/chat` remains the independent interaction rehearsal.
+  consumer; the main `/` route composes the same consumer for repairs and dimension
+  forms. [M-REPAIR.md](docs/M-REPAIR.md) describes that composition. `/debug/chat`
+  remains the independent interaction rehearsal.
+- [samples/](samples/README.md) contains the supplied mug-cap photographs and
+  their provenance manifest for repeatable product demonstrations.
 - [workflow/](workflow/README.md) contains development-worker coordination,
   launchers, role instructions, and tests. `./builders` forwards to
   `./workflow/builders`. `.builders/` and `.worktrees/` are ignored runtime state.

@@ -1,0 +1,36 @@
+{
+  "id": "mug-cap",
+  "title": "A cap for my mug",
+  "description": "Four views of a mug with its lid missing. Start with the fit and the measurements.",
+  "prompt": "I lost the lid for this mug and want to make a replacement cap. Here are four photos of the mug, rim, and inner grooves. I have a caliper with me. Look at the photos and ask me for the key dimensions and how the cap should fit. Please give me a short measurement form linked to these photos, with hints for where to measure. I have not supplied any dimensions yet.",
+  "photos": [
+    {
+      "id": "side",
+      "title": "Mug and handle",
+      "file": "side.png",
+      "original": "Capture-02-09-49-PM-annotated-2026-09-08T21-10-00-237Z-1.png",
+      "sha256": "b4363a9dd205957d2f94ff8d8b1bec8cbd1451b8f95caeb80a1c0821eb552bb5"
+    },
+    {
+      "id": "rim",
+      "title": "Rim and inner grooves",
+      "file": "rim.png",
+      "original": "Capture-02-09-40-PM-annotated-2026-09-08T21-10-04-050Z-2.png",
+      "sha256": "51d03c2043556d5c0886ddd1424655013c049137e4c8022c0018739b239c798e"
+    },
+    {
+      "id": "top",
+      "title": "Opening from above",
+      "file": "top.png",
+      "original": "Capture-02-09-33-PM-annotated-2026-09-08T21-10-08-869Z-3.png",
+      "sha256": "43cfa4f4ed92f4fd4d807f9622872f2aaa0e54f5b1a58b6fb2b34be11aeaf30b"
+    },
+    {
+      "id": "angle",
+      "title": "Opening at an angle",
+      "file": "angle.png",
+      "original": "Capture-02-09-23-PM-annotated-2026-09-08T21-10-11-792Z-4.png",
+      "sha256": "43fd7a7fec29b017f2e7c74b1d5482a2a5d74126f8f6792e39a7d83bd1c6dc7a"
+    }
+  ]
+}

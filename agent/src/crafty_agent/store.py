@@ -209,7 +209,8 @@ class Store:
         row = self.db.execute("SELECT body FROM turns WHERE session=? AND client_id=?", (sid, client_id)).fetchone()
         return json.loads(row[0]) if row else None
 
-    def create_turn(self, sid: str, client_id: str, text: str, images: list[str], digest: str) -> dict:
+    def create_turn(self, sid: str, client_id: str, text: str, images: list[str], digest: str,
+                    *, interaction: dict | None = None, tool_record: dict | None = None) -> dict:
         session = self.session(sid)
         image_refs = [{"assetId": aid, "versionId": self.asset(sid, aid)["versionId"]} for aid in images]
         turn = {"id": identifier(), "sessionId": sid, "clientMessageId": client_id, "digest": digest,
@@ -222,6 +223,13 @@ class Store:
         if session["title"] == "New chat":
             session["title"] = text[:72].strip() or "Image conversation"
         with self.db:
+            if interaction:
+                interaction = {**interaction, "responseTurnId": turn["id"], "clientMessageId": client_id}
+                self.db.execute("UPDATE interactions SET body=? WHERE session=? AND id=?", (encode(interaction), sid, interaction["id"]))
+                self._event(sid, "interaction", interaction)
+            if tool_record:
+                self.db.execute("UPDATE records SET body=? WHERE session=? AND id=?", (encode(tool_record), sid, tool_record["toolCallId"]))
+                self._event(sid, "record", tool_record)
             self.db.execute("INSERT INTO turns VALUES (?,?,?,?,?)", (turn["id"], sid, client_id, digest, encode(turn)))
             self.db.execute("INSERT INTO records(session,id,body) VALUES (?,?,?)", (sid, message["id"], encode(message)))
             self.db.execute("UPDATE sessions SET body=? WHERE id=?", (encode(session), sid))

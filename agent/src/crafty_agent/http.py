@@ -13,6 +13,8 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from .acp import AcpError
 from .config import Settings
 from .service import AgentService, BusyError
+from .measurements import install_routes as install_measurements
+from .samples import router as sample_routes
 
 
 class Prompt(BaseModel):
@@ -248,4 +250,6 @@ def create_app(settings: Settings | None = None, *, base_url="http://127.0.0.1:8
         interaction = service().store.create_camera(sid, caption)
         return service().store.camera_result(interaction)
 
+    install_measurements(app, service, scoped)
+    app.include_router(sample_routes)
     return app

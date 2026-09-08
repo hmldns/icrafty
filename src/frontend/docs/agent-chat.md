@@ -1,9 +1,22 @@
 # Live agent chat
 
-`/debug/agent` mounts the application component `AgentChat`, backed by the
+`/` is the main repair workspace; `/debug/agent` mounts the same application
+component `AgentChat` with its debug controls, backed by the
 Python/uv [agent module](../../../agent/README.md). `/debug/chat` remains the
 existing local fixture route. Follow the [module specification](../../../docs/M-ACP.md)
 and [state contract](../../../docs/ACP-AGENT-STATE.md) for integration boundaries.
+The [main surface contract](../../../docs/M-REPAIR.md) covers sample photos and
+inline measurement forms. **Try the mug cap** creates a new repair, uploads the
+four supplied photographs through the ordinary image API, and sends the sample's
+repair question to the actual agent. Failed sends preserve their command identity
+and selected image references for an explicit retry.
+
+`crafty_forms.request_dimensions` creates an inline `MeasurementItemView`. Its
+number/text inputs, caliper hints, units and referenced photos come from a validated
+durable interaction. Collapse preserves its draft. **Send measurements** atomically
+stores answers and creates the next user turn, with idempotent retries and normal
+busy/Stop handling. Submitted answers become a read-only summary and survive reload;
+leaving the conversation discards unsent field edits. Blank values remain unknown.
 
 The page only composes the feature. `AgentChat` selects sessions and owns drafts;
 `AgentConversation` binds a selected session to the shared `ChatHistory`, item

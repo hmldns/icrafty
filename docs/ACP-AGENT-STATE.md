@@ -110,3 +110,15 @@ reconnect needs the first two; native conversation continuation also needs the
 last. Test runtime restart and browser refresh separately. Container replacement,
 exclusive volume ownership, host backups, retention, and task-tree coordination
 extend this contract under the TRD rather than being claimed by a local demo.
+
+**ACP-STATE-15 — Measurement interaction.** Store the typed request, field IDs,
+units, referenced image versions, originating turn and tool call. Its states are
+`awaiting_answers` and `answered`. Creation requires the owning active MCP
+credential; answering uses the session-scoped application API in a later turn.
+Validate and normalize answers, then persist them with the response turn and tool
+result in one transaction. Retry identity includes the request and client message
+ID; different answers cannot overwrite an accepted submission. Late tool updates
+reuse the stored interaction. Collapse retains unsent browser field values while
+making the hidden form inert; leaving the conversation discards unsent form edits.
+Submitted answers survive process/browser restart. They are user-supplied inputs,
+not CAD verification results.

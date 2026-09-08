@@ -15,8 +15,9 @@ import { useDraftPhotos } from "./useDraftPhotos";
 import { AgentActivity } from "./AgentActivity";
 
 /** Real application component. The route supplies the client and selected session. */
-export function AgentConversation({ client, id, draft, onDraftChange, onSessionChange }: {
+export function AgentConversation({ client, id, draft, onDraftChange, onSessionChange, product = false }: {
   client: AgentClient; id: string; draft: AgentDraft;
+  product?: boolean;
   onDraftChange: (change: (draft: AgentDraft) => AgentDraft) => void;
   onSessionChange: (session: AgentSession) => void;
 }) {
@@ -49,7 +50,10 @@ export function AgentConversation({ client, id, draft, onDraftChange, onSessionC
     if (sending || busy || uploading || editingImage) return;
     const submitted = { ...draft, imageIds: [...draft.imageIds] };
     const input = JSON.stringify(submitted);
-    if (submission.current?.input !== input) submission.current = { input, id: crypto.randomUUID() };
+    const prepared = submitted.submission;
+    const preparedMatches = prepared && prepared.text === submitted.text && !Object.keys(submitted.edits ?? {}).length
+      && JSON.stringify(prepared.imageIds) === JSON.stringify(submitted.imageIds);
+    if (submission.current?.input !== input) submission.current = { input, id: preparedMatches ? prepared.id : crypto.randomUUID() };
     setSending(true); flow.setError(null);
     try {
       const imageIds: string[] = [];
@@ -78,6 +82,8 @@ export function AgentConversation({ client, id, draft, onDraftChange, onSessionC
   }
   const actions: ItemActions = {
     attachments: photos,
+    measurementsBusy: busy || sending || controlling,
+    answerMeasurements: async (requestId, commandId, answers) => { await client.answerMeasurements(id, requestId, commandId, answers); },
     inspect: ref => { setSelectedImage(ref.assetId); setLibrary(true); },
     attach: photo => { const image = images.find(item => item.id === photo.assetId); if (image) attach(image); },
     capture: async (item, image) => {
@@ -95,23 +101,23 @@ export function AgentConversation({ client, id, draft, onDraftChange, onSessionC
   return <div className="agent-conversation" onDragOver={event => { if (event.dataTransfer.types.includes("Files")) event.preventDefault(); }}
     onDrop={event => { if (event.dataTransfer.files.length) { event.preventDefault(); void upload([...event.dataTransfer.files]); } }}>
     <div className="agent-conversation-heading">
-      <div><h2>{state?.title}</h2><p>{state?.model ?? "Codex"} <span aria-hidden="true">·</span> {flow.connected ? "Connected" : "Reconnecting…"}</p></div>
+      <div><h2>{state?.title}</h2><p>{product ? "Photos, measurements, and each new draft stay together." : <>{state?.model ?? "Codex"} <span aria-hidden="true">·</span> {flow.connected ? "Connected" : "Reconnecting…"}</>}</p></div>
       <div className="row"><Badge tone={busy ? "accent" : "neutral"}>{busy ? state?.turnStatus === "waiting_permission" ? "Awaiting permission" : "Working" : state?.runtime === "ready" ? "Ready" : "Saved"}</Badge>
-        {state?.runtime !== "ready" ? <Button size="small" disabled={controlling} onClick={() => void control(() => client.open(id))}>Resume chat</Button>
-          : <Button size="small" variant="ghost" disabled={busy || controlling} onClick={() => void control(() => client.stop(id))}>Suspend</Button>}</div>
+        {!product && (state?.runtime !== "ready" ? <Button size="small" disabled={controlling} onClick={() => void control(() => client.open(id))}>Resume chat</Button>
+          : <Button size="small" variant="ghost" disabled={busy || controlling} onClick={() => void control(() => client.stop(id))}>Suspend</Button>)}</div>
     </div>
     {(flow.error || state?.error) && <Notice tone="error">{flow.error || state?.error}</Notice>}
     {state?.turnStatus === "interrupted" && !state.error && <Notice>The previous turn was interrupted. Send a new message to continue.</Notice>}
     <PermissionRequests requests={state?.permissions ?? []} onAnswer={(pid, option) => void control(() => client.permission(id, pid, option))} />
     <Card className="chat-surface">
       {items.length === 0 && <div className="agent-welcome"><p className="eyebrow">A fresh conversation</p><h3>Show it. Describe it. Make a draft.</h3>
-        <p>Attach a photo or ask Codex for an image. Generated images become part of this chat.</p>
+        <p>{product ? "Show the part you want to fix. We’ll work out the shape and measurements together." : "Attach a photo or ask Codex for an image. Generated images become part of this chat."}</p>
         <div className="row"><Button size="small" onClick={() => setLibrary(true)}>Add a photo</Button><Button size="small" variant="ghost"
           onClick={() => onDraftChange(current => ({ ...current, text: "Generate a simple concept sketch of a replacement mug cap and publish the image here." }))}>Start with a cap sketch</Button></div></div>}
       <ChatHistory items={items} itemRenderer={chatItemRenderer} actions={actions} />
       {busy && <AgentActivity status={state?.turnStatus} />}
       <ChatComposer text={draft.text} attachments={photos} disabled={busy || sending || uploading || controlling || !!editingImage}
-        hint={busy ? "You can prepare your next message while Codex works" : uploading ? "Saving images…" : "Images are sent to Codex · Shift + Enter for a new line"}
+        hint={busy ? "You can prepare your next message while we work" : uploading ? "Saving images…" : product ? "Share a photo, a measurement, or an idea · Shift + Enter for a new line" : "Images are sent to Codex · Shift + Enter for a new line"}
         onTextChange={text => onDraftChange(current => ({ ...current, text }))}
         attachmentActionLabel="Annotate"
         onInspect={ref => { const image = images.find(item => item.id === ref.assetId); if (image) setEditingImage(image); }}

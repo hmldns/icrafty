@@ -1,33 +1,47 @@
 # Crafty
 
 A workspace for turning photos and measurements into small, useful parts. The
-[early PRD](docs/PRD.md) describes the intended product; the first frontend spike
-focuses on collecting and annotating images for an evaluation loop.
+main repair app combines saved conversations, photos, editable annotations,
+generated sketches and inline measurement questions. Start with the supplied
+mug photographs or describe your own repair. See the [PRD](docs/PRD.md).
 
-## Run the frontend
+## Run the app
 
 Use Node.js 22.12 or newer and npm, then run from the repository root:
 
 ```bash
 make frontend-install
+make agent-install
+make agent-dev
+```
+
+In another terminal:
+
+```bash
 make mf
 ```
 
 Open <http://127.0.0.1:5187>. The server uses a strict port: a collision fails
 clearly instead of silently selecting another port.
 
-- `/` — project directory.
-- `/camera` — image collection, camera capture, and annotation.
-- `/gallery` — shared UI components and design tokens.
+- `/` — main saved repair workspace. **Try the mug cap** sends the four supplied
+  photos to Codex and asks for a measurement form. Fill in real caliper values,
+  leave unknowns blank, and choose **Send measurements** to continue the chat.
+- `/debug` — workshop tools and component navigation.
+- `/debug/camera` — standalone image collection, capture, and annotation.
+- `/debug/gallery` — shared UI components and design tokens.
+- `/debug/models` — interactive STEP/STL viewer and annotation tools.
+- `/debug/agent` — the same live conversation with runtime inspection controls.
+- `/debug/chat` — independent local interaction rehearsal.
 
 Import an image or capture a photo, add marks and text, then use **Download PNG**
 inside the editor. The download includes the current edits without requiring a
 saved revision. Keep annotating and download again to prepare another evaluation
 input. Originals and editable marks stay separate.
 
-The image collection is local to this browser and origin. Download the images
-you want to keep or pass to an evaluation run; this spike does not upload them to
-an agent or server. Camera access needs browser permission and a secure context
+The standalone image collection is local to this browser and origin. Main repair
+messages and selected photos are saved by the backend and sent to Codex using
+your configured login. Camera access needs browser permission and a secure context
 (the localhost development address is supported). Web image imports depend on
 the source server allowing cross-origin requests; downloading a file yourself
 and importing it locally also works.
@@ -36,14 +50,14 @@ and importing it locally also works.
 
 The [agent module](agent/README.md) runs the first real ACP/image/MCP integration.
 Run `make agent-install`, then `make agent-dev` alongside `make mf`, and open
-<http://localhost:5187/debug/agent>. Chats and images are saved locally; submitted
+<http://localhost:5187/>. Chats and images are saved locally; submitted
 messages and images are sent to Codex using the configured login. The independent
 `/debug/chat` route remains the interaction rehearsal.
 
 Review [M-ACP](docs/M-ACP.md), [ACP agent state](docs/ACP-AGENT-STATE.md), and the
-[schematic](docs/architecture/rendered/acp-integration.svg) before composing the
-module into the repair app. This stage uses private local process/workspace
-ownership; Docker orchestration and CAD-agent handoff are subsequent work.
+[main surface contract](docs/M-REPAIR.md) for composition and measurement state.
+This stage uses private local process/workspace ownership. Product Docker
+orchestration remains later work; the CAD-agent integration is a separate track.
 
 ## CAD and documentation
 
@@ -53,10 +67,10 @@ technical decisions, and module contracts. For CAD review, start with
 go in; artifacts and computed metrics come out. The [handoff protocol](docs/architecture/CAD-PROTOCOL.md)
 describes how a later MCP wrapper transfers those files.
 
-The [cad/](cad/README.md) uv project is scaffolded; the evaluator remains to be
-implemented. Prepare it from the repository root with `uv sync --directory cad`.
-The first implementation target is a local cylinder/cap verification loop, then
-the same evaluator contract packaged in isolated Docker.
+The [cad/](cad/README.md) uv project implements the cylinder/sleeve/cap evaluator,
+retained geometry, images, numerical verification and requested STEP exports. Its
+local, separate agent-correction and Docker gates have passed; see the linked
+acceptance records. Prepare it with `make -C cad sync`.
 The [prepared implementation brief](docs/CAD-IMPLEMENTATION.md) defines that
 assignment and the evidence required at handoff.
 

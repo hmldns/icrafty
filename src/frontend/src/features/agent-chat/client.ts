@@ -33,6 +33,11 @@ export class AgentClient {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ assetId }),
     });
   }
+  answerMeasurements(id: string, requestId: string, clientMessageId: string, answers: Record<string, string>) {
+    return this.request(`/sessions/${id}/measurements/${encodeURIComponent(requestId)}`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ clientMessageId, answers }),
+    });
+  }
   permission(id: string, permissionId: string, optionId: string | null) {
     return this.request(`/sessions/${id}/permissions/${permissionId}`, {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ optionId }),

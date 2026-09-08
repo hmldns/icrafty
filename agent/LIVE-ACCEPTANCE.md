@@ -105,3 +105,22 @@ visible size to settle corrected that test, and all three floating-camera checks
 passed on rerun. A fake-media mobile screenshot is retained in the browser test
 output. The frontend type check and production build passed. Physical camera
 capture was not used for these automated checks.
+
+**LIVE-11 — Supplied photos and measurement forms.** On 2026-09-08 the main repair
+surface at `/` created dedicated session `5be56e84a0e7473f8aa72fdbeea5ef35` in the
+isolated `agent/runs/repair-state` data root. Its sample action uploaded the four
+original mug photographs and sent them through actual Codex ACP image input.
+Codex inspected all four and called `crafty_forms.request_dimensions`, creating
+interaction `1cc2075853924e3cbf98e85a765c6ca4`: five numeric fields in mm, two text
+questions about fit/use, caliper placement hints, and all four image references.
+No mug dimensions were supplied or inferred during that request.
+
+For the response-path check only, the browser submitted `83.4` and an explicit
+TEST VALUES ONLY instruction to acknowledge and wait. The form became a saved
+summary, created one subsequent user turn, and Codex acknowledged receipt while
+stating that actual mug dimensions remain unknown. This test value is not a
+measurement or CAD input for the user's repair. The native conversation and image
+bytes remain in the isolated data root; `agent/runs/repair-main.png` records the
+real main-surface form before submission. Application checks cover same-command
+retry, atomic rollback, cross-session rejection, missing/nonfinite values, actual
+sample file digests, hidden-form draft retention, mobile layout and reload.

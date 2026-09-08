@@ -73,4 +73,22 @@ export interface GenericToolItem extends ToolItemBase {
   readonly type: "tool";
 }
 
-export type HistoryItem = MessageItem | ThoughtItem | CameraItem | ImageItem | ModelItem | GenericToolItem;
+export interface DimensionField {
+  readonly id: string;
+  readonly label: string;
+  readonly kind: "number" | "text";
+  readonly unit?: "mm" | "cm" | "in" | "degrees" | null;
+  readonly hint?: string;
+}
+
+export interface MeasurementItem extends ToolItemBase {
+  readonly type: "measurements";
+  readonly requestId: string;
+  readonly caption: string;
+  readonly fields: readonly DimensionField[];
+  readonly photos: readonly PhotoAttachment[];
+  readonly status: "awaiting_answers" | "answered";
+  readonly answers: Readonly<Record<string, string | number>>;
+}
+
+export type HistoryItem = MessageItem | ThoughtItem | CameraItem | ImageItem | ModelItem | GenericToolItem | MeasurementItem;

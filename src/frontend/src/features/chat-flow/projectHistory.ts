@@ -1,6 +1,6 @@
 import { snapshotVersion, type ChatAsset, type VersionRef } from "./types";
 import type {
-  ChatModel, HistoryItem, HistoryRecord, ToolCallRecord,
+  ChatModel, DimensionField, HistoryItem, HistoryRecord, ToolCallRecord,
 } from "./historyTypes";
 
 type ObjectValue = Record<string, unknown>;
@@ -43,6 +43,19 @@ const base = (call: ToolCallRecord) => ({
 });
 
 const toolProjectors: Readonly<Record<string, ToolProjector>> = {
+  "measurements.request": (call, result, catalog) => {
+    if (result.view !== "measurements" || typeof result.requestId !== "string" || typeof result.title !== "string"
+      || typeof result.caption !== "string" || !Array.isArray(result.fields) || !Array.isArray(result.photos)
+      || !object(result.answers) || !["awaiting_answers", "answered"].includes(String(result.status))) return null;
+    if (result.fields.length === 0 || result.fields.length > 12 || result.fields.some(field => !object(field)
+      || typeof field.id !== "string" || typeof field.label !== "string" || !["number", "text"].includes(String(field.kind)))) return null;
+    const refs = result.photos.map(imageRef);
+    if (refs.some(ref => ref === null)) return null;
+    return { ...base(call), title: result.title, type: "measurements", requestId: result.requestId,
+      caption: result.caption, fields: result.fields as DimensionField[], photos: refs.map(ref => snapshotVersion(catalog.assets, ref!)),
+      answers: Object.fromEntries(Object.entries(result.answers).filter(([, value]) => typeof value === "string" || typeof value === "number")) as Record<string, string | number>,
+      status: result.status as "awaiting_answers" | "answered", summary: result.status === "answered" ? "Answered" : "Your measurements" };
+  },
   "camera.capture": (call, result, catalog) => {
     if (result.view !== "camera" || !Array.isArray(result.photos) || typeof result.caption !== "string") return null;
     const refs = result.photos.map(imageRef);

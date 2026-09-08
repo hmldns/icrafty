@@ -7,6 +7,8 @@ reviewable design, not a claim that a service exists.
 - [PRD.md](PRD.md) — product behavior, user flow, and outcomes.
 - [TRD.md](TRD.md) — system implementation, isolation, state, and integration gates.
 - [M-ACP.md](M-ACP.md) — reusable Codex ACP/image/MCP integration and live debug stage.
+- [M-REPAIR.md](M-REPAIR.md) — main repair surface, supplied photo sample, and
+  durable inline measurement requests and answers.
 - [ACP-AGENT-STATE.md](ACP-AGENT-STATE.md) — session, turn, history, image, and replay ownership.
 - [M-CAD.md](M-CAD.md) — CAD module: deterministic file input/output contract,
   verification capabilities, fixture progression, and implementation outcomes.

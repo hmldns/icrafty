@@ -7,13 +7,14 @@ import { useDisclosureContent } from "./useDisclosureContent";
 const statusLabels = { pending: "Ready", in_progress: "In progress", completed: "Done", failed: "Failed" } as const;
 
 /** Shared item chrome; concrete item types and their commands stay in registered views. */
-export function InteractionItemFrame({ item, icon, label, expanded, onToggle, children }: {
+export function InteractionItemFrame({ item, icon, label, expanded, onToggle, children, retainContent = false }: {
   item: Exclude<HistoryItem, { type: "message" }>;
   icon: IconName;
   label: string;
   expanded: boolean;
   onToggle: () => void;
   children: ReactNode;
+  retainContent?: boolean;
 }) {
   const bodyId = useId();
   const tool = "tool" in item ? item.tool : null;
@@ -33,7 +34,7 @@ export function InteractionItemFrame({ item, icon, label, expanded, onToggle, ch
         <span className="chat-disclosure"><Icon name="right" size={16} /></span>
       </button>
       <div ref={bodyRef} id={bodyId} aria-hidden={!expanded} inert={!expanded} data-expanded={expanded} className="chat-interaction-body">
-        <div className="chat-interaction-content">{renderContent && <>
+        <div className="chat-interaction-content">{(renderContent || retainContent) && <>
           {children}
           {tool && <details className="chat-tool-details">
             <summary>Tool details <span>{statusLabels[tool.status]}</span></summary>
