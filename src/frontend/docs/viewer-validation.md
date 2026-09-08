@@ -12,9 +12,9 @@ was not changed or stopped.
 | `npm run sample:download` | Passed; uv/PEP 723 downloader verified the pinned STEP and license SHA-256 digests before replacement. |
 | `node tooling/generate-stl.mjs` | Passed; generated binary STL fixtures: bracket (20 triangles), solid block (12), hollow sleeve (768). |
 | `npm run typecheck` | Passed. |
-| `npm run build` | Passed; Vite emitted STEP, STL demo, module worker and WASM assets. Final Vite build phase 508 ms. |
-| `CRAFTY_TEST_PORT=5297 npm test` | **39 passed in 31.1 s**: all 26 existing camera/annotation/intake/route regressions plus 13 model/catalog/embedding checks. |
-| `CRAFTY_PREVIEW_PORT=4197 npm run test:production` | **1 passed in 2.8 s** against the final production bundle. |
+| `npm run build` | Passed; Vite emitted STEP, STL demo, module worker and WASM assets. Final Vite build phase 555 ms. |
+| `CRAFTY_TEST_PORT=5297 npm test` | **41 passed in 38.1 s**: all 26 existing camera/annotation/intake/route regressions plus 15 model/catalog/embedding checks. |
+| `CRAFTY_PREVIEW_PORT=4197 npm run test:production` | **1 passed in 3.2 s** against the final production bundle. |
 | `git diff --cached --check` | Passed; `.gitattributes` preserves the pinned upstream STEP's intentional trailing whitespace and exact bytes. |
 
 The real STEP fixture is 20,532 bytes, SHA-256
@@ -52,6 +52,8 @@ axis-colored cap and sphere pixels. This caught and fixed Vite's initial inlinin
 of the small STL as a data URL; its import now explicitly uses `?url&no-inline`.
 The full suite result above includes this packaging correction and the stale
 capture guard for changes to supplied initial sections/reference objects.
+The production test also compares actual hatched/plain pixels after toggling
+hatching off, verifying that the shader works in the emitted bundle.
 
 The two added section tests inspect colored X/Y/Z caps, translucent guide
 visibility, cap enable/disable, the sphere disappearing when planes pass beyond
@@ -63,6 +65,21 @@ and verifies immutable source bytes/context after section changes and reload.
 The independent-viewer regression now also verifies that caps and guides remain
 enabled in the second viewer after the first changes settings, and that its caps
 still render after the first viewer is disposed.
+
+The subtle-palette/hatching follow-up adds two further browser checks. All default
+cap tokens exceed 3.5:1 contrast against Vermilion, Ink, Blue and Green. A real
+sectioned sleeve is captured with/without hatching; more than 1,000 interior
+pixels change, each by at most 16 per RGB channel, and the hatched interior keeps
+at least 3:1 contrast against those four colors. The center hole stays open and
+the captured hatch setting stays immutable after toggling it.
+
+The new annotation check draws all five palette colors over a real model snapshot,
+then exercises outlined rectangles, arrows, point strokes and text. It inspects
+both stroke and outline pixels in the downloaded PNG, checks at least 4.5:1
+color-to-outline contrast, compares editor/export pixel digests exactly, and
+verifies the same PNG after saving and reloading all nine marks. Original bytes
+and provenance stay unchanged. Outline color/width are optional persisted mark
+fields; existing camera/annotation regression tests continue to pass.
 
 Manual browser review used dev port 5197 at 780 px and 1280 px widths. It inspected
 the real rounded STEP block, moved/flipped X/Z cuts in the STL bracket, and placed
@@ -81,6 +98,11 @@ formatter rewrote TSX files; restarting only the worktree's 5197 process cleared
 it. Fresh development and production checks passed. The final browser review
 had no console errors or warnings.
 
+The final subtle palette and hatching review retained
+`tooling/.artifacts/subtle-hatched-sections.png`, `subtle-plain-sections.png`, and
+`subtle-hatch-annotation.png`. The last image shows outlined white text and a
+vermilion arrow over the faint section pattern. Final console: no errors/warnings.
+
 During implementation, browser review caught a StrictMode cleanup/replay issue
 from reusing a forcibly lost canvas; each renderer setup now gets a fresh canvas.
 The context-loss handler also aborts pending imports, preventing late completion
@@ -93,7 +115,7 @@ meshes and cannot establish CAD solidity. Open/nonmanifold meshes, topology spli
 across meshes, coplanar surfaces and complex intersecting assemblies can show
 artifacts. No cut-solid export or verified CAD measurements are implemented.
 Production reports the expected Vite chunk-size
-warning for the lazy Three.js viewer (~581 kB minified), and externalization
+warning for the lazy Three.js viewer (~583 kB minified), and externalization
 warnings for dormant Node `path`/`crypto` branches in the upstream OCCT loader.
 Those warnings did not prevent the production browser import; they are not
 suppressed. WASM download size is ~7.6 MB (~3.1 MB gzip). No large-model latency,

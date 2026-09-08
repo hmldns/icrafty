@@ -58,6 +58,9 @@ export function ModelSourceContext({ model }: { model: ModelProvenance }) {
             {model.sectionAppearance.guides
               ? "Plane guides shown"
               : "Plane guides hidden"}
+            {model.sectionAppearance.hatching && model.sectionAppearance.caps
+              ? " · Diagonal hatching"
+              : ""}
           </dd>
         </div>
       )}

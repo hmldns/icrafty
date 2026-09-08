@@ -33,12 +33,13 @@ export async function pngPixels(page: Page, base64: string) {
     let foreground = 0;
     let red = 0;
     const colors = { x: 0, y: 0, z: 0, reference: 0 };
+    const samples: Partial<Record<keyof typeof colors, number[]>> = {};
     // Flat cap colors from the design tokens; tolerate only antialiasing edges.
     const targets = {
-      x: [193, 78, 70],
-      y: [56, 130, 102],
-      z: [70, 109, 187],
-      reference: [212, 151, 36],
+      x: [221, 213, 201],
+      y: [207, 218, 221],
+      z: [217, 212, 226],
+      reference: [227, 219, 190],
     };
     for (let i = 0; i < pixels.length; i += 4) {
       // Ignore the compositor's rounded crop border; the model stays well inside it.
@@ -60,8 +61,10 @@ export async function pngPixels(page: Page, base64: string) {
           targets[key].every(
             (value, channel) => Math.abs(pixels[i + channel]! - value) < 4,
           )
-        )
+        ) {
           colors[key]++;
+          samples[key] ??= Array.from(pixels.slice(i, i + 3));
+        }
       }
     }
     const centerOffset =
@@ -83,6 +86,7 @@ export async function pngPixels(page: Page, base64: string) {
       foreground,
       red,
       colors,
+      samples,
       centerDistance,
       digest,
     };

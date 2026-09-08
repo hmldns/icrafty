@@ -9,8 +9,9 @@ to `/debug` for now. Previous `/camera` and `/gallery` links redirect to their n
 locations. Redirects replace the current history entry and retain query strings
 and fragments. Existing local image collections remain available on the same origin.
 
-The viewer has colored X/Y/Z section planes and visual cut-face fills for closed
-meshes. Select **Solid block + inner sphere demo** to inspect the caps and their
+The viewer has muted X/Y/Z section planes, pale cut-face fills and optional faint
+diagonal hatching for closed meshes. New model annotations have contrasting
+outlines. Select **Solid block + inner sphere demo** to inspect the caps and their
 snapshot/annotation output. [Section behavior and limits](docs/viewer-usage.md)
 explain the distinction from CAD geometry operations.
 

@@ -68,5 +68,9 @@ test("production emits and loads real STEP, module worker and WASM without the d
   expect(demo.colors.x).toBeGreaterThan(1000);
   expect(demo.colors.z).toBeGreaterThan(1000);
   expect(demo.colors.reference).toBeGreaterThan(500);
+  await primary.getByLabel("Hatch solid sections").uncheck();
+  const plain = await canvasPixels(page, primary);
+  expect(plain.digest).not.toBe(demo.digest);
+  expect(plain.colors.x).toBeGreaterThan(demo.colors.x);
   expect(errors).toEqual([]);
 });

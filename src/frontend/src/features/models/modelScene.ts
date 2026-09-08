@@ -61,7 +61,11 @@ export class ModelScene {
   private observer: ResizeObserver;
   private disposed = false;
   private sections: SectionPlane[] = [];
-  private sectionAppearance: SectionAppearance = { guides: true, caps: true };
+  private sectionAppearance: SectionAppearance = {
+    guides: true,
+    caps: true,
+    hatching: true,
+  };
   private sectionVisuals = new SectionVisuals();
   private sectionColors: SectionColors;
   private referenceObjects: ReferenceSphere[] = [];
@@ -87,16 +91,20 @@ export class ModelScene {
     this.renderer.localClippingEnabled = true;
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     const styles = getComputedStyle(canvas);
+    const tokenColor = (token: string, fallback: string) =>
+      new Color(styles.getPropertyValue(token).trim() || fallback);
     this.sectionColors = {
-      x: new Color(
-        styles.getPropertyValue("--color-section-x").trim() || "#c14e46",
-      ),
-      y: new Color(
-        styles.getPropertyValue("--color-section-y").trim() || "#388266",
-      ),
-      z: new Color(
-        styles.getPropertyValue("--color-section-z").trim() || "#466dbb",
-      ),
+      planes: {
+        x: tokenColor("--color-section-x", "#95846d"),
+        y: tokenColor("--color-section-y", "#6e8991"),
+        z: tokenColor("--color-section-z", "#8b7f9e"),
+      },
+      caps: {
+        x: tokenColor("--color-section-cap-x", "#ddd5c9"),
+        y: tokenColor("--color-section-cap-y", "#cfdadd"),
+        z: tokenColor("--color-section-cap-z", "#d9d4e2"),
+      },
+      referenceCap: tokenColor("--color-section-cap-reference", "#e3dbbe"),
     };
     this.scene.background = new Color(
       styles.getPropertyValue("--color-model-background").trim() || "#eeeee5",

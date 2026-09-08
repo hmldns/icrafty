@@ -69,6 +69,7 @@ export function ModelViewer({
   const [appearance, setAppearance] = useState<SectionAppearance>({
     guides: true,
     caps: true,
+    hatching: true,
   });
   const [bounds, setBounds] = useState<ModelBounds | null>(null);
   const [triangles, setTriangles] = useState(0);
@@ -79,7 +80,7 @@ export function ModelViewer({
     setCaptureError("");
     setCapturing(false);
     setSections(initialSections?.map((section) => ({ ...section })) ?? []);
-    setAppearance({ guides: true, caps: true });
+    setAppearance({ guides: true, caps: true, hatching: true });
     setBounds(null);
     setProjection("perspective");
     if (!source || !canvasHost.current) {
