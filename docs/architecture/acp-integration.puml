@@ -1,0 +1,56 @@
+@startuml acp-integration
+!include theme.iuml
+title Live ACP integration — reusable module and first debug consumer
+autonumber
+actor User
+participant "React /debug/agent\nexisting chat item registry" as UI
+participant "Python/uv application API\ncommands + snapshots + events" as API
+database "SQLite history/events\nimmutable image storage" as DB
+box "One local runtime per session; Docker replacement later" #EAF2F8
+participant "Session supervisor\nprivate workspace + Codex state" as S
+participant "Pinned Codex ACP adapter\nCodex App Server" as C
+participant "Session-scoped sample MCP\nfetch / publish / camera request" as M
+end box
+User -> UI : create / select chat
+UI -> API : create or open application session
+API -> DB : retain session identity and runtime mapping
+API -> S : ensure runtime; initialize or resume saved ACP session
+S -> C : initialize; session/new or resume\nexplicit MCP configuration
+C --> S : capabilities + ACP session ID
+S -> API : ready
+API --> UI : snapshot + event cursor
+UI -> API : subscribe after cursor
+User -> UI : attach image + send text
+UI -> API : upload bytes; submit(clientMessageId, image IDs)
+API -> DB : validate/store images; persist message and turn once
+API -> S : dispatch one prompt for this session
+S -> C : session/prompt(text + negotiated images / local paths)
+C -> M : fetch_image / request_camera / publish_image
+M -> API : scoped request; file bytes for publication
+API -> DB : commit domain result and immutable asset
+API --> M : versioned result with stable references
+M --> C : structured result + text fallback
+C --> S : text chunks / tool call patches / native image generation
+S -> API : normalized activity with turn and generation
+API -> DB : update stable records; append durable events
+API --> UI : records + resource references
+UI -> UI : existing renderer registry mounts image / camera / tool views
+User -> UI : inspect / download / reattach image
+C --> S : original prompt's terminal response
+S -> API : complete turn; release prompt slot
+note over UI, DB
+  Snapshot/event replay restores browser state; it does not create a new ACP session.
+  Agent JSON is typed command/result data, not authority to replace backend state.
+  Native image generation writes a local file; MCP publication makes it an app asset.
+end note
+note over S, M
+  Separate private runtime state for every chat. No shared writable Codex home.
+  Permissions are answered explicitly; Stop cancels the turn and its pending requests.
+  Uncertain turns are interrupted, never blindly resent. Saved files/history survive.
+  Local process separation is not the final Docker security boundary.
+end note
+legend bottom
+  M-ACP.md: module contract and integration gates. ACP-AGENT-STATE.md: state ownership.
+  Runtime orchestration, application auth, CAD delegation, and public deployment follow separately.
+endlegend
+@enduml

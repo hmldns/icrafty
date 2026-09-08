@@ -6,7 +6,7 @@ function MessageItemView({ item, actions }: { item: MessageItem; actions: ItemAc
   return (
     <article
       className={`chat-message chat-message--${item.author}`}
-      aria-label={`${item.origin === "local" ? "Local" : "Sample"} message from ${item.author === "you" ? "you" : "icrafty"}`}
+      aria-label={`${item.origin === "agent" ? "Live" : item.origin === "local" ? "Local" : "Sample"} message from ${item.author === "you" ? "you" : "icrafty"}`}
     >
       <div className="chat-message-heading">
         <span className="chat-avatar" aria-hidden="true">{item.author === "you" ? "Y" : "c"}</span>

@@ -1,0 +1,58 @@
+# Live agent chat
+
+`/debug/agent` mounts the application component `AgentChat`, backed by the
+Python/uv [agent module](../../../agent/README.md). `/debug/chat` remains the
+existing local fixture route. Follow the [module specification](../../../docs/M-ACP.md)
+and [state contract](../../../docs/ACP-AGENT-STATE.md) for integration boundaries.
+
+The page only composes the feature. `AgentChat` selects sessions and owns drafts;
+`AgentConversation` binds a selected session to the shared `ChatHistory`, item
+registry, composer, camera, and image components. `useAgentSession` owns snapshot
+loading and stream cleanup. `AgentClient` owns HTTP commands and WebSocket
+reconnect. `projection.ts` adapts normalized records and immutable image references
+into existing domain views. No browser component interprets raw ACP frames.
+
+Mount the same component inside another application page:
+
+```tsx
+import { AgentChat } from "./features/agent-chat/AgentChat";
+import { AgentClient } from "./features/agent-chat/client";
+
+const client = new AgentClient("/api/agent");
+export function RepairConversation() {
+  return <AgentChat client={client} />;
+}
+```
+
+Use a stable client instance. A selected conversation can also mount
+`AgentConversation` directly with the session ID, controlled draft, and session
+metadata callback. Its current caller keys the component by session ID; switching
+sessions therefore disposes the old stream and any camera. Production authentication
+belongs in the host API/client boundary, not individual image cards.
+
+Image upload, paste, drop, and explicit camera capture all create backend assets.
+Attachments select immutable versions. Sending snapshots their references and
+uses an idempotency key retained across uncertain HTTP retries while the draft
+is unchanged. Drafts survive session switches in this mount; submitted history
+and assets survive refresh. Unsent drafts are not persisted across page reload.
+During a turn the user can edit the next draft or press Stop. Queueing multiple
+turns is not implemented.
+
+The backend snapshot supplies a cursor; reconnect continues after the last event,
+without reloading or spawning ACP. Typed image and camera results reuse existing
+components. Unknown tools retain expandable details. Local tool titles are
+shortened in the conversation while the original record remains inspectable.
+Browser camera permission is requested only after Start camera; collapse, close,
+navigation, and session switch release media tracks.
+
+Run the backend with `make agent-dev` and frontend with `make mf` from the root.
+Vite proxies HTTP and WebSocket `/api/agent` to localhost:8787, configurable with
+`CRAFTY_AGENT_URL`. Browser tests explicitly fake that application API:
+
+```sh
+npm test -- tests/agent-chat.spec.ts tests/chat-flow.spec.ts tests/chat-flow-projection.spec.ts
+```
+
+These tests prove UI/state integration and camera cleanup. Actual Codex image
+input, native image generation, MCP publication, download digests, and native
+session recovery are recorded separately in the module's live acceptance.

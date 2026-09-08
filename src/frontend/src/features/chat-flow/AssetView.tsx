@@ -57,6 +57,8 @@ export function AssetView({
     camera: "Camera photo",
     "saved-copy": "Saved copy",
     "model-snapshot": "Model snapshot",
+    upload: "Uploaded image",
+    generated: "Generated image",
   } as const;
   const versionCount = assets.reduce((count, item) => count + item.versions.length, 0);
 
@@ -167,7 +169,9 @@ export function AssetView({
                 />.
               </>
             ) : (
-              <>Source: {asset.source.modelName} · {asset.source.view} view.</>
+              asset.source.kind === "model-snapshot"
+                ? <>Source: {asset.source.modelName} · {asset.source.view} view.</>
+                : <>Source: {sourceLabels[asset.source.kind]}.</>
             )}
           </p>
           <p>{version.note}</p>

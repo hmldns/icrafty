@@ -14,6 +14,11 @@ and fragments. Existing local image collections remain available on the same ori
 attach chosen images to a local message. This [chat history mock](docs/chat-flow.md)
 resets when you leave or refresh and does not send messages to an agent.
 
+`/debug/agent` mounts the real [Codex chat integration](docs/agent-chat.md), with
+saved session selection, streamed replies, image input, native image generation,
+MCP image/camera cards, and download/reattach controls. Start the separate
+[uv backend](../../agent/README.md) with `make agent-dev` from the repository root.
+
 The viewer has muted X/Y/Z section planes, pale cut-face fills and optional faint
 diagonal hatching for closed meshes. New model annotations have contrasting
 outlines. Select **Solid block + inner sphere demo** to inspect the caps and their
@@ -110,8 +115,8 @@ Draft edits persist automatically. The UI reports storage failures and still
 allows downloading in-memory edits. Deleting an image deletes its draft and
 all revisions.
 
-This spike has no backend, accounts, chat, agent transfer, or CAD evaluator.
-Images are local to the browser profile **and origin**, including the port.
+The camera/annotation workspace is independent of the live chat backend.
+Its images are local to the browser profile **and origin**, including the port.
 Browser data clearing, private-session closure, or storage eviction can remove
 them; download important work. Live synchronization between tabs is not provided.
 Keep one editing tab open for a given collection.

@@ -1,5 +1,15 @@
 .DEFAULT_GOAL := diagrams
 
+.PHONY: agent-install agent-dev agent-test agent-live
+agent-install:
+	$(MAKE) -C agent install
+agent-dev:
+	$(MAKE) -C agent dev
+agent-test:
+	$(MAKE) -C agent test
+agent-live:
+	$(MAKE) -C agent live
+
 .PHONY: mf dev frontend-install frontend-build frontend-check frontend-test frontend-preview diagrams architecture diagrams-svg diagrams-png diagrams-check diagrams-clean
 
 mf dev:

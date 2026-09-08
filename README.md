@@ -32,6 +32,19 @@ an agent or server. Camera access needs browser permission and a secure context
 the source server allowing cross-origin requests; downloading a file yourself
 and importing it locally also works.
 
+## Live Codex chat
+
+The [agent module](agent/README.md) runs the first real ACP/image/MCP integration.
+Run `make agent-install`, then `make agent-dev` alongside `make mf`, and open
+<http://localhost:5187/debug/agent>. Chats and images are saved locally; submitted
+messages and images are sent to Codex using the configured login. The independent
+`/debug/chat` route remains the interaction rehearsal.
+
+Review [M-ACP](docs/M-ACP.md), [ACP agent state](docs/ACP-AGENT-STATE.md), and the
+[schematic](docs/architecture/rendered/acp-integration.svg) before composing the
+module into the repair app. This stage uses private local process/workspace
+ownership; Docker orchestration and CAD-agent handoff are subsequent work.
+
 ## CAD and documentation
 
 The [documentation index](docs/README.md) separates product requirements,

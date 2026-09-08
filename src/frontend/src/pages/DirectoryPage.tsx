@@ -61,7 +61,7 @@ export function DirectoryPage() {
       <section aria-labelledby="tools-title" className="directory-tools">
         <div className="section-heading">
           <h2 id="tools-title">On the workbench</h2>
-          <span className="eyebrow">Four places to begin</span>
+          <span className="eyebrow">Five places to begin</span>
         </div>
         <div className="directory-grid">
           <Link
@@ -164,13 +164,19 @@ export function DirectoryPage() {
               <Badge tone="accent">Local mock</Badge>
             </div>
           </Link>
+          <Link href={ROUTES.agent} className="directory-card">
+            <div className="directory-card-top"><span className="directory-number">05 / START A CONVERSATION</span><Icon name="arrow" /></div>
+            <div className="directory-card-icon"><Icon name="text" size={38} /></div>
+            <div><h3>Live agent chat</h3><p>Share a photo with Codex, explore a sketch, and keep the images and conversation together.</p></div>
+            <div className="directory-card-bottom"><span>Open your chats <Icon name="right" size={16} /></span><Badge tone="accent">Live Codex</Badge></div>
+          </Link>
         </div>
       </section>
       <aside className="directory-note">
         <Icon name="lock" size={18} />
         <p>
-          This is a local workshop. Your images and edits stay in this browser.
-          Download your work to keep a copy.
+          Camera and annotation work stays in this browser. Live chat saves its
+          images locally and sends submitted messages and images to Codex.
         </p>
       </aside>
     </div>

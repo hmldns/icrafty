@@ -1,0 +1,7 @@
+{
+  "name": "crafty-agent-runtime",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Pinned Codex ACP adapter for the Python supervisor",
+  "dependencies": { "@agentclientprotocol/codex-acp": "1.10.0" }
+}

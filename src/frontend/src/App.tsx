@@ -5,6 +5,7 @@ import { DirectoryPage } from "./pages/DirectoryPage";
 import { CameraPage } from "./pages/CameraPage";
 import { GalleryPage } from "./pages/GalleryPage";
 import { ChatDebugPage } from "./pages/ChatDebugPage";
+import { AgentDebugPage } from "./pages/AgentDebugPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 const ModelGalleryPage = lazy(() =>
   import("./pages/ModelGalleryPage").then((module) => ({
@@ -27,7 +28,7 @@ export function App() {
               ? "Model gallery"
               : path === ROUTES.chat
                 ? "Chat flow mock"
-                : "Page not found";
+                : path === ROUTES.agent ? "Live agent chat" : "Page not found";
     document.title = `icrafty · ${pageTitle}`;
     main.current?.focus({ preventScroll: true });
   }, [path]);
@@ -79,6 +80,7 @@ export function App() {
             >
               Chat
             </Link>
+            <Link href={ROUTES.agent} aria-current={path === ROUTES.agent ? "page" : undefined}>Live chat</Link>
           </nav>
           <span className="header-note">
             <span />
@@ -99,6 +101,8 @@ export function App() {
           </Suspense>
         ) : path === ROUTES.chat ? (
           <ChatDebugPage />
+        ) : path === ROUTES.agent ? (
+          <AgentDebugPage />
         ) : (
           <NotFoundPage />
         )}
@@ -109,7 +113,7 @@ export function App() {
           goes a long way.
         </span>
         <span>
-          <Icon name="lock" size={14} /> Local browser workspace
+          <Icon name="lock" size={14} /> {path === ROUTES.agent ? "Saved locally · connected to Codex" : "Local workshop"}
         </span>
       </footer>
     </div>
