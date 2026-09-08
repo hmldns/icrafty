@@ -13,10 +13,12 @@ throughout design. The first possible example is a replacement mug cap.
   as the original input. [TODO.md](docs/TODO.md) is a working backlog.
 - [docs/architecture/](docs/architecture/README.md) contains PlantUML sources,
   checked-in SVG/PNG renders, ACP notes, and the CAD file-handoff protocol.
-- [cad/](cad/README.md) is an independent Python project managed by uv. It is
-  currently a scaffold for deterministic FreeCAD execution, rendering, and
-  verification. Read its [local guidance](cad/AGENTS.md) before editing it. The
-  [implementation brief](docs/CAD-IMPLEMENTATION.md) defines the first delegation.
+- [cad/](cad/README.md) is the uv-managed FreeCAD evaluator, with rendering,
+  verification, and retained geometry. Its first cylinder/sleeve/closed-end-cap
+  core has passed native, local, separate correction-trial, and Docker gates;
+  the README links the acceptance records. Read its [local guidance](cad/AGENTS.md)
+  before editing it. The [implementation brief](docs/CAD-IMPLEMENTATION.md) defines
+  the first delivery and later stages.
 - [src/frontend/](src/frontend/README.md) contains the React/TypeScript app and
   the implemented browser-local capture, annotation, and download flow. Read its
   [local guidance](src/frontend/AGENTS.md) before editing it.
@@ -67,8 +69,8 @@ canonical requirements instead of copying them into every module.
 From the repository root, `make mf` starts the frontend; `make frontend-check`,
 `make frontend-build`, and `make frontend-test` run its checks. `make diagrams`
 renders the architecture and `make diagrams-check` validates PlantUML syntax.
-Use `uv sync --directory cad` to prepare the CAD scaffold. Its README distinguishes
-working commands from the evaluator interface that remains to be implemented.
+Use `make -C cad sync` to prepare the locked CAD environment. Its README documents
+the working evaluator commands, verification suites, and pinned Docker runtime.
 
 Run checks relevant to the changed module. For CAD, distinguish deterministic
 geometry/contract regressions from trials in which an agent revises code. Report
