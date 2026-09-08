@@ -34,6 +34,7 @@ export function AnnotationEditor({
   onSave,
   pending,
   storageError,
+  mode = "collection",
 }: {
   image: CollectionImage;
   onClose: () => void;
@@ -41,6 +42,8 @@ export function AnnotationEditor({
   onSave: (revision: Revision) => Promise<void>;
   pending: boolean;
   storageError: string;
+  /** Composer attachments are edited in place, without the collection inventory. */
+  mode?: "collection" | "attachment";
 }) {
   const [history, setHistory] = useState(image.draft.history);
   const historyRef = useRef(history);
@@ -267,7 +270,7 @@ export function AnnotationEditor({
             <Notice tone="success">{message}</Notice>
           </div>
         )}
-        <details className="revision-details">
+        {mode === "collection" && <details className="revision-details">
           <summary>
             Source & saved revisions <span>{image.revisions.length}</span>
           </summary>
@@ -317,31 +320,31 @@ export function AnnotationEditor({
               </p>
             )}
           </div>
-        </details>
+        </details>}
       </div>
       <footer className="editor-footer">
         <div className="editor-save-status">
-          <Badge tone={storageError ? "neutral" : "success"}>
-            {storageError
+          <Badge tone={mode === "attachment" || storageError ? "neutral" : "success"}>
+            {mode === "attachment" ? "Editable until you send" : storageError
               ? "Draft not saved"
               : pending
                 ? "Saving draft…"
                 : "Draft saved locally"}
           </Badge>
-          <p>Original preserved · PNG includes your current marks</p>
+          <p>{mode === "attachment" ? "Save replaces this attachment in your message" : "Original preserved · PNG includes your current marks"}</p>
         </div>
         <div className="editor-actions">
-          <Button onClick={() => void perform("save")} disabled={disabled}>
-            {busy === "save" ? "Saving…" : "Save revision"}
+          <Button variant={mode === "attachment" ? "primary" : "secondary"} onClick={() => void perform("save")} disabled={disabled}>
+            {busy === "save" ? "Saving…" : mode === "attachment" ? "Save image" : "Save revision"}
           </Button>
-          <Button
+          {mode === "collection" && <Button
             variant="primary"
             icon="download"
             onClick={() => void perform("download")}
             disabled={disabled}
           >
             {busy === "download" ? "Exporting…" : "Download PNG"}
-          </Button>
+          </Button>}
         </div>
       </footer>
     </Dialog>

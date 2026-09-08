@@ -38,12 +38,27 @@ and assets survive refresh. Unsent drafts are not persisted across page reload.
 During a turn the user can edit the next draft or press Stop. Queueing multiple
 turns is not implemented.
 
+Click a composer thumbnail to annotate that image directly. `DraftImageEditor`
+reuses the shared drawing editor with a **Save image** action, without an image
+inventory. Save replaces the draft preview and retains editable history; opening
+it again supports Undo/Redo. `useDraftPhotos` owns preview URLs and revokes them on
+replacement or unmount. Send uploads selected edited PNGs before dispatching
+immutable image references, retaining the same upload and command on retry.
+The source blob and drawing history remain browser draft state; the backend
+currently stores flattened images. Earlier message attachments cannot change.
+
 The backend snapshot supplies a cursor; reconnect continues after the last event,
 without reloading or spawning ACP. Typed image and camera results reuse existing
 components. Unknown tools retain expandable details. Local tool titles are
 shortened in the conversation while the original record remains inspectable.
+Text events update the same visible message as they arrive, with a writing
+indicator until that segment ends. The live route uses the available page width.
 Browser camera permission is requested only after Start camera; collapse, close,
 navigation, and session switch release media tracks.
+
+For a sample MCP inspection, send `Call crafty_images.list_images.`, expand
+**List chat images**, and open **Tool details**. Use
+`Call crafty_images.request_camera.` to inspect an interactive camera result.
 
 Run the backend with `make agent-dev` and frontend with `make mf` from the root.
 Vite proxies HTTP and WebSocket `/api/agent` to localhost:8787, configurable with

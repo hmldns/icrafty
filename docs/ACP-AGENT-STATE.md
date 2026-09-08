@@ -43,12 +43,15 @@ and stored-file reference. Camera photos, imported/annotated images, native
 generation, and model snapshots use the same image boundary. Browser URLs and
 agent-local paths are derived access locations, not asset identity.
 
-**ACP-STATE-7 — Attachments and revisions.** Draft attachments are selected image
-versions. Submission snapshots those references, so later annotation or a new
-current version cannot change an earlier message. A replacement is a new version
-of the same logical asset; save-copy creates another asset with source lineage.
-The first live stage accepts flattened annotated images; it does not invent
-editable drawing state when none was submitted.
+**ACP-STATE-7 — Attachments and revisions.** Each composer slot selects an immutable
+source image and may carry a browser-owned edit ID, original blob, drawing history,
+and flattened preview. Saving an annotation replaces that slot's editable draft.
+Reopening keeps Undo and Redo; session switches retain drafts in the current app
+mount. Send snapshots the selected bytes and stores changed PNGs as new immutable
+assets before creating the message. A retry retains that snapshot and command ID;
+a failed submission keeps the draft. Earlier messages keep their exact submitted
+references. Draft reload persistence and backend source/mark lineage are later
+work; the first live stage ingests the flattened image, not editable drawing JSON.
 
 **ACP-STATE-8 — Camera run.** Persist a camera request as a first-class interaction
 linked to its creating tool call and originating turn. Captures reference image
@@ -81,6 +84,9 @@ pending interactions/permissions, and the last committed event cursor. The strea
 continues after that cursor; repeat delivery is harmless by event ID and record
 identity. Session switches dispose the old subscription and cannot route its
 events into the new chat.
+Committed events wake each connected subscriber immediately. Disconnect removes
+the subscriber; reconnect reads the durable cursor and does not depend on an
+in-memory notification queue or replay a prompt.
 
 **ACP-STATE-13 — JSON ownership.** An agent can submit typed commands and typed
 MCP results, including a proposed interaction description. The backend validates

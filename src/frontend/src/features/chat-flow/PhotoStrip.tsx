@@ -6,11 +6,13 @@ export function PhotoStrip({
   label,
   onInspect,
   onRemove,
+  actionLabel = "Inspect",
 }: {
   photos: readonly PhotoAttachment[];
   label: string;
   onInspect: (ref: VersionRef) => void;
   onRemove?: (ref: VersionRef) => void;
+  actionLabel?: string;
 }) {
   return (
     <ul className="chat-photo-strip" aria-label={label}>
@@ -19,7 +21,7 @@ export function PhotoStrip({
           <a
             className="chat-photo-link"
             href="#chat-asset-detail"
-            aria-label={`Inspect ${photo.assetTitle}, v${photo.versionNumber} · ${photo.versionLabel}`}
+            aria-label={`${actionLabel} ${photo.assetTitle}, v${photo.versionNumber} · ${photo.versionLabel}`}
             onClick={(event) => {
               event.preventDefault();
               onInspect(photo);

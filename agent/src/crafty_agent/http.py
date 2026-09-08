@@ -186,18 +186,36 @@ def create_app(settings: Settings | None = None, *, base_url="http://127.0.0.1:8
             return
         await socket.accept()
         cursor = max(after, 0)
-        try:
+        store = service().store
+        changed = store.watch(sid)
+
+        async def send_events():
+            nonlocal cursor
             while True:
-                pending = service().store.events(sid, cursor)
+                changed.clear()
+                pending = store.events(sid, cursor)
                 for event in pending:
                     await socket.send_json(event)
                     cursor = event["seq"]
-                try:
-                    await asyncio.wait_for(socket.receive_text(), timeout=0.25)
-                except asyncio.TimeoutError:
-                    pass
+                if not pending:
+                    await changed.wait()
+
+        async def receive_until_closed():
+            while True:
+                await socket.receive_text()
+
+        tasks = [asyncio.create_task(send_events()), asyncio.create_task(receive_until_closed())]
+        try:
+            done, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+            for task in done:
+                task.result()
         except (WebSocketDisconnect, RuntimeError):
-            return
+            pass
+        finally:
+            store.unwatch(sid, changed)
+            for task in tasks:
+                task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
 
     @app.get("/internal/mcp/{sid}/images")
     async def mcp_images(request: Request, sid: str):

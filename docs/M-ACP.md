@@ -123,6 +123,11 @@ and preserve exact attachment versions. Provide a session sidebar, new chat,
 refresh/open, busy/connection status, Stop, and visible errors. Image inspection,
 download, and reattachment are available from the same real assets. Configuration
 and raw tool details are secondary debug inspection, not the normal message body.
+The live chat shell uses the available viewport width with modest outer padding.
+Publish committed text updates immediately to subscribed clients, without a
+polling interval or waiting for prompt completion. Yield between buffered ACP
+updates so sockets can progress. Mark the active assistant message as writing;
+do not simulate provider deltas by slowly revealing an already completed reply.
 
 **M-ACP-16 — Permissions.** Preserve ACP permission requests as pending records
 with their offered options. Present the actual request and let the user choose;
@@ -174,3 +179,13 @@ and [ACP protocol](https://agentclientprotocol.com/protocol/overview) for wire
 behavior. Codex's [App Server documentation](https://learn.chatgpt.com/docs/app-server)
 explains the native layer owned by that adapter. Keep adapter-specific quirks in
 normalization and compatibility tests; do not spread them through domain views.
+
+**M-ACP-23 — Composer annotation.** Clicking a selected attachment opens the shared
+annotation editor for that image. Saving replaces that composer slot's preview
+and retains its source and editable drawing history. Keep the image inventory in
+the separate Photos action. Before sending, the draft owns local edit IDs, source
+blobs, marks, and flattened PNGs; Send snapshots the selected PNGs, ingests them,
+then dispatches immutable references. Retry uses the same selected bytes and
+command identity. Session switches preserve unsent edits during the mounted app's
+lifetime; page reload persistence of drafts and backend drawing lineage are later
+work. Earlier submitted references remain unchanged.

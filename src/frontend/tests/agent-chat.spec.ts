@@ -1,6 +1,6 @@
 import { expect, test, type Page, type WebSocketRoute } from "@playwright/test";
 import type { AgentEvent, AgentImage, AgentRecord, AgentSnapshot } from "../src/features/agent-chat/types";
-import { instrumentCamera, makeImage, trackStates } from "./helpers";
+import { drawLine, instrumentCamera, makeImage, trackStates } from "./helpers";
 
 /** Explicit application-API fixture. Real ACP/MCP framing is tested by agent/. */
 async function harness(page: Page) {
@@ -84,7 +84,7 @@ async function harness(page: Page) {
     }
     await route.fulfill({ json: result });
   });
-  return { states, sockets, commands, cursors, create, emit, finish };
+  return { states, sockets, commands, cursors, bytes, create, emit, finish };
 }
 
 const history = (page: Page) => page.getByRole("list", { name: "Chat history", exact: true });
@@ -104,10 +104,17 @@ test("real mounted components upload, stream, show MCP images, download and rest
   await expect(page.getByRole("button", { name: "Stop", exact: true })).toBeVisible();
   const asset = app.states.get("c")!.assets[0]!;
   app.emit("c", "record", { type: "message", id: "reply", author: "crafty", origin: "agent", text: "A pale", imageIds: [] });
+  const reply = history(page).getByRole("article", { name: "Live message from icrafty" });
+  await expect(reply.getByText("A pale", { exact: true })).toBeVisible();
+  await expect(reply).toHaveAttribute("aria-busy", "true");
+  await expect(reply.getByText("Writing…", { exact: true })).toBeVisible();
   app.emit("c", "record", { type: "message", id: "reply", author: "crafty", origin: "agent", text: "A pale blue cap.", imageIds: [] });
+  await expect(reply.getByText("A pale blue cap.", { exact: true })).toBeVisible();
+  await expect(reply).toHaveCount(1);
   app.emit("c", "record", { type: "tool_call", toolCallId: "published", name: "images.show", title: "Cap sketch", status: "completed",
     rawOutput: { schema_version: 1, view: "image", image: { assetId: asset.id, versionId: "1" }, caption: "The concept" } });
   app.finish("c");
+  await expect(reply.getByText("Writing…", { exact: true })).toHaveCount(0);
   const card = page.getByRole("article", { name: "workpiece.png", exact: true });
   await expect(card.getByRole("img")).toBeVisible();
   await expect(history(page).getByText("A pale blue cap.", { exact: true })).toHaveCount(1);
@@ -122,6 +129,60 @@ test("real mounted components upload, stream, show MCP images, download and rest
   await choose(page, "New chat");
   await expect(card.getByRole("img")).toBeVisible();
   expect(app.commands.filter(c => c.action === "open")).toHaveLength(0);
+});
+
+test("pasted attachments edit in place, retain Undo across chats, and send the saved pixels", async ({ page }) => {
+  const app = await harness(page);
+  await page.goto("/debug/agent");
+  const file = await makeImage(page);
+  await page.getByRole("textbox").evaluate((element, base64) => {
+    const clipboard = new DataTransfer();
+    clipboard.items.add(new File([Uint8Array.from(atob(base64), char => char.charCodeAt(0))], "pasted.png", { type: "image/png" }));
+    element.dispatchEvent(new ClipboardEvent("paste", { clipboardData: clipboard, bubbles: true, cancelable: true }));
+  }, file.buffer.toString("base64"));
+  const selected = page.getByRole("list", { name: "Selected attachments" });
+  await expect(selected.getByRole("img")).toHaveCount(1);
+  const original = app.states.get("a")!.assets[0]!;
+  const originalBytes = app.bytes.get(original.id)!;
+  // A past message referencing this asset must keep its original bytes.
+  app.emit("a", "record", { type: "message", id: "past", author: "you", origin: "agent", text: "Previous photo", imageIds: [original.id] });
+  await selected.getByRole("link", { name: /^Annotate pasted.png/ }).click();
+  const editor = page.getByRole("dialog", { name: "Annotate image" });
+  await expect(editor.getByRole("button", { name: "Save image", exact: true })).toBeEnabled();
+  await expect(page.getByRole("list", { name: "Saved chat images" })).toHaveCount(0);
+  await expect(editor.getByText("Source & saved revisions")).toHaveCount(0);
+  await drawLine(page);
+  await editor.getByRole("button", { name: "Save image", exact: true }).click();
+  await expect(editor).toHaveCount(0);
+  await expect(selected.getByRole("img")).toHaveCount(1);
+  await expect(selected.getByRole("img")).toHaveAttribute("src", /^blob:/);
+  expect(app.commands.filter(c => c.action === "images")).toHaveLength(1);
+  await choose(page, "Handle repair");
+  await expect(page.getByRole("list", { name: "Selected attachments" })).toHaveCount(0);
+  await choose(page, "Mug repair");
+  await selected.getByRole("link", { name: /^Annotate pasted.png/ }).click();
+  await expect(page.getByTestId("mark-count")).toHaveText("1 mark");
+  await editor.getByRole("button", { name: /^Undo/ }).click();
+  await expect(page.getByTestId("mark-count")).toHaveText("0 marks");
+  await editor.getByRole("button", { name: /^Redo/ }).click();
+  await expect(page.getByTestId("mark-count")).toHaveText("1 mark");
+  await editor.getByRole("button", { name: "Save image", exact: true }).click();
+  const preview = await selected.getByRole("img").evaluate(async image => {
+    const blob = await (await fetch((image as HTMLImageElement).src)).blob();
+    return Array.from(new Uint8Array(await blob.arrayBuffer()));
+  });
+  await page.getByRole("textbox").fill("Measure the marked rim");
+  await page.getByRole("button", { name: "Send", exact: true }).click();
+  await expect(selected).toHaveCount(0);
+  const sent = app.commands.find(c => c.action === "messages")!;
+  expect(sent.body.imageIds).toHaveLength(1);
+  expect(sent.body.imageIds[0]).not.toBe(original.id);
+  const submittedBytes = app.bytes.get(sent.body.imageIds[0])!;
+  expect(submittedBytes).toEqual(Buffer.from(preview));
+  expect(submittedBytes).not.toEqual(originalBytes);
+  expect(app.bytes.get(original.id)).toEqual(originalBytes);
+  await expect(history(page).getByRole("img").first()).toHaveAttribute("src", original.url);
+  await expect(history(page).getByRole("img").last()).toHaveAttribute("src", app.states.get("a")!.assets.at(-1)!.url);
 });
 
 test("session switches preserve drafts, isolate events, and offer actual permission choices and Stop", async ({ page }) => {

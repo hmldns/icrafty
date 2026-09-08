@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import asyncio
 import hashlib
 from io import BytesIO
 import json
@@ -31,6 +32,7 @@ def encode(value) -> str:
 class Store:
     def __init__(self, settings: Settings):
         self.settings = settings
+        self._watchers: dict[str, set[asyncio.Event]] = {}
         settings.data.mkdir(parents=True, exist_ok=True, mode=0o700)
         os.chmod(settings.data, 0o700)
         self.db = sqlite3.connect(settings.data / "state.sqlite3")
@@ -55,6 +57,22 @@ class Store:
 
     def _event(self, session: str, kind: str, payload: dict):
         self.db.execute("INSERT INTO events(session,body) VALUES (?,?)", (session, encode({"kind": kind, "payload": payload})))
+        # Store mutations are synchronous on the owning loop. The transaction
+        # commits before an awakened socket task can read the durable cursor.
+        for changed in self._watchers.get(session, ()):
+            changed.set()
+
+    def watch(self, sid: str) -> asyncio.Event:
+        changed = asyncio.Event()
+        self._watchers.setdefault(sid, set()).add(changed)
+        return changed
+
+    def unwatch(self, sid: str, changed: asyncio.Event):
+        watchers = self._watchers.get(sid)
+        if watchers is not None:
+            watchers.discard(changed)
+            if not watchers:
+                self._watchers.pop(sid)
 
     def create_session(self, title="New chat") -> dict:
         session = {"id": identifier(), "title": title[:120], "createdAt": now(), "updatedAt": now(),

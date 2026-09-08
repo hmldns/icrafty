@@ -1,4 +1,5 @@
 import type { ToolCallRecord } from "../chat-flow/historyTypes";
+import type { EditHistory, SourceImage } from "../images/types";
 
 export interface AgentImage {
   id: string;
@@ -64,4 +65,16 @@ export type AgentEvent =
   | { seq: number; kind: "interaction"; payload: AgentInteraction }
   | { seq: number; kind: "asset"; payload: AgentImage };
 
-export interface AgentDraft { text: string; imageIds: string[] }
+/** Editable browser state; only the selected PNG is published when Send is pressed. */
+export interface DraftImageEdit {
+  id: string;
+  source: SourceImage;
+  history: EditHistory;
+  png: Blob;
+}
+
+export interface AgentDraft {
+  text: string;
+  imageIds: string[];
+  edits?: Record<string, DraftImageEdit>;
+}

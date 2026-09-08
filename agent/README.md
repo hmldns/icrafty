@@ -28,6 +28,12 @@ opens inspection, download, and attachment selection. **Stop** cancels a turn;
 **Suspend** closes its process tree while retaining the conversation. Sending
 another message or choosing **Resume chat** restores it.
 
+Paste an image into the message input, then click its thumbnail to annotate it.
+**Save image** replaces that draft attachment; click again to continue editing or
+undo marks. **Send** submits the selected saved pixels. Unsent drafts survive
+switching chats in the current page, but not a page reload. The shared editor
+accepts images up to 12 MB, 16 megapixels, and 8,192 pixels per side.
+
 `make agent-install` installs `uv.lock` and the pinned npm adapter lockfile.
 The adapter is `@agentclientprotocol/codex-acp` 1.10.0. Its packaged Codex binary
 is the default; `CRAFTY_CODEX_PATH` can select an explicitly tested native binary.
@@ -103,7 +109,8 @@ cross this boundary. Interactive schemas are at the backend's `/docs`.
 - `POST /sessions/{id}/captures/{toolCallId}` accepts `assetId`, linking an
   already uploaded image to the durable camera request. It does not submit a turn.
 - `WS /sessions/{id}/events?after={cursor}` replays committed events after the
-  snapshot cursor, then streams new ones. Clients upsert by record identity and
+  snapshot cursor, then immediately forwards newly committed events to each
+  subscriber. There is no polling interval. Clients upsert by record identity and
   ignore repeated sequence numbers. Reconnect does not start another runtime.
 
 A prompt body is small and independent of local paths:
@@ -118,7 +125,7 @@ are `session`, `record`, `asset`, and `interaction`. Permission history lives in
 interactions, with pending choices also projected onto the session. Camera
 interaction status is independent of its completed tool call. Input, generated
 image, and camera bytes share the same immutable ingestion boundary. This first
-stage ingests flattened annotations as new image assets; editable mark lineage
+stage ingests flattened annotations as new image assets; backend editable mark lineage
 and complete session archive import/export remain future work.
 Every first-stage asset is immutable version `1`. Accepted messages also persist
 exact `imageRefs` pairs; adding revision editing must preserve these references
@@ -126,6 +133,14 @@ and extend the command/catalog schema, never reinterpret old `imageIds` as a
 mutable current revision.
 
 ## Sample MCP tools
+
+To inspect a real call in the live page, send `Call crafty_images.list_images.`
+Expand **List chat images**, then **Tool details** to see its arguments, status,
+and returned JSON. Send `Call crafty_images.request_camera.` to inspect a result
+that also becomes a camera card. For image handoff, attach an image and ask Codex
+to call `crafty_images.fetch_image` for it; the details show its immutable
+reference and session-local path. Expand the image card's **Tool details** for
+`publish_image` after requesting generation and publication.
 
 Each runtime launches `python -m crafty_agent.mcp_server` over stdio using explicit
 session scope, a rotating credential, the backend URL, and allowed local roots.
@@ -179,6 +194,7 @@ make agent-live                 # uses running localhost:8787 and the real accou
 
 The deterministic Python suite uses an explicit fake ACP subprocess plus actual
 MCP framing. It covers immutable files, scope, RPC ordering, resume/replay,
+actual WebSocket delivery before completion, subscriber cleanup and reconnect,
 permissions, cancellation, process loss, publication, camera records, and HTTP
 validation. Browser fixtures exercise the application contract, never masquerade
 as provider acceptance. The live helper creates a real session and retains its

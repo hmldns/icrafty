@@ -4,7 +4,7 @@ import { PhotoStrip } from "./PhotoStrip";
 import type { PhotoAttachment, VersionRef } from "./types";
 
 export function ChatComposer({ text, attachments, onTextChange, onInspect, onRemove, onBrowseAssets, onSubmit,
-  disabled = false, hint = "Local preview · Shift + Enter for a new line", onCancel, onPasteImages }: {
+  disabled = false, hint = "Local preview · Shift + Enter for a new line", onCancel, onPasteImages, attachmentActionLabel }: {
   text: string;
   attachments: readonly PhotoAttachment[];
   onTextChange: (text: string) => void;
@@ -16,6 +16,7 @@ export function ChatComposer({ text, attachments, onTextChange, onInspect, onRem
   hint?: string;
   onCancel?: () => void;
   onPasteImages?: (files: File[]) => void;
+  attachmentActionLabel?: string;
 }) {
   const messageField = useRef<HTMLTextAreaElement>(null);
   const canSubmit = !disabled && (!!text.trim() || attachments.length > 0);
@@ -24,7 +25,7 @@ export function ChatComposer({ text, attachments, onTextChange, onInspect, onRem
     <form id="chat-composer" tabIndex={-1} className="chat-composer" aria-label="Message composer" onSubmit={(event) => { event.preventDefault(); submit(); }}>
       <div className="chat-compose-box">
         <h3 id="chat-attachments-title" className="sr-only" tabIndex={-1}>Message images · {attachments.length} attached</h3>
-        {attachments.length > 0 && <PhotoStrip photos={attachments} label="Selected attachments" onInspect={onInspect} onRemove={onRemove} />}
+        {attachments.length > 0 && <PhotoStrip photos={attachments} label="Selected attachments" actionLabel={attachmentActionLabel} onInspect={onInspect} onRemove={onRemove} />}
         <label htmlFor="chat-message-text" className="sr-only">Message (optional)</label>
         <textarea
           ref={messageField} id="chat-message-text" className="chat-textarea" rows={2}

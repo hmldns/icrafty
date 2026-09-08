@@ -1,7 +1,9 @@
 import asyncio
 from io import BytesIO
+import json
 import os
 from pathlib import Path
+import socket
 import sys
 
 import httpx
@@ -9,6 +11,8 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from PIL import Image
 import pytest
+import uvicorn
+from websockets.asyncio.client import connect
 
 from crafty_agent.config import Settings
 from crafty_agent.http import create_app
@@ -148,6 +152,60 @@ async def test_http_contract_and_origin(settings):
         assert (await client.get(f"/internal/mcp/{sid}/images")).status_code == 403
         assert (await client.post(f"/api/agent/sessions/{sid}/messages", json={"clientMessageId": "x", "cwd": "/tmp"})).status_code == 422
         assert (await client.get(f"/api/agent/sessions/{sid}")).json()["assets"][0]["id"] == asset["id"]
+
+
+@pytest.mark.asyncio
+async def test_websocket_streams_before_completion_and_replays_after_reconnect(settings):
+    app = create_app(settings)
+    listener = socket.socket()
+    listener.bind(("127.0.0.1", 0))
+    port = listener.getsockname()[1]
+    server = uvicorn.Server(uvicorn.Config(app, log_level="error", ws="websockets-sansio"))
+    serving = asyncio.create_task(server.serve(sockets=[listener]))
+
+    async def receive_until(ws, predicate):
+        async with asyncio.timeout(5):
+            while True:
+                event = json.loads(await ws.recv())
+                if predicate(event): return event
+
+    try:
+        async with asyncio.timeout(5):
+            while not server.started:
+                if serving.done(): serving.result()
+                await asyncio.sleep(0.01)
+        async with httpx.AsyncClient(base_url=f"http://127.0.0.1:{port}") as client:
+            snapshot = (await client.post("/api/agent/sessions")).json()
+            sid = snapshot["session"]["id"]
+            store = app.state.service.store
+            path = f"ws://127.0.0.1:{port}/api/agent/sessions/{sid}/events"
+            async with connect(f'{path}?after={snapshot["cursor"]}') as ws, connect(f'{path}?after={snapshot["cursor"]}') as other:
+                response = await client.post(f"/api/agent/sessions/{sid}/messages", json={
+                    "clientMessageId": "stream-one", "text": "stream", "imageIds": []})
+                assert response.status_code == 202
+                is_text = lambda e: e["kind"] == "record" and e["payload"].get("author") == "crafty"
+                first = await receive_until(ws, is_text)
+                assert first["payload"]["text"] == "First chunk"
+                assert (await receive_until(other, is_text)) == first
+                # The adapter is still waiting for a test-only continuation.
+                assert store.session(sid)["activeTurnId"]
+            async with asyncio.timeout(5):
+                while sid in store._watchers: await asyncio.sleep(0.01)
+            await app.state.service.runtime(sid).connection.notify("test/continue", {})
+            await settled(app.state.service, sid)
+            async with connect(f'{path}?after={first["seq"]}') as ws:
+                next_chunk = await receive_until(ws, is_text)
+                assert next_chunk["seq"] > first["seq"]
+                assert next_chunk["payload"]["id"] == first["payload"]["id"]
+                assert next_chunk["payload"]["text"] == "First chunk, then more."
+                ended = await receive_until(ws, lambda e: e["kind"] == "session" and e["payload"]["turnStatus"] == "completed")
+                assert ended["payload"]["activeTurnId"] is None
+            async with asyncio.timeout(5):
+                while sid in store._watchers: await asyncio.sleep(0.01)
+    finally:
+        server.should_exit = True
+        await asyncio.wait_for(serving, 10)
+        listener.close()
 
 
 @pytest.mark.asyncio

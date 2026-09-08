@@ -33,7 +33,7 @@ export function App() {
     main.current?.focus({ preventScroll: true });
   }, [path]);
   return (
-    <div className="app-shell">
+    <div className={`app-shell${path === ROUTES.agent ? " app-shell--agent" : ""}`}>
       <a className="skip-link" href="#main">
         Skip to content
       </a>

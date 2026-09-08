@@ -99,6 +99,9 @@ class AcpConnection:
                     else:
                         # Apply earlier updates before completing the prompt's response.
                         await self.on_event(message)
+                        # Buffered stdout can contain hundreds of text deltas.
+                        # Let the websocket publisher run between them.
+                        await asyncio.sleep(0)
                 else:
                     future = self.pending.get(message.get("id"))
                     if future is not None and not future.done():

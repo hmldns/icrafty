@@ -35,8 +35,10 @@ for line in sys.stdin:
         text = " ".join(block.get("text", "") for block in params["prompt"])
         if text == "crash":
             os._exit(3)
-        if text in {"slow", "permission"}:
+        if text in {"slow", "permission", "stream"}:
             pending = rid
+            if text == "stream":
+                update({"sessionUpdate": "agent_message_chunk", "content": {"type": "text", "text": "First chunk"}})
             if text == "permission":
                 send({"id": "permission-1", "method": "session/request_permission", "params": {"sessionId": session,
                     "toolCall": {"toolCallId": "permission-tool", "title": "Test action"},
@@ -51,6 +53,10 @@ for line in sys.stdin:
         if any(block.get("type") == "image" for block in params["prompt"]):
             update({"sessionUpdate": "agent_message_chunk", "content": {"type": "text", "text": "Fixture received image block."}})
         reply(rid, {"stopReason": "end_turn"})
+    elif method == "test/continue" and pending:
+        update({"sessionUpdate": "agent_message_chunk", "content": {"type": "text", "text": ", then more."}})
+        reply(pending, {"stopReason": "end_turn"})
+        pending = None
     elif method == "session/cancel" and pending:
         reply(pending, {"stopReason": "cancelled"})
         pending = None

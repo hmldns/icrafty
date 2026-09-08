@@ -15,8 +15,10 @@ export function attachment(image: AgentImage): PhotoAttachment {
 
 export function projectAgentSnapshot(snapshot: AgentSnapshot) {
   const assets = snapshot.assets.map(asChatAsset);
+  const last = snapshot.records.at(-1);
   const records: HistoryRecord[] = snapshot.records.map(record => record.type === "message"
-    ? { ...record, attachments: (record.imageRefs ?? record.imageIds.map(id => ({ assetId: id, versionId: "1" }))).flatMap(ref => {
+    ? { ...record, streaming: record === last && record.author === "crafty" && !!snapshot.session.activeTurnId,
+      attachments: (record.imageRefs ?? record.imageIds.map(id => ({ assetId: id, versionId: "1" }))).flatMap(ref => {
       const image = snapshot.assets.find(asset => asset.id === ref.assetId && asset.versionId === ref.versionId);
       return image ? [attachment(image)] : [];
     }) }
