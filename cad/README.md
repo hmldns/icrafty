@@ -1,8 +1,11 @@
 # Crafty CAD
 
-Independent Python/uv scaffold for the FreeCAD evaluator. Package setup works;
-evaluation, rendering, checks, MCP integration, and Docker packaging are not
-implemented yet.
+Independent Python/uv FreeCAD evaluator, under implementation. The first native
+cylinder/placement/reuse/restore/PNG/STEP milestone now works through the public
+CLI and retained Python API. See [executed native evidence and setup](NATIVE-MILESTONE.md).
+The full deterministic harness, cap correction trial, and Docker gate remain
+unfinished. The scaffold/planning sections below will be replaced as those gates
+are implemented; the Makefile suite targets still report unavailable.
 
 ## Read and review
 
