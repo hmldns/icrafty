@@ -211,18 +211,25 @@ per-invocation `-c` overrides; it installs no global or project `.codex` config:
 
 All handlers are advisory and return `{}`. They do not approve commands, block
 stops, or force another model turn. Native `Stop` and legacy `notify` callbacks
-are deduplicated by worker run, thread, and turn. A stopped turn is **not** proof
-of completed work: only an explicit done report makes a worker mergeable.
+are deduplicated by worker run, thread, and turn once a root lifecycle hook has
+verified the worker's thread. Child-agent hooks are ignored. A stopped turn is
+**not** proof of completed work: only an explicit done report makes a worker
+mergeable.
 
 New hook definitions may require review with **`/hooks`** in the worker's Codex
 UI. Codex may also ask you to trust the project at first launch. The tooling does
 not change persisted trust or bypass those prompts. See the
 [official Codex hook documentation](https://learn.chatgpt.com/docs/hooks).
 
-Until hooks are trusted, the invocation-local `notify` callback records finished
-turns. It cannot observe a direct user prompt or permission request immediately;
-use `builders steer` and explicit worker reports for coordination in that mode.
-`--no-hooks` at initialization supports older Codex with just this fallback.
+Until a root hook verifies the thread, the invocation-local `notify` callback
+records an **unverified notification** and wakes the director to inspect the
+worker. Codex also sends notifications from internal tasks such as title
+generation, so these notices cannot set the worker to idle or select a thread
+to resume. Once a root hook verifies the thread, other thread IDs are ignored.
+The fallback cannot observe a direct user prompt or permission request
+immediately; use `builders steer` and explicit worker reports for coordination.
+`--no-hooks` at initialization supports older Codex with this fallback. Restart
+opens a new conversation if no root hook has verified a resumable thread.
 See [Codex notification configuration](https://learn.chatgpt.com/docs/config-file/config-advanced#notifications).
 
 The scanner checks registered pane identities and tmux's process-exit status.

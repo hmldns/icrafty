@@ -264,7 +264,7 @@ Your full assignment is also saved at {self.state / 'workers' / w['name'] / 'ass
             for event in HOOKS:
                 command += ["-c", f"hooks.{event}=" + toml([
                     {"hooks": [{"type": "command", "command": hook, "timeout": 3}]}])]
-        if w.get("thread_id"):
+        if w.get("thread_id") and (w.get("thread_id_source") == "hook" or w.get("hooks_seen")):
             command += ["resume", w["thread_id"]]
         command.append((self.state / "workers" / w["name"] / "assignment.md").read_text())
         return command
@@ -475,34 +475,61 @@ def supervise(p, args):
 
 
 def lifecycle(p, payload, name=None, run_id=None):
-    if name is None:
-        cwd = Path(payload.get("cwd", "/")).resolve()
+    notification = name is not None
+    if notification:
+        if payload.get("type") != "agent-turn-complete":
+            return {}
+        event = "Stop"
+        session, turn = payload.get("thread-id"), payload.get("turn-id")
+    else:
+        event = payload.get("hook_event_name")
+        # Native child hooks can use the parent's session_id; their agent_id
+        # distinguishes them. Internal sessions do not run root start hooks.
+        if event not in HOOKS or payload.get("agent_id"):
+            return {}
+        session, turn = payload.get("session_id"), payload.get("turn_id")
+    if not isinstance(session, str) or not session or not payload.get("cwd"):
+        return {}
+    cwd = Path(payload["cwd"]).resolve()
+    if not notification:
         matches = [w for w in p.workers() if Path(w["worktree"]) == cwd]
         if not matches:
             return {}
         name = matches[0]["name"]
         run_id = os.environ.get("BUILDERS_RUN_ID")
-    event = payload.get("hook_event_name", payload.get("type"))
-    session = payload.get("session_id", payload.get("thread-id"))
-    turn = payload.get("turn_id", payload.get("turn-id"))
-    if event == "agent-turn-complete":
-        event = "Stop"
     with p.db() as db:
         w = p.worker(name, db)
-        if run_id and run_id != w["run_id"]:
+        if cwd != Path(w["worktree"]) or (run_id and run_id != w["run_id"]):
             return {}
-        if session:
+        verified = w.get("thread_id_source") == "hook" or bool(w.get("hooks_seen"))
+        if verified and w.get("thread_id") != session:
+            return {}  # Do not ingest nested agents or a stale resumed process.
+        if notification and not verified:
+            # Legacy notify has no parent/source discriminator: title generation
+            # can arrive first. Wake the director without claiming identity or idle.
+            event = "notification"
+        elif not notification:
             if w.get("thread_id") and w["thread_id"] != session:
-                return {}  # Do not ingest nested agents or a stale resumed process.
-            w["thread_id"] = session
-        if turn and event in {"Stop", "UserPromptSubmit", "Interrupt"}:
+                # Recover pre-provenance state written by an early child notify.
+                w.pop("last_turn", None)
+                if w["status"] == "idle":
+                    w["status"] = "running"
+            w.update(thread_id=session, thread_id_source="hook", hooks_seen=True)
+            verified = True
+        if turn and event in {"Stop", "UserPromptSubmit", "Interrupt", "notification"}:
             key = f"{name}:{w['run_id']}:{session}:{turn}:{event}"
             if db.execute("INSERT OR IGNORE INTO seen VALUES (?)", (key,)).rowcount == 0:
                 return {}
         attention = False
-        data = {"thread_id": session, "turn_id": turn}
+        data = {"thread_id": session, "turn_id": turn,
+                "source": "notify" if notification else "hook", "verified": verified}
+        if event == "notification":
+            data["summary"] = payload.get("last-assistant-message")
+            data["input_messages"] = payload.get("input-messages")
+            p.event(db, w, event, data, attention=True)
+            return {}
         if event == "SessionStart":
-            w["hooks_seen"] = True
+            data["start_source"] = payload.get("source")
         elif event == "UserPromptSubmit":
             # A user can direct a worker in its TUI; invalidate old completion immediately.
             w.update(status="running", reported_commit=None, report=None)

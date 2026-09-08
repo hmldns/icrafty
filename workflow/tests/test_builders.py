@@ -10,6 +10,7 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest.mock import patch
 import uuid
 
 WORKFLOW_DIR = Path(__file__).resolve().parents[1]
@@ -109,9 +110,100 @@ class BuildersTest(unittest.TestCase):
         events = self.p.events(all_events=True)
         self.assertEqual(len([e for e in events if e["kind"] == "Stop"]), 1)
         other = self.launch("other", mode="nohooks")
-        self.assertEqual(other["status"], "idle")
+        self.assertEqual(other["status"], "running")
+        self.assertIsNone(other["thread_id"])
         self.assertNotIn("hooks_seen", other)
+        event = self.p.events()[-1]
+        self.assertEqual(event["kind"], "notification")
+        self.assertFalse(event["payload"]["verified"])
+        self.assertNotIn("resume", self.p.command(other))
         self.assertEqual(w["status"], "idle")
+
+    def test_child_notify_before_hooks_cannot_claim_worker_identity(self):
+        w = self.launch(mode="nohooks")
+        child = {"type": "agent-turn-complete", "cwd": w["worktree"],
+                 "thread-id": "title-session", "turn-id": "title-turn",
+                 "last-assistant-message": '{"title":"Read camera annotation instructions"}'}
+        builders.lifecycle(self.p, child, w["name"], w["run_id"])
+        current = self.p.worker(w["name"])
+        self.assertIsNone(current["thread_id"])
+        self.assertEqual(current["status"], "running")
+        self.assertNotIn("last_turn", current)
+        events = self.p.events(all_events=True)
+        self.assertEqual(events[-1]["kind"], "notification")
+        self.assertEqual(events[-1]["payload"]["source"], "notify")
+        self.assertFalse(events[-1]["payload"]["verified"])
+        builders.lifecycle(self.p, child, w["name"], w["run_id"])
+        self.assertEqual(self.p.events(all_events=True), events)
+
+        root = {"cwd": w["worktree"], "session_id": "fake-alpha", "turn_id": "0"}
+        with patch.dict("os.environ", {"BUILDERS_RUN_ID": w["run_id"]}):
+            builders.lifecycle(self.p, dict(root, hook_event_name="SessionStart", source="startup"))
+            builders.lifecycle(self.p, dict(root, hook_event_name="Stop", last_assistant_message="Root stopped"))
+        current = self.p.worker(w["name"])
+        self.assertEqual(current["thread_id"], "fake-alpha")
+        self.assertEqual(current["thread_id_source"], "hook")
+        self.assertEqual(current["status"], "idle")
+        # The earlier unverified notify for this root turn must not suppress Stop.
+        self.assertEqual(current["last_turn"]["summary"], "Root stopped")
+        self.assertEqual(sum(e["kind"] == "Stop" for e in self.p.events()), 1)
+
+        events = self.p.events(all_events=True)
+        builders.lifecycle(self.p, child, w["name"], w["run_id"])
+        builders.lifecycle(self.p, dict(child, **{"thread-id": "fake-alpha", "turn-id": "0"}),
+                           w["name"], w["run_id"])
+        with patch.dict("os.environ", {"BUILDERS_RUN_ID": w["run_id"]}):
+            builders.lifecycle(self.p, dict(root, hook_event_name="Stop", agent_id="nested-child"))
+            builders.lifecycle(self.p, dict(root, hook_event_name="SessionStart", session_id="other-root"))
+        self.assertEqual(self.p.events(all_events=True), events)
+
+    def test_root_prompt_repairs_legacy_notify_identity_after_hook_trust(self):
+        w = self.launch(mode="nohooks")
+        with self.p.db() as db:
+            # State left by the original implementation before hooks were trusted.
+            w.update(thread_id="title-session", status="idle",
+                     last_turn={"thread_id": "title-session", "summary": "Generated title"})
+            self.p.save(db, w)
+        self.assertNotIn("resume", self.p.command(w))
+        with patch.dict("os.environ", {"BUILDERS_RUN_ID": w["run_id"]}):
+            builders.lifecycle(self.p, {"hook_event_name": "UserPromptSubmit", "cwd": w["worktree"],
+                                       "session_id": "real-parent", "turn_id": "direction",
+                                       "prompt": "Continue the assigned task"})
+        current = self.p.worker(w["name"])
+        self.assertEqual(current["thread_id"], "real-parent")
+        self.assertEqual(current["thread_id_source"], "hook")
+        self.assertTrue(current["hooks_seen"])
+        self.assertEqual(current["status"], "running")
+        self.assertNotIn("last_turn", current)
+        command = self.p.command(current)
+        self.assertEqual(command[command.index("resume") + 1], "real-parent")
+
+    def test_unverified_notify_still_wakes_with_hooks_disabled(self):
+        self.p.config["hooks"] = False
+        self.p.config_path.write_text(json.dumps(self.p.config))
+        w = self.launch()
+        events = self.cli("wait", "--timeout", "1")["events"]
+        self.assertEqual([e["kind"] for e in events], ["notification"])
+        self.assertFalse(events[0]["payload"]["verified"])
+        self.assertIsNone(w["thread_id"])
+        self.assertEqual(w["status"], "running")
+
+    def test_invalid_or_child_callbacks_cannot_register_identity(self):
+        w = self.launch(mode="nohooks")
+        events = self.p.events(all_events=True)
+        root = {"hook_event_name": "UserPromptSubmit", "cwd": w["worktree"],
+                "session_id": "real-parent", "turn_id": "direction"}
+        with patch.dict("os.environ", {"BUILDERS_RUN_ID": w["run_id"]}):
+            for extra in ({"agent_id": "child"}, {"hook_event_name": "SubagentStart"},
+                          {"session_id": None}, {"cwd": str(self.root)}):
+                builders.lifecycle(self.p, dict(root, **extra))
+        with patch.dict("os.environ", {"BUILDERS_RUN_ID": "stale-run"}):
+            builders.lifecycle(self.p, root)
+        for extra in ({"cwd": str(self.root)}, {"type": "SessionStart"}, {"thread-id": None}):
+            builders.lifecycle(self.p, {"type": "agent-turn-complete", "thread-id": "child",
+                                       "cwd": w["worktree"], **extra}, w["name"], w["run_id"])
+        self.assertEqual(self.p.events(all_events=True), events)
+        self.assertIsNone(self.p.worker(w["name"])["thread_id"])
 
     def test_wait_wakes_after_report_and_requires_ack(self):
         w = self.launch(mode="busy")
