@@ -77,9 +77,13 @@ export function projectToolCall(call: ToolCallRecord, catalog: ProjectionCatalog
     type: "tool",
     summary: call.status === "failed"
       ? "Could not complete"
-      : result && typeof result.summary === "string"
-        ? result.summary
-        : "Preview unavailable",
+      : call.status === "pending"
+        ? "Waiting to start…"
+        : call.status === "in_progress"
+          ? call.title === "Image generation" ? "Generating image…" : "Working…"
+          : result && typeof result.summary === "string"
+            ? result.summary
+            : toolProjectors[call.name] ? "Preview unavailable" : "Completed",
   };
 }
 

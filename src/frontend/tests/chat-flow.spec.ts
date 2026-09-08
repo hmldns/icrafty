@@ -47,6 +47,55 @@ test("chat is a navigable timeline with expandable typed items and a local reset
   expect(errors).toEqual([]);
 });
 
+test("disclosures interpolate height, reverse without losing content, and honor reduced motion", async ({ page }) => {
+  await page.goto("/debug/chat");
+  const item = imageItem(page);
+  await expect(item.getByRole("img")).toBeVisible();
+  const body = item.locator(".chat-interaction-body");
+  const fullHeight = (await body.boundingBox())!.height;
+  // Pause the actual browser transitions midway, rather than guessing how long
+  // a click and assertion take on CI. This also catches an immediate unmount.
+  const midpoint = async () => item.evaluate(async element => {
+    const toggle = element.querySelector<HTMLButtonElement>(".chat-interaction-toggle")!;
+    const body = element.querySelector<HTMLElement>(".chat-interaction-body")!;
+    toggle.click();
+    await new Promise(requestAnimationFrame);
+    const animations = body.getAnimations();
+    for (const animation of animations) animation.pause();
+    await Promise.all(animations.map(animation => animation.ready));
+    for (const animation of animations) animation.currentTime = Number(animation.effect!.getTiming().duration) / 2;
+    return { animations: animations.length, height: body.getBoundingClientRect().height, inert: body.inert,
+      imageMounted: !!body.querySelector("img") };
+  });
+  const finish = () => body.evaluate(element => { for (const animation of element.getAnimations()) animation.finish(); });
+  const closing = await midpoint();
+  expect(closing.animations).toBeGreaterThan(0);
+  expect(closing.height).toBeGreaterThan(0);
+  expect(closing.height).toBeLessThan(fullHeight);
+  expect(closing.inert).toBe(true);
+  expect(closing.imageMounted).toBe(true);
+  // Reverse while the exit is still running: the cancelled exit must not remove
+  // an item that the user has reopened.
+  await item.locator(".chat-interaction-toggle").evaluate(element => (element as HTMLButtonElement).click());
+  await finish();
+  await expect(item.getByRole("img")).toBeVisible();
+  await expect(body).toHaveJSProperty("inert", false);
+  await midpoint();
+  await finish();
+  await expect(item.locator("img")).toHaveCount(0);
+  const opening = await midpoint();
+  expect(opening.animations).toBeGreaterThan(0);
+  expect(opening.height).toBeGreaterThan(0);
+  expect(opening.height).toBeLessThan(fullHeight);
+  expect(opening.inert).toBe(false);
+  await finish();
+  await expect(item.getByRole("img")).toBeVisible();
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await item.locator(".chat-interaction-toggle").click();
+  await expect(item.locator("img")).toHaveCount(0);
+  await expect(body).toHaveCSS("height", "0px");
+});
+
 test("inline images open exact versions and submitted originals survive newer selections", async ({ page }) => {
   await page.goto("/debug/chat");
   await cameraItem(page).getByRole("button", { name: "Attach Mug rim, v1", exact: true }).click();

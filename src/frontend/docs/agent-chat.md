@@ -52,14 +52,20 @@ without reloading or spawning ACP. Typed image and camera results reuse existing
 components. Unknown tools retain expandable details. Local tool titles are
 shortened in the conversation while the original record remains inspectable.
 Text events update the same visible message as they arrive, with a writing
-indicator until that segment ends. The live route uses the available page width.
+indicator and blinking inline cursor until that segment ends. The live route uses
+the available page width.
 Adapter-provided thought records use compact **Thinking** disclosures, separate
 from assistant reply records. They expand while streaming unless the user closes
 them, and remain available after a reload. `ChatMarkdown` uses
 [`react-markdown`](https://github.com/remarkjs/react-markdown) with `remark-gfm`
 for messages and thoughts, without enabling raw HTML. `AgentActivity` shows
 animated dots while the turn runs, including before its first output; permission
-waits have a distinct label. Reduced-motion settings disable the dot animation.
+waits have a distinct label. Pending/running tools show a spinner and waiting or
+working status in their own card; native image generation says **Generating
+image…** until the tool finishes. Published image cards show **Loading preview…**
+until the browser loads the image, and report a preview error only if loading
+fails. Progress is indeterminate; the adapter supplies no percentage.
+Reduced-motion settings disable the dots and keep the cursor steadily visible.
 **Open camera** requests browser permission and starts the floating camera in one
 action. `ChatCamera` owns that widget outside individual disclosures, while
 `CameraWidget` reuses `useCamera` and `CameraView`. Card collapse minimizes it;
@@ -68,7 +74,9 @@ Drag the handle or use its arrow keys; resize keeps it inside the viewport.
 Close/Stop, navigation, request removal, and session switch release tracks,
 including a permission response that arrives after closing. Reopening stored
 history never starts the camera. Disclosure animations release other item bodies
-after their short exit transition, with collapsed content inert immediately.
+when their height/fade exit animations finish, with collapsed content inert
+immediately. Reversing a collapse retains its content; reduced motion releases it
+immediately. Expansion, collapse, and the disclosure arrow share the same easing.
 
 For a sample MCP inspection, send `Call crafty_images.list_images.`, expand
 **List chat images**, and open **Tool details**. Use
