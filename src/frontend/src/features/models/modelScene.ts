@@ -20,6 +20,7 @@ import {
 } from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { canvasBlob } from "../images/imageIO";
+import { SceneHelpers } from "./sceneAids";
 import {
   SectionVisuals,
   type SolidMesh,
@@ -28,6 +29,8 @@ import {
 import {
   STEP_SETTINGS,
   type CameraState,
+  type CameraOrientation,
+  type SceneAids,
   type ImportedModel,
   type ModelProvenance,
   type ModelSnapshot,
@@ -56,6 +59,8 @@ export class ModelScene {
   private renderer: WebGLRenderer;
   private scene = new Scene();
   private group = new Group();
+  private helpers = new SceneHelpers();
+  private lastOrientation: CameraOrientation | undefined;
   private camera: PerspectiveCamera | OrthographicCamera;
   private controls: OrbitControls;
   private observer: ResizeObserver;
@@ -81,6 +86,7 @@ export class ModelScene {
   constructor(
     private canvas: HTMLCanvasElement,
     private onContextLost: () => void,
+    private onOrientation?: (orientation: CameraOrientation) => void,
   ) {
     this.renderer = new WebGLRenderer({
       canvas,
@@ -112,7 +118,12 @@ export class ModelScene {
     this.scene.add(new AmbientLight(0xffffff, 2));
     const light = new DirectionalLight(0xffffff, 3);
     light.position.set(1, -2, 3);
-    this.scene.add(light, this.group, this.sectionVisuals.group);
+    this.scene.add(
+      light,
+      this.group,
+      this.sectionVisuals.group,
+      this.helpers.group,
+    );
     this.camera = new PerspectiveCamera(40, 1, 0.01, 1000);
     this.camera.up.set(0, 0, 1);
     this.camera.position.set(3, -3, 3);
@@ -163,7 +174,16 @@ export class ModelScene {
   }
 
   render = () => {
-    if (!this.disposed) this.renderer.render(this.scene, this.camera);
+    if (this.disposed) return;
+    this.renderer.render(this.scene, this.camera);
+    const orientation = this.camera.quaternion.toArray() as CameraOrientation;
+    if (
+      !this.lastOrientation ||
+      orientation.some((v, i) => Math.abs(v - this.lastOrientation![i]!) > 1e-8)
+    ) {
+      this.lastOrientation = orientation;
+      this.onOrientation?.(orientation);
+    }
   };
 
   setModel(imported: ImportedModel, source: ModelSource) {
@@ -218,6 +238,7 @@ export class ModelScene {
     )
       throw new Error("The model has empty or unusable bounds.");
     this.radius = this.bounds.getBoundingSphere(new Sphere()).radius;
+    this.helpers.build(this.bounds, getComputedStyle(this.canvas));
     this.camera.near = Math.max(this.radius / 1000, 0.000001);
     this.camera.far = this.radius * 1000;
     this.controls.minDistance = this.radius / 100;
@@ -336,6 +357,18 @@ export class ModelScene {
     }
     this.updateProjection();
     this.controls.update();
+    this.render();
+  }
+
+  /** The widget and canvas use the same controller, target and camera. */
+  rotate(horizontal: number, vertical: number) {
+    if (this.disposed) return;
+    this.controls.rotateLeft(horizontal);
+    this.controls.rotateUp(vertical);
+  }
+
+  setSceneAids(aids: SceneAids) {
+    this.helpers.setVisible(aids);
     this.render();
   }
 
@@ -477,6 +510,7 @@ export class ModelScene {
       camera: this.cameraState(),
       sections: structuredClone(this.sections),
       sectionAppearance: { ...this.sectionAppearance },
+      sceneAids: this.helpers.evidence(),
       ...(this.referenceObjects.length
         ? { referenceObjects: structuredClone(this.referenceObjects) }
         : {}),
@@ -497,6 +531,7 @@ export class ModelScene {
     this.controls.removeEventListener("change", this.render);
     this.controls.dispose();
     this.sectionVisuals.clear();
+    this.helpers.dispose();
     this.group.children.forEach((child) => {
       if (child instanceof Mesh) {
         child.geometry.dispose();

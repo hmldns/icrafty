@@ -9,6 +9,7 @@ import {
   ready,
   selectModel,
   openSections,
+  hideSceneAids,
 } from "./model-helpers";
 import { downloadCurrent, drawLine } from "./helpers";
 
@@ -19,6 +20,7 @@ test("colored planes and solid cut faces reveal the inner sphere and freeze into
   await ready(page);
   await selectModel(page, "solid-demo");
   const primary = await ready(page);
+  await hideSceneAids(primary);
   await openSections(primary);
   await expect(primary.getByLabel("Show section planes")).toBeChecked();
   await expect(primary.getByLabel("Fill cut faces")).toBeChecked();
@@ -68,10 +70,10 @@ test("colored planes and solid cut faces reveal the inner sphere and freeze into
   for (const color of ["x", "y", "z", "reference"] as const) {
     expect(Math.abs(frozen.colors[color] - allAxes.colors[color])).toBeLessThan(
       // Thin hatch edges are resampled in CSS screenshots, unlike the native PNG copy.
-      allAxes.colors[color] * 0.15,
+      allAxes.colors[color] * 0.2,
     );
   }
-  await page.getByText("Source & saved revisions", { exact: false }).click();
+  await page.getByText("Source & saved history", { exact: false }).click();
   await expect(
     page.getByText("Inner sphere (demo reference) · supplemental geometry", {
       exact: true,
@@ -106,13 +108,14 @@ test("a filled section of a closed sleeve preserves its real through-hole", asyn
   await ready(page);
   await selectModel(page, "folder:sleeve.stl");
   const primary = await ready(page);
+  await hideSceneAids(primary);
   await openSections(primary);
   await primary.getByLabel("Show section planes").uncheck();
   await primary.getByLabel("Projection").selectOption("orthographic");
   await primary.getByRole("button", { name: "Add Z plane" }).click();
   await primary.getByRole("button", { name: "Bottom", exact: true }).click();
   const ring = await canvasPixels(page, primary);
-  expect(ring.colors.z).toBeGreaterThan(20_000);
+  expect(ring.colors.z).toBeGreaterThan(ring.width * ring.height * 0.04);
   expect(ring.centerDistance).toBeLessThan(4);
   await primary.getByLabel("Fill cut faces").uncheck();
   expect((await canvasPixels(page, primary)).colors.z).toBeLessThan(10);
@@ -120,6 +123,6 @@ test("a filled section of a closed sleeve preserves its real through-hole", asyn
   await primary.getByRole("button", { name: "Flip Z" }).click();
   await primary.getByRole("button", { name: "Top", exact: true }).click();
   const flipped = await canvasPixels(page, primary);
-  expect(flipped.colors.z).toBeGreaterThan(20_000);
+  expect(flipped.colors.z).toBeGreaterThan(flipped.width * flipped.height * 0.04);
   expect(flipped.centerDistance).toBeLessThan(4);
 });

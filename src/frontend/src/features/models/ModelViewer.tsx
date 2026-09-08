@@ -1,13 +1,10 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import {
-  Badge,
-  Button,
-  Notice,
-  SelectField,
-} from "../../components/ui/primitives";
+import { Badge, Button, Notice } from "../../components/ui/primitives";
 import { errorMessage } from "../images/imageIO";
 import { importModel } from "./importModel";
 import { ModelScene } from "./modelScene";
+import { ModelToolbar } from "./ModelToolbar";
+import { OrientationWidget } from "./OrientationWidget";
 import { SectionControls, type ModelBounds } from "./SectionControls";
 import type {
   ModelSnapshot,
@@ -16,7 +13,9 @@ import type {
   SectionPlane,
   SectionAppearance,
   ReferenceSphere,
-  ViewPreset,
+  CameraOrientation,
+  SceneAids,
+  Axis,
 } from "./types";
 
 export interface ModelViewerProps {
@@ -37,16 +36,6 @@ export interface ModelLoadEvent {
   /** One 192 × 128 PNG from the initial view, when preview generation succeeds. */
   preview?: Blob;
 }
-
-const presets: ViewPreset[] = [
-  "front",
-  "back",
-  "left",
-  "right",
-  "top",
-  "bottom",
-  "isometric",
-];
 
 export function ModelViewer({
   source,
@@ -80,6 +69,12 @@ export function ModelViewer({
   const [captureError, setCaptureError] = useState("");
   const [capturing, setCapturing] = useState(false);
   const [projection, setProjection] = useState<Projection>("perspective");
+  const [orientation, setOrientation] = useState<CameraOrientation>([
+    0, 0, 0, 1,
+  ]);
+  const [aids, setAids] = useState<SceneAids>({ axes: true, grid: true });
+  const aidPreference = useRef(aids);
+  const enabledBeforePause = useRef<Axis[]>([]);
   const [sections, setSections] = useState<SectionPlane[]>([]);
   const [appearance, setAppearance] = useState<SectionAppearance>({
     guides: true,
@@ -98,6 +93,7 @@ export function ModelViewer({
     setAppearance({ guides: true, caps: true, hatching: true });
     setBounds(null);
     setProjection("perspective");
+    enabledBeforePause.current = [];
     if (!source || !canvasHost.current) {
       setState("empty");
       return;
@@ -121,13 +117,19 @@ export function ModelViewer({
       scene.current = null;
     };
     try {
-      runtime = new ModelScene(canvas, () =>
-        fail(
-          new Error(
-            "The graphics context was lost. Reload the model to recover.",
+      runtime = new ModelScene(
+        canvas,
+        () =>
+          fail(
+            new Error(
+              "The graphics context was lost. Reload the model to recover.",
+            ),
           ),
-        ),
+        (next) => {
+          if (!controller.signal.aborted) setOrientation(next);
+        },
       );
+      runtime.setSceneAids(aidPreference.current);
       scene.current = runtime;
       const current = runtime;
       void importModel(source, controller.signal)
@@ -202,6 +204,40 @@ export function ModelViewer({
     }
   };
   const ready = state === "ready";
+  const changeSections = (next: SectionPlane[]) => {
+    scene.current?.setSections(next);
+    setSections(next);
+  };
+  const toggleSections = () => {
+    if (!bounds) return;
+    const enabled = sections.filter((section) => section.enabled);
+    if (enabled.length) {
+      enabledBeforePause.current = enabled.map((section) => section.axis);
+      changeSections(
+        sections.map((section) => ({ ...section, enabled: false })),
+      );
+    } else {
+      const restore = enabledBeforePause.current.filter((axis) =>
+        sections.some((section) => section.axis === axis),
+      );
+      changeSections(
+        sections.length
+          ? sections.map((section) => ({
+              ...section,
+              enabled: !restore.length || restore.includes(section.axis),
+            }))
+          : [
+              {
+                axis: "x",
+                enabled: true,
+                flipped: false,
+                position: (bounds.x.min + bounds.x.max) / 2,
+              },
+            ],
+      );
+      setSectionsOpen(true);
+    }
+  };
   const sectionControls = ready && bounds && (
     <SectionControls
       sections={sections}
@@ -211,10 +247,7 @@ export function ModelViewer({
         scene.current?.setSectionAppearance(next);
         setAppearance(next);
       }}
-      onChange={(next) => {
-        scene.current?.setSections(next);
-        setSections(next);
-      }}
+      onChange={changeSections}
     />
   );
   return (
@@ -241,73 +274,39 @@ export function ModelViewer({
           </Button>
         )}
       </header>
-      <div className="model-toolbar">
-        <div className="row" aria-label="Standard views">
-          {presets.map((preset) => (
-            <Button
-              size="small"
-              key={preset}
-              disabled={!ready}
-              onClick={() => scene.current?.setView(preset)}
-            >
-              {preset[0]!.toUpperCase() + preset.slice(1)}
-            </Button>
-          ))}
-        </div>
-        <div className="row">
-          <Button
-            size="small"
-            disabled={!ready}
-            onClick={() => scene.current?.fit()}
-          >
-            Fit model
-          </Button>
-          <Button
-            size="small"
-            disabled={!ready}
-            onClick={() => scene.current?.zoom(1.25)}
-          >
-            Zoom in
-          </Button>
-          <Button
-            size="small"
-            disabled={!ready}
-            onClick={() => scene.current?.zoom(0.8)}
-          >
-            Zoom out
-          </Button>
-          <SelectField
-            label="Projection"
-            value={projection}
-            disabled={!ready}
-            onChange={(event) => {
-              const next = event.target.value as Projection;
-              scene.current?.setProjection(next);
-              setProjection(next);
-            }}
-          >
-            <option value="perspective">Perspective</option>
-            <option value="orthographic">Orthographic</option>
-          </SelectField>
-          {layout === "workspace" && (
-            <Button
-              size="small"
-              disabled={!ready}
-              aria-expanded={sectionsOpen}
-              aria-controls={sectionId}
-              onClick={() => setSectionsOpen((open) => !open)}
-            >
-              Sections
-              {sections.length
-                ? ` (${sections.filter((section) => section.enabled).length})`
-                : ""}
-            </Button>
-          )}
-        </div>
-      </div>
+      <ModelToolbar
+        ready={ready}
+        activePlanes={sections.filter((section) => section.enabled).length}
+        sectionsOpen={sectionsOpen}
+        sectionId={sectionId}
+        aids={aids}
+        projection={projection}
+        onToggleSections={toggleSections}
+        onTogglePanel={() => setSectionsOpen((open) => !open)}
+        onAids={(next) => {
+          aidPreference.current = next;
+          setAids(next);
+          scene.current?.setSceneAids(next);
+        }}
+        onView={(preset) => scene.current?.setView(preset)}
+        onFit={() => scene.current?.fit()}
+        onZoom={(factor) => scene.current?.zoom(factor)}
+        onProjection={(next) => {
+          scene.current?.setProjection(next);
+          setProjection(next);
+        }}
+      />
       <div className="model-stage">
         <div className="model-viewport">
           <div className="model-canvas-host" ref={canvasHost} />
+          <OrientationWidget
+            orientation={orientation}
+            disabled={!ready}
+            onAlign={(preset) => scene.current?.setView(preset)}
+            onRotate={(horizontal, vertical) =>
+              scene.current?.rotate(horizontal, vertical)
+            }
+          />
           {!ready && (
             <div className="model-overlay">
               {state === "error" ? (
@@ -357,7 +356,11 @@ export function ModelViewer({
         )}
       </details>
       {captureError && <Notice tone="error">{captureError}</Notice>}
-      {layout === "document" && sectionControls}
+      {layout === "document" && (
+        <div id={sectionId} hidden={!sectionsOpen}>
+          {sectionControls}
+        </div>
+      )}
     </section>
   );
 }

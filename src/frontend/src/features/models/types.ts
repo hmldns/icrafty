@@ -1,6 +1,23 @@
 export type ModelFormat = "step" | "stl";
 export type Axis = "x" | "y" | "z";
 export type Vector3Tuple = [number, number, number];
+export type CameraOrientation = [number, number, number, number];
+export interface SceneAids {
+  axes: boolean;
+  grid: boolean;
+}
+export interface SceneAidEvidence {
+  axes: { visible: boolean; origin: Vector3Tuple; length: number };
+  grid: {
+    visible: boolean;
+    plane: "XY";
+    center: Vector3Tuple;
+    spacing: number;
+    size: number;
+  };
+  /** The corner control is UI, excluded from the source PNG. */
+  orientationWidget: "excluded";
+}
 export type Projection = "perspective" | "orthographic";
 export type ViewPreset =
   "front" | "back" | "left" | "right" | "top" | "bottom" | "isometric";
@@ -86,6 +103,8 @@ export interface ModelProvenance {
   sections: SectionPlane[];
   /** Absent on snapshots captured before visual caps/guides were supported. */
   sectionAppearance?: SectionAppearance;
+  /** Absent on older snapshots. World helpers are included when visible. */
+  sceneAids?: SceneAidEvidence;
   referenceObjects?: ReferenceSphere[];
   capture: { width: number; height: number; createdAt: string };
 }

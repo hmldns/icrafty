@@ -54,4 +54,10 @@
   --color-section-cap-z: #d9d4e2;
   --color-section-cap-reference: #e3dbbe;
   --color-model-reference: #d49724;
+  --color-axis-x: #86574e;
+  --color-axis-y: #4f705d;
+  --color-axis-z: #526c8c;
+  --color-model-grid: #c9cdc3;
+  --color-model-grid-major: #aeb6ac;
+  --model-orientation-size: 112px;
 }

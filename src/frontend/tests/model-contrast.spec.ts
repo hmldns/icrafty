@@ -9,6 +9,7 @@ import {
   ready,
   selectModel,
   openSections,
+  hideSceneAids,
 } from "./model-helpers";
 import { databaseSnapshot, downloadCurrent, drawLine } from "./helpers";
 
@@ -37,6 +38,7 @@ test("subtle section hatching toggles independently, preserves holes and keeps a
   await ready(page);
   await selectModel(page, "folder:sleeve.stl");
   const primary = await ready(page);
+  await hideSceneAids(primary);
   await openSections(primary);
   const capColors = await primary.evaluate((element) =>
     ["x", "y", "z", "reference"].map((axis) =>

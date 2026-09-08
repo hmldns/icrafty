@@ -71,6 +71,7 @@ export function SectionControls({
             <Button
               key={axis}
               size="small"
+              icon="plus"
               disabled={sections.some((section) => section.axis === axis)}
               onClick={() =>
                 onChange([
@@ -97,45 +98,6 @@ export function SectionControls({
           millimeters; these are visual sections, not verified CAD measurements.
         </p>
       </details>
-      <div className="row section-display-options">
-        <label>
-          <input
-            type="checkbox"
-            checked={appearance.guides}
-            onChange={(event) =>
-              onAppearanceChange({
-                ...appearance,
-                guides: event.target.checked,
-              })
-            }
-          />{" "}
-          Show section planes
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={appearance.caps}
-            onChange={(event) =>
-              onAppearanceChange({ ...appearance, caps: event.target.checked })
-            }
-          />{" "}
-          Fill cut faces
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={!!appearance.hatching}
-            disabled={!appearance.caps}
-            onChange={(event) =>
-              onAppearanceChange({
-                ...appearance,
-                hatching: event.target.checked,
-              })
-            }
-          />{" "}
-          Hatch solid sections
-        </label>
-      </div>
       {sections.map((section) => {
         const label = section.axis.toUpperCase();
         const { min, max } = bounds[section.axis];
@@ -177,6 +139,7 @@ export function SectionControls({
             />
             <Button
               size="small"
+              icon="flip"
               aria-pressed={section.flipped}
               onClick={() =>
                 update(section.axis, { flipped: !section.flipped })
@@ -186,6 +149,7 @@ export function SectionControls({
             </Button>
             <Button
               size="small"
+              icon="trash"
               onClick={() =>
                 onChange(
                   sections.filter((plane) => plane.axis !== section.axis),
@@ -197,6 +161,51 @@ export function SectionControls({
           </fieldset>
         );
       })}
+      <details className="section-appearance" open>
+        <summary>Section appearance</summary>
+        <div className="row section-display-options">
+          <label>
+            <input
+              type="checkbox"
+              checked={appearance.guides}
+              onChange={(event) =>
+                onAppearanceChange({
+                  ...appearance,
+                  guides: event.target.checked,
+                })
+              }
+            />{" "}
+            Show section planes
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={appearance.caps}
+              onChange={(event) =>
+                onAppearanceChange({
+                  ...appearance,
+                  caps: event.target.checked,
+                })
+              }
+            />{" "}
+            Fill cut faces
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={!!appearance.hatching}
+              disabled={!appearance.caps}
+              onChange={(event) =>
+                onAppearanceChange({
+                  ...appearance,
+                  hatching: event.target.checked,
+                })
+              }
+            />{" "}
+            Hatch solid sections
+          </label>
+        </div>
+      </details>
     </section>
   );
 }
