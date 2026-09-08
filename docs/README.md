@@ -12,6 +12,8 @@ reviewable design, not a claim that a service exists.
   verification capabilities, fixture progression, and implementation outcomes.
 - [CAD-IMPLEMENTATION.md](CAD-IMPLEMENTATION.md) — implementation brief:
   first-core scope, workflow ownership, later stages, and required completion evidence.
+- [PRINT-PREPARATION.md](PRINT-PREPARATION.md) — local tool inventory, file-only
+  STEP/mesh probes, and proposed model 3MF/slicing boundaries; separate from CAD acceptance.
 - [Architecture index](architecture/README.md) — rendered diagrams, their sources,
   [ACP notes](architecture/ACP.md), and the [earlier decision index](architecture/ASSUMPTIONS.md).
 - [IDEA.md](IDEA.md) — preserved original idea; [TODO.md](TODO.md) — working backlog.
