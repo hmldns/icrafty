@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Badge,
   Button,
@@ -9,7 +9,7 @@ import { Dialog } from "../../components/ui/Dialog";
 import { Icon } from "../../components/ui/Icon";
 import { errorMessage } from "./imageIO";
 import type { CollectionImage } from "./types";
-import { useObjectUrl } from "./useObjectUrl";
+import { ImageThumbnail } from "./ImageThumbnail";
 import { useImageDownload } from "./useImageDownload";
 
 function ImageCard({
@@ -21,9 +21,14 @@ function ImageCard({
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  const url = useObjectUrl(image.source.blob);
   const { download, downloading, error, status } = useImageDownload(image);
-  const marks = image.draft.history.present.length;
+  const marks = image.saved?.marks.length ?? 0;
+  const hasDraft = useMemo(
+    () =>
+      JSON.stringify(image.draft.history.present) !==
+      JSON.stringify(image.saved?.marks ?? []),
+    [image.draft.history.present, image.saved],
+  );
   return (
     <article
       className="image-card"
@@ -36,7 +41,7 @@ function ImageCard({
         onClick={onEdit}
         aria-label={`Annotate ${image.source.name}`}
       >
-        <img src={url} alt="" loading="lazy" />
+        <ImageThumbnail image={image} />
         <span className="image-card-edit">
           <Icon name="pen" size={16} />
           Annotate
@@ -74,19 +79,22 @@ function ImageCard({
             {marks ? `${marks} ${marks === 1 ? "mark" : "marks"}` : "Original"}
           </Badge>
           {image.revisions.length > 0 && (
-            <Badge>
-              {image.revisions.length} saved{" "}
-              {image.revisions.length === 1 ? "revision" : "revisions"}
-            </Badge>
+            <Badge>{image.revisions.length} saved</Badge>
           )}
+          {hasDraft && <Badge tone="accent">Draft changes</Badge>}
         </div>
+        {hasDraft && (
+          <p>Preview shows the saved image. Downloads include draft changes.</p>
+        )}
         <Button
           className="image-card-download"
           size="small"
           icon="download"
           aria-label={`Download PNG for ${image.source.name}`}
           title={
-            marks ? "Download with current marks" : "Download image as PNG"
+            image.draft.history.present.length
+              ? "Download with current marks"
+              : "Download image as PNG"
           }
           disabled={downloading}
           onClick={() => void download()}
@@ -155,7 +163,7 @@ export function ImageCollection({
       {deleting && (
         <Dialog
           title="Delete image?"
-          description="This removes the original, its editable marks, and all saved revisions from this browser."
+          description="This removes this image, its editable draft, and saved history from this browser. Separate copies are kept."
           onClose={() => setDeleting(null)}
           closeDisabled={busy}
         >

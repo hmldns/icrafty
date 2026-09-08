@@ -52,10 +52,12 @@ test("undo, redo, clear, save, restore and reopen preserve editable geometry and
   await uploadImage(page);
   await drawLine(page);
   await page
-    .getByRole("button", { name: "Save revision", exact: true })
+    .getByRole("button", { name: "Update this image", exact: true })
     .click();
   await expect(
-    page.getByText("Revision 1 saved in this browser."),
+    page.getByText(
+      "Image updated in this browser. Previous saves are kept in history.",
+    ),
   ).toBeVisible();
   const initial = await databaseSnapshot(page);
   const sourceId = initial.sources[0]!.id;
@@ -77,10 +79,10 @@ test("undo, redo, clear, save, restore and reopen preserve editable geometry and
   await expect(page.getByTestId("mark-count")).toHaveText("0 marks");
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect(page.getByTestId("mark-count")).toHaveText("3 marks");
-  await page.getByText("Source & saved revisions").click();
+  await page.getByText("Source & saved history").click();
   await expect(page.getByTestId("source-id")).toHaveText(String(sourceId));
   await page
-    .getByLabel("Saved revision", { exact: true })
+    .getByLabel("Saved image history", { exact: true })
     .selectOption(String(revisionId));
   await page.getByRole("button", { name: "Restore marks" }).click();
   await expect(page.getByTestId("mark-count")).toHaveText("1 mark");

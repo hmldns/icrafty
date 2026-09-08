@@ -36,6 +36,12 @@ export interface SourceImage {
   blob: Blob;
   /** Optional additive metadata: existing IndexedDB v1 images remain readable. */
   model?: ModelProvenance;
+  /** Copies keep the original pixels and a durable link to their parent image. */
+  lineage?: {
+    rootSourceId: string;
+    parentSourceId: string;
+    parentRevisionId?: string;
+  };
 }
 export interface ImageDraft {
   sourceId: string;
@@ -54,6 +60,20 @@ export interface CollectionImage {
   source: SourceImage;
   draft: ImageDraft;
   revisions: RevisionInfo[];
+  /** Latest explicit save. Draft autosaves never replace this appearance. */
+  saved: Revision | null;
+}
+
+export type ImageSaveMode = "copy" | "update";
+export interface ImageSave {
+  sourceId: string;
+  history: EditHistory;
+  png: Blob;
+}
+export interface SavedImageResult {
+  image: CollectionImage;
+  /** Saving a copy transfers the working draft and resets its parent to its saved marks. */
+  parentDraft?: ImageDraft;
 }
 
 export const LIMITS = {

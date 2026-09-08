@@ -9,7 +9,7 @@ import { AnnotationEditor } from "../annotation/AnnotationEditor";
 import { Button, LoadingState, Notice } from "../../components/ui/primitives";
 import { ImageCollection } from "./ImageCollection";
 import { useCollection } from "./useCollection";
-import type { SourceImage } from "./types";
+import type { ImageSave, ImageSaveMode, SourceImage } from "./types";
 
 export interface ImageWorkspaceIntake {
   addImage: (source: SourceImage, openEditor: boolean) => Promise<void>;
@@ -24,6 +24,7 @@ export function ImageWorkspace({
 }) {
   const collection = useCollection();
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editorMessage, setEditorMessage] = useState("");
   const mounted = useRef(false);
   useEffect(() => {
     mounted.current = true;
@@ -37,10 +38,27 @@ export function ImageWorkspace({
   const addImage = useCallback(
     async (source: SourceImage, openEditor: boolean) => {
       await collection.add(source);
-      if (openEditor && mounted.current) setEditingId(source.id);
+      if (openEditor && mounted.current) {
+        setEditorMessage("");
+        setEditingId(source.id);
+      }
     },
     [collection.add],
   );
+  const saveImage = async (
+    input: ImageSave,
+    mode: ImageSaveMode,
+    signal: AbortSignal,
+  ) => {
+    const saved = await collection.saveImage(input, mode, signal);
+    if (mode === "copy" && mounted.current) {
+      setEditorMessage(
+        "Saved as a new image. You are editing the copy; the source image is unchanged.",
+      );
+      setEditingId(saved.source.id);
+    }
+    return saved;
+  };
   return (
     <div className="workspace">
       {children({ addImage, loading: collection.loading })}
@@ -68,7 +86,10 @@ export function ImageWorkspace({
       ) : (
         <ImageCollection
           images={collection.images}
-          onEdit={setEditingId}
+          onEdit={(id) => {
+            setEditorMessage("");
+            setEditingId(id);
+          }}
           onDelete={collection.remove}
         />
       )}
@@ -78,7 +99,8 @@ export function ImageWorkspace({
           image={editing}
           onClose={() => setEditingId(null)}
           onChange={collection.updateDraft}
-          onSave={collection.saveRevision}
+          onSave={saveImage}
+          initialMessage={editorMessage}
           pending={collection.pending > 0}
           storageError={collection.error}
         />

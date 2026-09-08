@@ -1,0 +1,18 @@
+.editor-actions.image-save-actions {
+  flex-wrap: wrap;
+}
+
+@media (max-width: 600px) {
+  .editor-actions.image-save-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+  .image-save-actions .button:first-child {
+    grid-column: 1 / -1;
+  }
+  .image-save-actions .button {
+    padding-inline: var(--space-2);
+    min-width: 0;
+  }
+}
