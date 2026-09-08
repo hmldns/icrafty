@@ -10,6 +10,8 @@ inline measurement forms. **Try the mug cap** creates a new repair, uploads the
 four supplied photographs through the ordinary image API, and sends the sample's
 repair question to the actual agent. Failed sends preserve their command identity
 and selected image references for an explicit retry.
+The main URL includes `?repair=<session-id>` so a review link opens that saved
+repair directly, independently of the browser's last selected conversation.
 
 `crafty_forms.request_dimensions` creates an inline `MeasurementItemView`. Its
 number/text inputs, caliper hints, units and referenced photos come from a validated

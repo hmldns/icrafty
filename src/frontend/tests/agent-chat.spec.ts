@@ -106,7 +106,7 @@ test("main repair surface sends sample photos and measurement answers in the rea
   await page.route("**/api/agent/samples", route => route.fulfill({ json: { samples: [sample] } }));
   await page.route("**/sample-*.png", route => route.fulfill({ body: file.buffer, contentType: "image/png" }));
   await page.goto("/");
-  await expect(page).toHaveURL("/");
+  await expect(page).toHaveURL("/?repair=a");
   await expect(page).toHaveTitle("icrafty · Your repairs");
   await expect(page.getByRole("complementary", { name: "Repairs" })).toBeVisible();
   await expect(page.getByRole("link", { name: "UI gallery", exact: true })).toHaveCount(0);
@@ -140,6 +140,8 @@ test("main repair surface sends sample photos and measurement answers in the rea
   app.emit("c", "record", { type: "message", id: "after-measurements", author: "crafty", origin: "agent", text: "I can now draft the cap with that fit.", imageIds: [] });
   app.finish("c");
   await expect(history(page).getByText("I can now draft the cap with that fit.", { exact: true })).toBeVisible();
+  await expect(page).toHaveURL("/?repair=c");
+  await page.evaluate(() => localStorage.clear());
   await page.reload();
   await expect(card.getByText("83.4 mm", { exact: true })).toBeVisible();
   await expect(history(page).getByText("Measurements submitted", { exact: true })).toHaveCount(1);

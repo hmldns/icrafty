@@ -12,6 +12,8 @@ export function AgentChat({ client = agentClient, product = false }: { client?: 
   const [sessions, setSessions] = useState<AgentSession[]>([]);
   const selectionKey = `crafty:agent:selected:${client.base}`;
   const [selected, setSelected] = useState<string | null>(() => {
+    const linked = product ? new URLSearchParams(window.location.search).get("repair") : null;
+    if (linked && /^[a-zA-Z0-9_-]{1,120}$/.test(linked)) return linked;
     try { return localStorage.getItem(selectionKey); } catch { return null; }
   });
   const [drafts, setDrafts] = useState<Record<string, AgentDraft>>({});
@@ -39,7 +41,12 @@ export function AgentChat({ client = agentClient, product = false }: { client?: 
   }, [client, product]);
   useEffect(() => {
     try { if (selected) localStorage.setItem(selectionKey, selected); } catch { /* Storage can be disabled. */ }
-  }, [selected, selectionKey]);
+    if (product && selected) {
+      const url = new URL(window.location.href);
+      url.searchParams.set("repair", selected);
+      window.history.replaceState(window.history.state, "", url);
+    }
+  }, [selected, selectionKey, product]);
   async function create() {
     setCreating(true); setError(null);
     try { const snapshot = await client.create(); updateSession(snapshot.session); setSelected(snapshot.session.id); }
