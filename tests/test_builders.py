@@ -1,0 +1,305 @@
+"""Real Git + real tmux integration tests with a deterministic Codex fixture."""
+
+from concurrent.futures import ThreadPoolExecutor
+import importlib.util
+import json
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+import unittest
+import uuid
+
+SOURCE = Path(__file__).resolve().parents[1]
+SCRIPT = SOURCE / "tools" / "builders.py"
+FAKE = SOURCE / "tests" / "fake_codex.py"
+spec = importlib.util.spec_from_file_location("builders", SCRIPT)
+builders = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(builders)
+
+
+@unittest.skipUnless(all(shutil.which(s) for s in ("tmux", "git", "uv")), "Git, tmux and uv required")
+class BuildersTest(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="builders test '")
+        self.root = Path(self.temp.name)
+        self.socket = "builders-test-" + uuid.uuid4().hex[:16]
+        self.git("init", "-b", "main")
+        self.git("config", "user.name", "Builder Test")
+        self.git("config", "user.email", "builder@example.invalid")
+        (self.root / "AGENTS.md").write_text("Shared project instructions.\n")
+        (self.root / "shared.txt").write_text("base\n")
+        self.git("add", "AGENTS.md", "shared.txt")
+        self.git("commit", "-m", "Baseline")
+        self.cli("init", "--socket", self.socket, "--codex-bin", str(FAKE))
+        self.p = builders.Project(self.root)
+
+    def tearDown(self):
+        subprocess.run(["tmux", "-L", self.socket, "kill-server"], capture_output=True)
+        self.temp.cleanup()
+
+    def git(self, *args, root=None, check=True):
+        result = subprocess.run(["git", "-C", str(root or self.root), *map(str, args)],
+                                capture_output=True, text=True, timeout=15)
+        if check:
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        return result.stdout.strip()
+
+    def cli(self, *args, code=0):
+        result = subprocess.run([sys.executable, str(SCRIPT), "--root", str(self.root), *map(str, args)],
+                                capture_output=True, text=True, timeout=15)
+        self.assertEqual(result.returncode, code, result.stdout + result.stderr)
+        if code == 0:
+            return json.loads(result.stdout)
+        return result
+
+    def until(self, predicate, timeout=8):
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            value = predicate()
+            if value:
+                return value
+            time.sleep(0.05)
+        self.fail("Condition did not become true before timeout")
+
+    def launch(self, name="alpha", scope="result.txt", mode="idle"):
+        w = self.cli("launch", name, "--role", "Narrow test worker", "--scope", scope,
+                     "--prompt", "TEST_MODE=" + mode)
+        if mode == "crash":
+            self.until(lambda: self.p.worker(name).get("alive") is False)
+        else:
+            self.until(lambda: "FAKE_CODEX_READY" in self.p.tmux(
+                "capture-pane", "-p", "-t", w["pane"]).stdout)
+        return self.p.worker(name)
+
+    def commit(self, w, path="result.txt", content="result\n"):
+        target = Path(w["worktree"]) / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content)
+        self.git("add", path, root=w["worktree"])
+        self.git("commit", "-m", "Worker change", root=w["worktree"])
+
+    def report(self, w, status="done", code=0):
+        return self.cli("report", w["name"], "--generation", w["generation"], "--status", status,
+                        "--summary", "Useful result", "--tests", "Validated fixture", code=code)
+
+    def test_launch_shared_instructions_and_local_configuration(self):
+        w = self.launch()
+        self.assertEqual(w["status"], "idle")
+        self.assertTrue(w["hooks_seen"])
+        self.assertEqual(w["thread_id"], "fake-alpha")
+        link = Path(w["worktree"]) / "AGENTS.override.md"
+        self.assertTrue(link.is_symlink())
+        self.assertEqual(link.resolve(), self.root / "AGENTS.md")
+        self.assertEqual(self.git("status", "--porcelain", root=w["worktree"]), "")
+        self.assertFalse((Path(w["worktree"]) / ".codex").exists())
+        args = json.loads((self.p.state / "workers/alpha/fake-argv.json").read_text())
+        self.assertIn("workspace-write", args)
+        self.assertFalse(any("dangerously" in a for a in args))
+        self.assertIn("assignment generation: 1", args[-1])
+        self.assertEqual(sum(a.startswith("hooks.") for a in args), len(builders.HOOKS))
+
+    def test_notify_fallback_and_deduplication(self):
+        w = self.launch()
+        events = self.p.events(all_events=True)
+        self.assertEqual(len([e for e in events if e["kind"] == "Stop"]), 1)
+        other = self.launch("other", mode="nohooks")
+        self.assertEqual(other["status"], "idle")
+        self.assertNotIn("hooks_seen", other)
+        self.assertEqual(w["status"], "idle")
+
+    def test_wait_wakes_after_report_and_requires_ack(self):
+        w = self.launch(mode="busy")
+        self.assertEqual(self.cli("inbox")["events"], [])
+        process = subprocess.Popen([sys.executable, str(SCRIPT), "--root", str(self.root),
+                                    "wait", "--timeout", "5", "--interval", "0.05"],
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        try:
+            time.sleep(0.15)
+            self.assertIsNone(process.poll())
+            self.report(w, "blocked")
+            stdout, stderr = process.communicate(timeout=6)
+            self.assertEqual(process.returncode, 0, stderr)
+            batch = json.loads(stdout)
+            self.assertEqual(batch["events"][0]["kind"], "blocked")
+            self.assertEqual(self.cli("wait", "--timeout", "0.1")["events"], batch["events"])
+            self.cli("ack", batch["through"])
+            self.cli("wait", "--timeout", "0.1", "--interval", "0.05", code=124)
+            self.assertTrue(self.cli("inbox", "--after", "0", "--all")["events"])
+        finally:
+            if process.poll() is None:
+                process.kill()
+            process.communicate()
+
+    def test_crash_and_missing_pane_are_reported_once(self):
+        crashed = self.launch(mode="crash")
+        self.assertEqual(crashed["status"], "error")
+        self.assertEqual(crashed["exit_code"], 23)
+        w = self.launch("vanished", mode="busy")
+        self.p.tmux("kill-pane", "-t", w["pane"])
+        self.cli("scan")
+        self.cli("scan")
+        events = self.p.events(all_events=True)
+        self.assertEqual(sum(e["kind"] == "exited" and e["worker"] == "vanished" for e in events), 1)
+        self.assertEqual(self.p.worker("vanished")["status"], "error")
+
+    def test_scan_handles_a_missing_server(self):
+        w = self.launch(mode="busy")
+        self.p.tmux("kill-server")
+        self.cli("scan")
+        self.assertFalse(self.p.worker(w["name"])["alive"])
+
+    def test_steering_is_literal_and_invalidates_completion(self):
+        w = self.launch()
+        self.report(w)
+        direction = "Keep `literal` and $(touch PWNED) intact.\nQuoted 'text'; ${HOME}"
+        self.cli("steer", w["name"], "--prompt", direction)
+        file = self.p.state / "workers" / w["name"] / "fake-input.txt"
+        self.until(lambda: file.exists() and direction in file.read_text())
+        self.until(lambda: self.p.worker(w["name"])["status"] == "idle")
+        self.assertIsNone(self.p.worker(w["name"])["reported_commit"])
+        self.assertFalse((Path(w["worktree"]) / "PWNED").exists())
+        self.cli("steer", w["name"], "--prompt", "bad\x1btext", code=1)
+
+    def test_dirty_and_stale_reports_cannot_merge(self):
+        w = self.launch()
+        (Path(w["worktree"]) / "result.txt").write_text("unfinished")
+        self.report(w, code=1)
+        self.commit(w)
+        self.report(w)
+        self.commit(w, content="new result")
+        self.cli("merge", w["name"], code=1)
+        self.assertFalse((self.root / "result.txt").exists())
+        self.report(w)
+        (self.root / "local.txt").write_text("Director work")
+        self.cli("merge", w["name"], code=1)
+        (self.root / "local.txt").unlink()
+        self.cli("merge", w["name"])
+        self.assertEqual((self.root / "result.txt").read_text(), "new result")
+
+    def test_scope_guards_and_successful_merge(self):
+        w = self.launch()
+        self.commit(w, path="outside.txt")
+        self.report(w)
+        self.cli("merge", w["name"], code=1)
+        merged = self.cli("merge", w["name"], "--allow-outside-scope")
+        self.assertEqual(merged["status"], "merged")
+        self.assertTrue((self.root / "outside.txt").exists())
+        self.assertEqual(len(self.git("rev-list", "--parents", "-n", "1", "HEAD").split()), 3)
+
+    def test_reuse_preserves_window_and_rejects_old_generation(self):
+        w = self.launch()
+        self.commit(w)
+        self.report(w)
+        self.cli("merge", w["name"])
+        current = self.cli("assign", w["name"], "--prompt", "Second narrow assignment", "--scope", "next.txt")
+        self.assertEqual(current["pane"], w["pane"])
+        self.assertEqual(current["thread_id"], w["thread_id"])
+        self.assertEqual(current["generation"], 2)
+        self.assertEqual(current["base"], self.git("rev-parse", "HEAD"))
+        self.report(w, code=1)
+        self.until(lambda: self.p.worker(w["name"])["status"] == "idle")
+        self.commit(current, "next.txt")
+        result = self.report(current)
+        self.assertEqual(result["files"], ["next.txt"])
+        self.cli("merge", w["name"])
+
+    def test_restart_preserves_work_and_ignores_stale_callbacks(self):
+        w = self.launch()
+        (Path(w["worktree"]) / "result.txt").write_text("In progress")
+        self.cli("stop", w["name"])
+        restarted = self.cli("restart", w["name"])
+        self.until(lambda: self.p.worker(w["name"])["status"] == "idle")
+        self.assertNotEqual(restarted["run_id"], w["run_id"])
+        self.assertEqual(restarted["pane"], w["pane"])
+        self.assertTrue((Path(w["worktree"]) / "result.txt").exists())
+        before = self.p.events(all_events=True)
+        builders.lifecycle(self.p, {"type": "agent-turn-complete", "turn-id": "late",
+                                   "thread-id": w["thread_id"]}, w["name"], w["run_id"])
+        self.assertEqual(self.p.events(all_events=True), before)
+
+    def test_conflicts_are_left_for_director_and_recoverable(self):
+        w = self.launch(scope="shared.txt")
+        self.commit(w, "shared.txt", "worker\n")
+        self.report(w)
+        (self.root / "shared.txt").write_text("director\n")
+        self.git("add", "shared.txt")
+        self.git("commit", "-m", "Director change")
+        self.cli("merge", w["name"], code=1)
+        self.assertIn("UU shared.txt", self.git("status", "--short"))
+        self.assertEqual(self.p.worker(w["name"])["status"], "done")
+        (self.root / "shared.txt").write_text("combined\n")
+        self.git("add", "shared.txt")
+        self.git("commit", "-m", "Resolve worker integration")
+        self.cli("merge", w["name"])
+        self.assertEqual(self.p.worker(w["name"])["status"], "merged")
+
+    def test_permission_hook_only_reports_never_approves(self):
+        w = self.launch()
+        output = builders.lifecycle(self.p, {"hook_event_name": "PermissionRequest",
+                                    "cwd": w["worktree"], "session_id": w["thread_id"],
+                                    "tool_name": "Bash", "tool_input": {"command": "do something"}})
+        self.assertEqual(output, {})
+        self.assertEqual(self.p.worker(w["name"])["status"], "needs_approval")
+        self.assertEqual(self.p.events()[-1]["kind"], "PermissionRequest")
+
+    def test_startup_prompt_wakes_before_hooks_are_available(self):
+        w = self.launch(mode="trust")
+        events = self.cli("wait", "--timeout", "1")["events"]
+        self.assertEqual(events[-1]["kind"], "needs_input")
+        self.assertEqual(self.p.worker(w["name"])["status"], "needs_input")
+        self.cli("scan")
+        self.assertEqual(sum(e["kind"] == "needs_input" for e in self.p.events()), 1)
+
+    def test_concurrent_reports_have_unique_durable_ids(self):
+        w = self.launch(mode="busy")
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            results = list(pool.map(lambda _: self.report(w, "progress"), range(12)))
+        ids = {r["event_id"] for r in results}
+        self.assertEqual(len(ids), 12)
+        self.assertEqual(ids, {r["id"] for r in self.p.events()})
+        self.cli("ack", max(ids) + 100, code=1)
+
+    def test_unrelated_panes_untouched_and_dead_panes_not_steered(self):
+        w = self.launch()
+        unrelated = self.p.tmux("new-window", "-d", "-P", "-F", "#{pane_id}",
+                                 "-t", "crafty-builders:", "-n", "unmanaged").stdout.strip()
+        self.cli("stop", w["name"])
+        self.assertIn(unrelated, self.p.panes())
+        self.until(lambda: self.p.panes()[w["pane"]]["dead"] == "1")
+        self.assertIn(w["pane"], self.p.panes())
+        self.assertEqual(self.p.tmux("show-option", "-w", "-v", "-t", w["window"],
+                                    "remain-on-exit").stdout.strip(), "on")
+        self.cli("steer", w["name"], "--prompt", "Hello", code=1)
+
+    def test_automatic_result_wakes_and_is_integratable(self):
+        w = self.launch(mode="auto")
+        self.assertEqual(w["status"], "done")
+        events = self.cli("wait", "--timeout", "0.1")["events"]
+        self.assertEqual([e["kind"] for e in events], ["done"])
+        self.cli("merge", w["name"])
+
+    def test_checkpoint_recovers_a_blocked_worker(self):
+        w = self.launch()
+        (Path(w["worktree"]) / "result.txt").write_text("reviewed result\n")
+        self.report(w, "blocked")
+        result = self.cli("checkpoint", w["name"], "-m", "Reviewed worker result")
+        self.assertEqual(result["dirty"], "")
+        self.assertEqual(result["files"], ["result.txt"])
+        self.report(w)
+        self.cli("merge", w["name"])
+
+    def test_monitor_recovers_without_duplicate_windows(self):
+        self.cli("monitor")
+        self.cli("monitor")
+        self.assertEqual(len(self.p.panes()), 1)
+        pane = next(iter(self.p.panes()))
+        self.p.tmux("kill-pane", "-t", pane)
+        self.cli("monitor")
+        self.assertEqual(len(self.p.panes()), 1)
+
+
+if __name__ == "__main__":
+    unittest.main()
