@@ -41,6 +41,7 @@ uses the same primitives as the image workspace.
 ```bash
 make frontend-check
 make frontend-build
+npm --prefix src/frontend run test:install  # once, to install the test browser
 make frontend-test
 make frontend-preview
 ```
