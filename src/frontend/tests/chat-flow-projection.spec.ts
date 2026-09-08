@@ -33,3 +33,19 @@ test("unknown, incomplete and invalid results retain a generic item without trea
     expect("tool" in item && item.tool).toBe(record);
   }
 });
+
+test("measurement guide decoding keeps legacy forms and unresolved fields available", () => {
+  const form = { view: "measurements", requestId: "form", title: "Measure the rim", caption: "Use your caliper.",
+    fields: [{ id: "inside", label: "A · Inside diameter", kind: "number", unit: "mm" }],
+    photos: [], status: "awaiting_answers", answers: {} };
+  const call: ToolCallRecord = { type: "tool_call", toolCallId: "measure", name: "measurements.request", title: form.title, status: "completed", rawOutput: form };
+  expect(projectToolCall(call, catalog)).toMatchObject({ type: "measurements", guides: [], fields: form.fields });
+  const ref = { assetId: "missing-guide", versionId: "1" };
+  const late = projectToolCall({ ...call, rawOutput: { ...form, guides: [{ image: ref, fieldIds: ["inside"] }] } }, catalog);
+  expect(late).toMatchObject({ type: "measurements", guides: [{ image: ref, photo: null, fieldIds: ["inside"] }], fields: form.fields });
+  for (const guides of [null, [{ image: ref, fieldIds: ["not-a-question"] }], [{ image: ref, fieldIds: [] }], [{ image: null, fieldIds: ["inside"] }]]) {
+    expect(projectToolCall({ ...call, rawOutput: { ...form, guides } }, catalog)).toMatchObject({ type: "measurements", guides: [], fields: form.fields });
+  }
+  // A missing original photograph must not remove an otherwise usable form either.
+  expect(projectToolCall({ ...call, rawOutput: { ...form, photos: [ref] } }, catalog)).toMatchObject({ type: "measurements", photos: [], fields: form.fields });
+});
