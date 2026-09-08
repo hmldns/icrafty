@@ -7,7 +7,10 @@ parallel assignment. These are technical delivery statements, not new product ru
 
 **REPAIR-1 — Main surface.** `/` opens the live repair workspace. Reuse the saved
 session, streaming timeline, image annotation, camera and download components.
-Use repair-oriented language and the full available viewport. The workshop and
+Use repair-oriented language and the full available viewport, with the logo and
+independently scrolling repair list on the left and the conversation on the right.
+Keep the composer visible at the bottom; narrow screens fold the list behind a
+repairs button above the conversation. The workshop and
 debug routes remain available independently. The current implementation uses
 one saved conversation per repair; multiple chats sharing one project remain later work.
 
