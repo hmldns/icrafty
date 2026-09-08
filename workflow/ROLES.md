@@ -6,8 +6,9 @@ context and engineering conventions belong in the root [AGENTS.md](../AGENTS.md)
 Read the [tooling guide](README.md) for commands and recovery procedures.
 
 Task-specific responsibilities can be supplied by a role profile, such as
-[Camera and annotation](roles/camera-annotation.md). The launch prompt names the
-assigned role and profile alongside its task and owned paths.
+[Camera and annotation](roles/camera-annotation.md) or
+[3D model viewer](roles/model-viewer.md). The launch prompt names the assigned
+role and profile alongside its task and owned paths.
 
 ## Director
 
