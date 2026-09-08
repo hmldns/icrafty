@@ -989,6 +989,15 @@
   .image-card .badge {
     font-size: 0.625rem;
   }
+  .image-card-download {
+    width: 100%;
+    margin-top: var(--space-3);
+    padding-inline: var(--space-1);
+    gap: var(--space-1);
+  }
+  .image-card .notice {
+    margin-top: var(--space-3);
+  }
   .collection-empty {
     border: 1px solid var(--color-line);
     border-radius: var(--radius-lg);
