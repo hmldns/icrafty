@@ -36,4 +36,4 @@ class Settings:
 
     def build_settings(self) -> dict:
         return {"units": "mm", "frame": "right-handed-Z-up", "bundle_version": 1,
-                "builder_version": "1"}
+                "builder_version": "2"}

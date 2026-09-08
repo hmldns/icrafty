@@ -1,0 +1,214 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "build_key": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "encoding": {
+      "const": "occt-brep-world-placement-v1"
+    },
+    "frame": {
+      "const": "right-handed-Z-up"
+    },
+    "frozen_files": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "media_type": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "path": {
+            "minLength": 1,
+            "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$",
+            "type": "string"
+          },
+          "sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "size_bytes": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "path",
+          "size_bytes",
+          "sha256",
+          "media_type"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "geometry_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "native": {
+      "additionalProperties": false,
+      "properties": {
+        "abi": {
+          "type": "string"
+        },
+        "executable": {
+          "type": "string"
+        },
+        "freecad": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "freecad_module": {
+          "type": "string"
+        },
+        "occt": {
+          "type": "string"
+        },
+        "python": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "freecad",
+        "occt",
+        "abi",
+        "executable",
+        "freecad_module",
+        "python"
+      ],
+      "type": "object"
+    },
+    "parts": {
+      "additionalProperties": {
+        "additionalProperties": false,
+        "properties": {
+          "features": {
+            "additionalProperties": {
+              "oneOf": [
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "index": {
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "sha256": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "type": "string"
+                    },
+                    "status": {
+                      "const": "ready"
+                    },
+                    "type": {
+                      "enum": [
+                        "Face",
+                        "Edge",
+                        "Vertex",
+                        "Wire",
+                        "Shell",
+                        "Solid"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "type",
+                    "index",
+                    "sha256"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "reason": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "const": "unavailable"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "reason"
+                  ],
+                  "type": "object"
+                }
+              ]
+            },
+            "propertyNames": {
+              "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "path": {
+            "minLength": 1,
+            "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$",
+            "type": "string"
+          },
+          "placement_matrix": {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 16,
+            "minItems": 16,
+            "type": "array"
+          },
+          "sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "size_bytes": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "path",
+          "size_bytes",
+          "sha256",
+          "placement_matrix",
+          "features"
+        ],
+        "type": "object"
+      },
+      "minProperties": 1,
+      "propertyNames": {
+        "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+        "type": "string"
+      },
+      "type": "object"
+    },
+    "provenance": {
+      "type": "object"
+    },
+    "schema_version": {
+      "const": 1,
+      "type": "integer"
+    },
+    "source_executions": {
+      "const": 1,
+      "type": "integer"
+    },
+    "units": {
+      "const": "mm"
+    }
+  },
+  "required": [
+    "schema_version",
+    "encoding",
+    "units",
+    "frame",
+    "native",
+    "parts",
+    "source_executions",
+    "geometry_digest"
+  ],
+  "type": "object"
+}

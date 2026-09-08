@@ -1,0 +1,13 @@
+[
+  {"id":"valid","kind":"validity","target":{"part":"cap"},"unit":"1","criterion":{"equals":true}},
+  {"id":"solids","kind":"solid_count","target":{"part":"cap"},"unit":"1","criterion":{"equals":1}},
+  {"id":"width","kind":"bbox_extent","target":{"part":"cap"},"axis":"x","unit":"mm","criterion":{"equals":40,"absolute_tolerance":0.001}},
+  {"id":"depth","kind":"bbox_extent","target":{"part":"cap"},"axis":"y","unit":"mm","criterion":{"equals":40,"absolute_tolerance":0.001}},
+  {"id":"height","kind":"bbox_extent","target":{"part":"cap"},"axis":"z","unit":"mm","criterion":{"equals":12,"absolute_tolerance":0.001}},
+  {"id":"bore","kind":"cylinder_diameter","target":{"part":"cap","feature":"bore"},"unit":"mm","criterion":{"equals":36,"absolute_tolerance":0.001}},
+  {"id":"roof","kind":"distance","target":{"part":"cap","feature":"inner_roof"},"other_target":{"part":"cap","feature":"outer_roof"},"unit":"mm","criterion":{"equals":2,"absolute_tolerance":0.001}},
+  {"id":"cavity","kind":"bbox_extent","target":{"part":"cap","feature":"bore"},"axis":"z","unit":"mm","criterion":{"equals":10,"absolute_tolerance":0.001}},
+  {"id":"volume","kind":"volume","target":{"part":"cap"},"unit":"mm^3","criterion":{"equals":4900.884539600077,"absolute_tolerance":0.001}},
+  {"id":"area","kind":"surface_area","target":{"part":"cap"},"unit":"mm^2","criterion":{"equals":5152.211951887261,"absolute_tolerance":0.001}},
+  {"id":"centroid","kind":"centroid","target":{"part":"cap"},"unit":"mm"}
+]
