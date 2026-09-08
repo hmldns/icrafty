@@ -153,8 +153,8 @@ export function DirectoryPage() {
             <div>
               <h3>The chat flow</h3>
               <p>
-                Explore a repair’s sample history. Choose image versions and try
-                an input with a little more context.
+                Follow a repair’s conversation. Open the camera, inspect an
+                image, and turn a model around right in the history.
               </p>
             </div>
             <div className="directory-card-bottom">

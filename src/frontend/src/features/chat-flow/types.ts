@@ -1,3 +1,5 @@
+import type { ChatModel, HistoryRecord } from "./historyTypes";
+
 /** Local presentation data. Asset identity and an image version are separate. */
 export interface VersionRef {
   readonly assetId: string;
@@ -10,6 +12,7 @@ export interface ImageVersion {
   readonly label: string;
   readonly imageSrc: string;
   readonly imageAlt: string;
+  readonly illustrative?: boolean;
   readonly note: string;
   readonly marks: readonly ("arrow" | "text" | "rectangle")[];
   readonly replaces?: VersionRef;
@@ -39,6 +42,7 @@ export interface PhotoAttachment extends VersionRef {
   readonly versionLabel: string;
   readonly imageSrc: string;
   readonly imageAlt: string;
+  readonly illustrative?: boolean;
 }
 
 export interface ChatInput {
@@ -46,27 +50,11 @@ export interface ChatInput {
   readonly attachments: readonly PhotoAttachment[];
 }
 
-export interface MessageEntry extends ChatInput {
-  readonly kind: "message";
-  readonly id: string;
-  readonly author: "you" | "crafty";
-  readonly origin: "fixture" | "local";
-}
-
-export interface CameraRunEntry {
-  readonly kind: "camera-run";
-  readonly id: string;
-  readonly title: string;
-  readonly caption: string;
-  readonly captures: readonly PhotoAttachment[];
-}
-
-export type HistoryEntry = MessageEntry | CameraRunEntry;
-
 export interface ChatFlowFixture {
   readonly title: string;
   readonly assets: readonly ChatAsset[];
-  readonly history: readonly HistoryEntry[];
+  readonly history: readonly HistoryRecord[];
+  readonly models: readonly ChatModel[];
   readonly initialSelection: VersionRef;
 }
 
@@ -92,6 +80,7 @@ export function snapshotVersion(
     versionLabel: version.label,
     imageSrc: version.imageSrc,
     imageAlt: version.imageAlt,
+    illustrative: version.illustrative,
   };
 }
 
