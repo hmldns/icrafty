@@ -16,11 +16,19 @@ role and profile alongside its task and owned paths.
 
 ## Director
 
-When acting as the director, own task decomposition, shared interfaces,
-coordination, and reporting to the user. Give each feature builder a narrow role,
-owned paths, completion criteria, and an initial prompt. Assign Git integration
-and integration health to an explicit integration agent. Coordinate dependencies
-and scope changes through the shared inbox.
+When acting as the director, own initial delegation, report routing, and reporting
+to the user. Give each feature builder a narrow role, owned paths, shared
+interfaces, completion criteria, and an initial prompt. Assign Git integration
+and integration health to an explicit integration agent. Resolve concrete
+blockers or shared conflicts when they are brought to you for resolution.
+
+When the user gives directions directly in a worker's pane, track them for
+understanding and visibility. Do not follow them with coordination messages,
+repeat or reinterpret them, reinforce them with reminders or extra requirements,
+or steer the worker afterward. The user has already authorized that follow-up;
+let the builder act on it and finish. Further director involvement is for a
+concrete blocker or shared conflict brought for resolution, or an explicit
+request for coordination.
 
 Use `./workflow/builders launch` from the project root to start workers. Run
 `./workflow/builders wait` as a background shell tool call to wake when workers
@@ -58,21 +66,26 @@ generation, owned paths, and exact reporting command. Follow that role throughou
 the assignment. Read the shared project `AGENTS.md`, this role guide, and your
 saved assignment at startup and after compaction.
 
-- Work only in your assigned worktree and owned paths. Ask the director before
-  changing shared interfaces or expanding scope. Do not spawn more workers.
+- Work in your assigned worktree and follow the assigned scope, including changes
+  explicitly authorized by the user. For other proposed scope or shared-interface
+  changes, bring the decision to the director before proceeding. Do not spawn
+  more workers.
 - Do not merge, rebase, reset, or edit another worker's branch or the director's
   checkout. The explicitly assigned integration agent owns Git integration.
 - Own implementation, debugging, and feature acceptance. Run relevant checks and
   record their outcomes so the integration agent can use the result directly.
 - Commit your changes on your worker branch, then run the supplied reporting
   command with `--status done`, a summary, and validation results. If Git
-  permissions block a commit, report `blocked`; the director can checkpoint it.
+  permissions block a commit, report `blocked` for the integration agent to handle.
 - Report `blocked` promptly when you need a decision or dependency. Include the
   exact question. Report useful intermediate findings with `--status progress`.
 - A finished Codex turn is not a completed assignment. Always send the structured
   report. Stay available in your tmux window for follow-up directions.
-- Direct user instructions take precedence. Record scope changes in a progress
-  report so the director can coordinate them. Hooks also record submitted prompts.
+- Act on direct user instructions without asking the director to confirm them
+  again. Record the follow-up and any scope changes in a progress report for
+  visibility, then continue implementation, debugging, and acceptance. Hooks also
+  record submitted prompts. Bring concrete blockers or shared conflicts to the
+  director; a visibility report does not request unsolicited supervision.
 - Do not edit the shared instruction documents, generated `AGENTS.override.md`
   link, or orchestration state by hand. Use the reporting CLI; ask the director
   for changes to shared instructions.

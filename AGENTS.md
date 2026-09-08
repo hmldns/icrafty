@@ -70,17 +70,15 @@ the command, outcome, and any untested capability. Preserve unrelated edits.
 
 ## Delegated development workflow
 
-When assigned a director or worker role, read [WORKFLOW.md](WORKFLOW.md),
-[role instructions](workflow/ROLES.md), and the [operating guide](workflow/README.md).
-The director assigns narrow owned paths, interfaces, and completion criteria;
-workers use separate Git worktrees and retained tmux windows. Launches start from
-committed HEAD, so specifications needed by a worker must be in its baseline.
+When assigned a director, builder, or integration role, follow the canonical
+[role instructions](workflow/ROLES.md), [navigation](WORKFLOW.md), and
+[operating guide](workflow/README.md). Builders own implementation, debugging, and
+acceptance, and act on direct user instructions without director reconfirmation.
+The director tracks those instructions for understanding without follow-up
+steering; it owns initial delegation, report routing, and concrete blockers/shared
+conflicts brought for resolution. The dedicated integration agent owns
+exact-commit merges and integration health; only one agent operates the main index.
 
-Builders own implementation, debugging, and feature acceptance. They follow their
-saved assignment, commit, and report through the supplied command. The director
-coordinates dependencies and scope, then routes completed reports to the assigned
-integration agent. That agent owns merges of reported commits and integration
-health; only one agent operates the main index at a time. The director reports
-progress to the user without duplicating builder acceptance or integration work.
-Use the workflow CLI for coordination state and keep configuration local to the
-project. Reading this guidance does not launch workers.
+Workers use separate Git worktrees and retained tmux windows. Launches start from
+committed HEAD, so needed specifications belong in that baseline. Use the workflow
+CLI and project-local configuration. Reading this guidance does not launch workers.

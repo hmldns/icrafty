@@ -8,9 +8,12 @@ The director works in the main checkout. Narrow, persistent workers run interact
 Codex in separate Git worktrees and tmux windows in **`crafty-builders`**. The user
 can enter any window and give directions. A single durable inbox returns their
 reports, questions, lifecycle events, and failures to the director. Builders own
-implementation and acceptance. The director coordinates their work and routes
-completed reports to the assigned [integration agent](roles/integration.md), which
-owns Git handoff and combined runtime health in the main checkout.
+implementation, debugging, and acceptance. The director handles initial
+delegation, routes reports, and resolves concrete blockers or shared conflicts
+brought for resolution. Direct user instructions to a worker are tracked for
+understanding; they do not trigger follow-up supervision or steering. The assigned
+[integration agent](roles/integration.md) owns exact-commit Git handoff and combined
+runtime health in the main checkout. [ROLES.md](ROLES.md) is the canonical process.
 
 ```mermaid
 flowchart LR
@@ -131,7 +134,7 @@ access isolation. Workers share the Git object database and coordination state.
 ```bash
 tmux attach-session -t crafty-builders
 ./workflow/builders attach api-health
-./workflow/builders steer api-health --prompt 'Keep the response schema unchanged; add the timeout case to validation.'
+./workflow/builders steer api-health --prompt 'Resolve the reported retry-policy blocker using the existing bounded retry setting.'
 ```
 
 `attach` selects the worker from inside tmux, or attaches from an ordinary terminal.
@@ -142,9 +145,14 @@ an in-progress tool. Avoid submitting through the CLI while you are editing a
 draft in that same worker's input field.
 
 When trusted hooks are active, direct TUI prompts are recorded in the central
-inbox and invalidate an older completion report. Workers also report scope
-changes to the director. Use `steer` for revisions to the current assignment;
-use `assign` after integration for the next assignment.
+inbox and invalidate an older completion report. Workers act on user-authorized
+follow-ups without reconfirming them with the director and report changes for
+visibility. The director reads these records for understanding, then lets the
+builder finish; it does not echo, reinterpret, reinforce, or follow the user's
+instructions with steering. Use `steer` for explicitly requested coordination or
+resolution of a concrete reported blocker/shared conflict, and `assign` after
+integration for a new delegation. A hook or visibility report alone is not a
+reason to send directions.
 
 ## Reporting and waking the director
 
@@ -264,8 +272,10 @@ both roles operate the main index or repeat the builder's acceptance work.
 `merge` requires a done report, a clean worker tree at the reported commit, and
 a clean director checkout on the configured director branch. It checks that the
 worker's history still descends from its assignment base. It rejects changes
-outside owned paths unless `--allow-outside-scope` is supplied. Coordinate a scope
-exception with the director before the integration agent uses it.
+outside owned paths unless `--allow-outside-scope` is supplied. A scope change
+explicitly authorized by the user is already actionable; record that authorization
+in the handoff without asking the director to confirm it again. Bring other scope
+exceptions or concrete shared conflicts to the director for resolution.
 
 Integration uses a normal Git merge of the **reported commit ID**, with
 `--no-ff --no-edit`; the tool never substitutes a moving branch tip. The assigned
