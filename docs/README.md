@@ -4,6 +4,8 @@ Start with the document for the decision you are making. Requirement inventories
 use stable paragraph identifiers with their own counters; proposed details are
 reviewable design, not a claim that a service exists.
 
+- [SUBMISSION-FORM.md](SUBMISSION-FORM.md) — project description, public repository,
+  and submission materials.
 - [PRD.md](PRD.md) — product behavior, user flow, and outcomes.
 - [TRD.md](TRD.md) — system implementation, isolation, state, and integration gates.
 - [M-ACP.md](M-ACP.md) — reusable Codex ACP/image/MCP integration and live debug stage.
