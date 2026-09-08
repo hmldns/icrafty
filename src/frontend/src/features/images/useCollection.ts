@@ -1,17 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  addRevision,
   addSource,
   deleteSource,
   loadCollection,
   putDraft,
+  saveImage as persistImageSave,
 } from "./storage";
 import { errorMessage } from "./imageIO";
 import type {
   CollectionImage,
   EditHistory,
   ImageDraft,
-  Revision,
+  ImageSave,
+  ImageSaveMode,
   SourceImage,
 } from "./types";
 
@@ -22,6 +23,7 @@ export function useCollection() {
   const [pending, setPending] = useState(0);
   const mounted = useRef(false);
   const draftsToSave = useRef(new Map<string, ImageDraft>());
+  const draftWrites = useRef(new Map<string, Promise<void>>());
   const saving = useRef(0);
 
   const reload = useCallback(async () => {
@@ -69,8 +71,10 @@ export function useCollection() {
   const persistDraft = useCallback(async (draft: ImageDraft) => {
     saving.current += 1;
     if (mounted.current) setPending(saving.current);
+    const writing = putDraft(draft);
+    draftWrites.current.set(draft.sourceId, writing);
     try {
-      await putDraft(draft);
+      await writing;
       if (draftsToSave.current.get(draft.sourceId) === draft)
         draftsToSave.current.delete(draft.sourceId);
       if (mounted.current && draftsToSave.current.size === 0) setError("");
@@ -78,6 +82,8 @@ export function useCollection() {
       if (mounted.current)
         setError(`Edits are in memory only. ${errorMessage(cause)}`);
     } finally {
+      if (draftWrites.current.get(draft.sourceId) === writing)
+        draftWrites.current.delete(draft.sourceId);
       saving.current -= 1;
       if (mounted.current) setPending(saving.current);
     }
@@ -102,27 +108,35 @@ export function useCollection() {
   const retryDrafts = useCallback(() => {
     for (const draft of draftsToSave.current.values()) void persistDraft(draft);
   }, [persistDraft]);
-  const saveRevision = useCallback(async (revision: Revision) => {
-    await addRevision(revision);
-    if (mounted.current)
-      setImages((current) =>
-        current.map((image) =>
-          image.source.id === revision.sourceId
-            ? {
-                ...image,
-                revisions: [
-                  ...image.revisions,
-                  {
-                    id: revision.id,
-                    sourceId: revision.sourceId,
-                    createdAt: revision.createdAt,
-                  },
-                ],
-              }
-            : image,
-        ),
-      );
-  }, []);
+  const saveImage = useCallback(
+    async (input: ImageSave, mode: ImageSaveMode, signal?: AbortSignal) => {
+      saving.current += 1;
+      if (mounted.current) setPending(saving.current);
+      try {
+        // Finish older autosaves before an atomic save can restore a parent draft.
+        await draftWrites.current.get(input.sourceId)?.catch(() => undefined);
+        const saved = await persistImageSave(input, mode, signal);
+        draftsToSave.current.delete(input.sourceId);
+        if (mounted.current) {
+          setImages((current) => {
+            const updated = current.map((image) => {
+              if (image.source.id === saved.image.source.id) return saved.image;
+              if (image.source.id === saved.parentDraft?.sourceId)
+                return { ...image, draft: saved.parentDraft };
+              return image;
+            });
+            return mode === "copy" ? [saved.image, ...updated] : updated;
+          });
+          if (!draftsToSave.current.size) setError("");
+        }
+        return saved.image;
+      } finally {
+        saving.current -= 1;
+        if (mounted.current) setPending(saving.current);
+      }
+    },
+    [],
+  );
 
   return {
     images,
@@ -132,7 +146,7 @@ export function useCollection() {
     add,
     remove,
     updateDraft,
-    saveRevision,
+    saveImage,
     reload,
     retryDrafts,
     unsaved: draftsToSave.current.size > 0,

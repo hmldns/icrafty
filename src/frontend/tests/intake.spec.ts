@@ -31,10 +31,12 @@ test("drop and paste add local images; deletion removes the source, draft and re
   ).toBeEnabled();
   await drawLine(page);
   await page
-    .getByRole("button", { name: "Save revision", exact: true })
+    .getByRole("button", { name: "Update this image", exact: true })
     .click();
   await expect(
-    page.getByText("Revision 1 saved in this browser."),
+    page.getByText(
+      "Image updated in this browser. Previous saves are kept in history.",
+    ),
   ).toBeVisible();
   await page.getByRole("button", { name: "Close Annotate image" }).click();
 

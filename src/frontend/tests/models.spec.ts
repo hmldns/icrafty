@@ -168,10 +168,12 @@ test("frozen model pixels and provenance enter shared annotation, unsaved PNG do
   expect(edited.digest).not.toBe(frozenPixels.digest);
   expect((await databaseSnapshot(page)).revisions).toHaveLength(0);
   await page
-    .getByRole("button", { name: "Save revision", exact: true })
+    .getByRole("button", { name: "Update this image", exact: true })
     .click();
   await expect(
-    page.getByText("Revision 1 saved in this browser."),
+    page.getByText(
+      "Image updated in this browser. Previous saves are kept in history.",
+    ),
   ).toBeVisible();
   await page.getByRole("button", { name: "Close Annotate image" }).click();
   await primary.getByRole("button", { name: "Bottom", exact: true }).click();
