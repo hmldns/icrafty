@@ -17,6 +17,7 @@ for (const name of [
   );
 process.env.CRAFTY_MODEL_ROOT = fileURLToPath(root);
 const server = await createServer({
+  cacheDir: "node_modules/.vite-tests",
   server: {
     host: "127.0.0.1",
     port: Number(process.env.CRAFTY_TEST_PORT ?? 5287),

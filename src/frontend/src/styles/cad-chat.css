@@ -4,6 +4,8 @@
 .cad-progress > .button { margin-left: auto; }
 .cad-images { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: var(--space-3); }
 .cad-image { min-width: 0; margin: 0; border: 1px solid var(--color-line); border-radius: var(--radius-sm); overflow: hidden; }
+.cad-image--grid { grid-column: 1 / -1; }
+.cad-image--grid .chat-inline-image img { height: auto; max-height: 640px; }
 .cad-view-title { display: flex; justify-content: space-between; gap: var(--space-2); padding: var(--space-2) var(--space-3); background: var(--color-soft); overflow-wrap: anywhere; }
 .cad-view-title > span { font-size: .6875rem; color: var(--color-muted); }
 .cad-image figcaption { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); padding: var(--space-2); }

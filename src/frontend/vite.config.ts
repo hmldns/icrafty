@@ -7,6 +7,7 @@ const agentProxy = { "/api/agent": { target: process.env.CRAFTY_AGENT_URL ?? "ht
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), modelCatalogPlugin()],
+  optimizeDeps: { include: ["occt-import-js", "three/addons/loaders/STLLoader.js"] },
   worker: { format: "es" },
   server: { host: "127.0.0.1", port: 5187, strictPort: true, proxy: agentProxy },
   preview: { host: "127.0.0.1", port: 4187, strictPort: true, proxy: agentProxy },

@@ -21,7 +21,7 @@ function Download({ file, label }: { file: CadFile; label?: string }) {
 function CadImage({ output, actions }: { output: CadOutput; actions: ItemActions }) {
   const photo = output.photo;
   const attached = photo && actions.attachments.some(item => sameVersion(photo, item));
-  return <figure className="cad-image">
+  return <figure className={`cad-image${output.views.length > 1 ? " cad-image--grid" : ""}`}>
     <div className="cad-view-title">{output.id}{output.annotations.inline && <span>Labels on image</span>}</div>
     {photo ? <button type="button" className="chat-inline-image" onClick={() => actions.inspect(photo)} aria-label={`Inspect ${photo.assetTitle}`}>
       <ImagePreview key={photo.imageSrc} src={photo.imageSrc} alt={photo.imageAlt} />
