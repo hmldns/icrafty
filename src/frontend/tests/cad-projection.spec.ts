@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { projectToolCall } from "../src/features/chat-flow/projectHistory";
 import { projectAgentSnapshot } from "../src/features/agent-chat/projection";
 import type { AgentSnapshot } from "../src/features/agent-chat/types";
+import { collectCadRevisions } from "../src/features/cad-chat/revisions";
 import { cadRecord, cadResult } from "./cad-fixture";
 
 const catalog = { assets: [], models: [], sessionId: "chat-a" };
@@ -69,9 +70,24 @@ test("ready STEP replaces only matching raster projections while preserving agen
   expect(items.filter(item => item.type === "image").map(item => item.title)).toEqual(["sketch"]);
   const user = items.find(item => item.type === "message");
   expect(user?.type === "message" && user.attachments).toHaveLength(1);
-  expect(items.at(-1)?.type).toBe("model"); // Remains reviewable during the next turn.
+  expect(items.at(-1)?.type).toBe("message");
+  expect(items.some(item => item.type === "model")).toBe(false);
+  const revisions = collectCadRevisions(items);
+  expect(revisions.map(revision => revision.number)).toEqual([2, 1]);
+  expect(revisions.find(revision => revision.number === 1)?.model?.id).toBe(file.id);
+  expect(revisions.find(revision => revision.number === 2)?.model).toBeNull();
   expect(JSON.stringify(snapshot)).toBe(original);
   const pngOnly = projectAgentSnapshot({ ...snapshot, records: snapshot.records.filter(item => item !== snapshot.records[4]) });
   expect(pngOnly.filter(item => item.type === "image")).toHaveLength(2);
   expect(pngOnly.some(item => item.type === "model")).toBe(false);
+});
+
+test("revision list retains its STEP across evidence-only and failed follow-ups", () => {
+  const items = [cadRecord(base), cadRecord(cadResult({ operationId: "later-query", operationKind: "evidence", status: "completed" })),
+    cadRecord(cadResult({ operationId: "failed-query", operationKind: "evidence", status: "failed" }))]
+    .map(record => projectToolCall(record, catalog));
+  const revisions = collectCadRevisions(items);
+  expect(revisions).toHaveLength(1);
+  expect(revisions[0]?.model?.id).toBe(file.id);
+  expect(revisions[0]?.item.id).toBe(`tool-cad:${base.operationId}`);
 });

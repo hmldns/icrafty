@@ -150,6 +150,8 @@ test("CAD STEP opens inline automatically, survives progress, downloads and rele
   await page.goto("/");
   const card = page.getByRole("article", { name: "Cylinder evidence", exact: true });
   await expect(card.locator('.chat-inline-model')).toHaveAttribute("data-state", "ready", { timeout: 30_000 });
+  const panel = page.getByRole("complementary", { name: "Model revisions", exact: true });
+  await expect(panel.locator('.chat-inline-model')).toHaveAttribute("data-state", "ready", { timeout: 30_000 });
   await expect(card.getByRole("button", { name: "Close 3D preview", exact: true })).toHaveAttribute("aria-expanded", "true");
   const initialLoads = loads; // React StrictMode may abort and remount the initial effect.
   await card.locator('canvas').evaluate(canvas => canvas.setAttribute('data-retained', 'yes'));
@@ -177,14 +179,17 @@ test("CAD STEP opens inline automatically, survives progress, downloads and rele
   await expect(card.locator('.chat-inline-model')).toHaveAttribute("data-state", "ready", { timeout: 30_000 });
   await card.locator('.chat-interaction-toggle').click();
   await expect(card.locator('canvas')).toHaveCount(0);
-  // The final reply can follow many image/tool records; keep the real model at
-  // the end of the conversation without asking the agent to republish anything.
+  // History keeps its original order; the side panel supplies persistent access.
   app.emit("a", "record", { type: "message", id: "model-ready", author: "crafty", origin: "agent",
     text: "The existing model is ready.", imageIds: [] });
-  const viewer = page.getByRole("article", { name: "3D model", exact: true });
+  await expect(history(page).locator(':scope > li').last()).toContainText("The existing model is ready.");
+  await expect(history(page).locator('.chat-model-item')).toHaveCount(0);
+  await expect(panel.getByRole("link", { name: "Download STEP", exact: true })).toHaveAttribute("download", file.filename);
+  await panel.getByRole("button", { name: "Enlarge preview", exact: true }).click();
+  const viewer = page.getByRole("dialog", { name: "3D model preview", exact: true });
   await expect(viewer.locator('.chat-inline-model')).toHaveAttribute("data-state", "ready", { timeout: 30_000 });
-  await expect(page.getByRole("list", { name: "Chat history", exact: true }).locator(':scope > li').last()).toContainText("3D model");
-  await expect(viewer.getByRole("link", { name: "Download STEP", exact: true })).toHaveAttribute("download", file.filename);
+  expect((await viewer.boundingBox())!.width).toBeGreaterThan((await panel.boundingBox())!.width * 2);
+  await expect(panel.locator('canvas')).toHaveCount(0);
   const canvas = viewer.locator('canvas');
   const initialView = await canvas.screenshot();
   await viewer.getByRole("button", { name: "Side", exact: true }).click();
@@ -196,6 +201,57 @@ test("CAD STEP opens inline automatically, survives progress, downloads and rele
   await page.mouse.move(bounds.x + bounds.width * .65, bounds.y + bounds.height * .7, { steps: 8 });
   await page.mouse.up();
   await expect.poll(async () => (await canvas.screenshot()).equals(sideView)).toBe(false);
+  await page.keyboard.press("Escape");
+  await expect(viewer).toHaveCount(0);
+  await expect(panel.getByRole("button", { name: "Enlarge preview", exact: true })).toBeFocused();
+  await expect(panel.locator('.chat-inline-model')).toHaveAttribute("data-state", "ready", { timeout: 30_000 });
+  await panel.getByRole("button", { name: "Show in chat", exact: true }).click();
+  await expect(card.locator('.chat-interaction-toggle')).toHaveAttribute("aria-expanded", "true");
+  await expect(card.locator('.chat-inline-model')).toHaveAttribute("data-state", "ready", { timeout: 30_000 });
+  expect(app.commands.filter(command => command.action === "messages")).toHaveLength(0);
+});
+
+test("revision panel groups exports, keeps the selected revision and works on a small screen", async ({ page }) => {
+  const app = await harness(page);
+  const bytes = await readFile("tooling/models/rounded-cube.step");
+  const sha256 = createHash("sha256").update(bytes).digest("hex");
+  await page.route("**/cad/artifacts/revision-*.step*", route => route.fulfill({ body: bytes, contentType: "model/step" }));
+  const revision = (number: number, operationId: string) => {
+    const url = `/api/agent/sessions/a/cad/artifacts/revision-${number}.step`;
+    const file = { id: `revision-${number}.step`, url, downloadUrl: `${url}?download=true`, filename: `cap-v${number}.step`,
+      format: "step", mediaType: "model/step", sizeBytes: bytes.length, sha256 };
+    return cadResult({ operationId, title: `Cap draft ${number}`, status: "completed", phase: "published",
+      revision: { id: `revision-${number}`, number },
+      outputs: [{ id: "solid", kind: "step", status: "ready", file }],
+      requestedOutputs: [{ id: "solid", kind: "step", parts: ["body"] }], downloads: [file],
+      model: { ...file, revisionId: `revision-${number}`, geometryDigest: "c".repeat(64), units: "mm", frame: "right-handed-z-up" } });
+  };
+  app.emit("a", "record", cadRecord(revision(1, "first")));
+  app.emit("a", "record", cadRecord({ ...revision(1, "export-again"), operationKind: "evidence", title: "Another export" }));
+  app.emit("a", "record", cadRecord(revision(2, "second")));
+  await page.goto("/");
+  const panel = page.getByRole("complementary", { name: "Model revisions", exact: true });
+  const list = panel.getByRole("list", { name: "Saved model revisions", exact: true });
+  await expect(list.getByRole("listitem")).toHaveCount(2);
+  await expect(list.getByRole("button", { name: /Revision 2/ })).toHaveAttribute("aria-pressed", "true");
+  await list.getByRole("button", { name: /Revision 1/ }).click();
+  await expect(panel.getByRole("link", { name: "Download STEP", exact: true })).toHaveAttribute("download", "cap-v1.step");
+  app.emit("a", "record", cadRecord(revision(3, "third")));
+  await expect(list.getByRole("listitem")).toHaveCount(3);
+  await expect(list.getByRole("button", { name: /Revision 1/ })).toHaveAttribute("aria-pressed", "true");
+  await expect(list.getByRole("button", { name: /Revision 3/ })).toContainText("Latest");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(list).not.toBeVisible();
+  await panel.getByRole("button", { name: "Show revisions", exact: true }).click();
+  await expect(list).toBeVisible();
+  await panel.getByRole("button", { name: "Enlarge preview", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "3D model preview", exact: true });
+  await dialog.getByRole("combobox", { name: "Preview revision", exact: true }).selectOption("revision-2");
+  await expect(dialog.locator('.chat-inline-model')).toHaveAttribute("data-state", "ready", { timeout: 30_000 });
+  await expect(dialog.getByRole("link", { name: "Download STEP", exact: true })).toHaveAttribute("download", "cap-v2.step");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+  await page.keyboard.press("Escape");
+  await expect(list.getByRole("button", { name: /Revision 2/ })).toHaveAttribute("aria-pressed", "true");
   expect(app.commands.filter(command => command.action === "messages")).toHaveLength(0);
 });
 

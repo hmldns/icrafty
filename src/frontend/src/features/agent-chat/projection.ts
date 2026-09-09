@@ -51,14 +51,6 @@ export function projectAgentSnapshot(snapshot: AgentSnapshot) {
     }
     return [item];
   });
-  const latest = withModels.at(-1);
-  // Keep the existing model accessible at the end while the agent works too.
-  // This is a view of a published artifact, not another submission/tool call.
-  if (latest?.result.model) {
-    visible.push({ type: "model", id: `current-model-${latest.result.model.id}`, title: "3D model",
-      summary: `Revision ${latest.result.revision?.number} · Interactive STEP`,
-      caption: latest.result.model.name, model: latest.result.model, tool: latest.tool });
-  }
   return visible;
 }
 

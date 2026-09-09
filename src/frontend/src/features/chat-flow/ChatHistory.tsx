@@ -6,10 +6,11 @@ import { ChatCamera } from "./ChatCamera";
 import type { HistoryItem } from "./historyTypes";
 
 /** Timeline knows order and expansion, while the injected registry owns item presentation. */
-export function ChatHistory({ items, itemRenderer, actions }: {
+export function ChatHistory({ items, itemRenderer, actions, reveal }: {
   items: readonly HistoryItem[];
   itemRenderer: ItemRendererResolver;
   actions: ItemActions;
+  reveal?: { id: string; request: number } | null;
 }) {
   const scroll = useRef<HTMLDivElement>(null);
   const lastUserMessage = [...items].reverse().find(item => item.type === "message" && item.author === "you");
@@ -23,6 +24,17 @@ export function ChatHistory({ items, itemRenderer, actions }: {
     if (!awayFromEnd || lastUserMessage?.id !== lastUserId.current) jumpToEnd();
     lastUserId.current = lastUserMessage?.id;
   }, [items, awayFromEnd, lastUserMessage?.id]);
+
+  useEffect(() => {
+    if (!reveal) return;
+    setExpanded(current => ({ ...current, [reveal.id]: true }));
+    setAwayFromEnd(true);
+    const frame = requestAnimationFrame(() => {
+      scroll.current?.querySelector<HTMLElement>(`[data-history-id="${CSS.escape(reveal.id)}"]`)
+        ?.scrollIntoView({ block: "start", behavior: "smooth" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [reveal]);
 
   function expandAll(value: boolean) {
     setExpanded(Object.fromEntries(items.map((item) => [item.id, value])));
@@ -52,7 +64,7 @@ export function ChatHistory({ items, itemRenderer, actions }: {
             const content = renderer.render(item, actions);
             const isExpanded = expanded[item.id] ?? (item.type === "thought" ? !!item.streaming : renderer.initiallyExpanded);
             return (
-              <li key={item.id} className={`chat-entry chat-entry--${renderer.variant}`}>
+              <li key={item.id} data-history-id={item.id} className={`chat-entry chat-entry--${renderer.variant}`}>
                 {renderer.variant === "interaction" && item.type !== "message" ? (
                   <InteractionItemFrame
                     item={item} icon={renderer.icon} label={renderer.label}

@@ -13,6 +13,8 @@ import type { AgentDraft, AgentImage, AgentSession } from "./types";
 import { useAgentSession } from "./useAgentSession";
 import { useDraftPhotos } from "./useDraftPhotos";
 import { AgentActivity } from "./AgentActivity";
+import { CadRevisionPanel } from "../cad-chat/CadRevisionPanel";
+import { collectCadRevisions } from "../cad-chat/revisions";
 
 /** Real application component. The route supplies the client and selected session. */
 export function AgentConversation({ client, id, draft, onDraftChange, onSessionChange, product = false }: {
@@ -28,11 +30,13 @@ export function AgentConversation({ client, id, draft, onDraftChange, onSessionC
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [controlling, setControlling] = useState(false);
+  const [historyReveal, setHistoryReveal] = useState<{ id: string; request: number } | null>(null);
   const submission = useRef<{ input: string; id: string } | null>(null);
   const publishedEdits = useRef(new Map<string, string>());
   const state = flow.snapshot?.session;
   useEffect(() => { if (state) onSessionChange(state); }, [state, onSessionChange]);
   const items = useMemo(() => flow.snapshot ? projectAgentSnapshot(flow.snapshot) : [], [flow.snapshot]);
+  const revisions = useMemo(() => collectCadRevisions(items), [items]);
   const images = flow.snapshot?.assets ?? [];
   const photos = useDraftPhotos(images, draft);
   const busy = !!state?.activeTurnId;
@@ -118,12 +122,13 @@ export function AgentConversation({ client, id, draft, onDraftChange, onSessionC
     {(flow.error || state?.error) && <Notice tone="error">{flow.error || state?.error}</Notice>}
     {state?.turnStatus === "interrupted" && !state.error && <Notice>The previous turn was interrupted. Send a new message to continue.</Notice>}
     <PermissionRequests requests={state?.permissions ?? []} onAnswer={(pid, option) => void control(() => client.permission(id, pid, option))} />
+    <div className={`agent-workfield${revisions.length ? " agent-workfield--models" : ""}`}>
     <Card className="chat-surface">
       {items.length === 0 && <div className="agent-welcome"><p className="eyebrow">A fresh conversation</p><h3>Show it. Describe it. Make a draft.</h3>
         <p>{product ? "Show the part you want to fix. We’ll work out the shape and measurements together." : "Attach a photo or ask Codex for an image. Generated images become part of this chat."}</p>
         <div className="row"><Button size="small" onClick={() => setLibrary(true)}>Add a photo</Button><Button size="small" variant="ghost"
           onClick={() => onDraftChange(current => ({ ...current, text: "Generate a simple concept sketch of a replacement mug cap and publish the image here." }))}>Start with a cap sketch</Button></div></div>}
-      <ChatHistory items={items} itemRenderer={chatItemRenderer} actions={actions} />
+      <ChatHistory items={items} itemRenderer={chatItemRenderer} actions={actions} reveal={historyReveal} />
       {busy && <AgentActivity status={state?.turnStatus} />}
       <ChatComposer text={draft.text} attachments={photos} disabled={busy || sending || uploading || controlling || !!editingImage}
         hint={busy ? "You can prepare your next message while we work" : uploading ? "Saving images…" : product ? "Share a photo, a measurement, or an idea · Shift + Enter for a new line" : "Images are sent to Codex · Shift + Enter for a new line"}
@@ -137,6 +142,9 @@ export function AgentConversation({ client, id, draft, onDraftChange, onSessionC
         onBrowseAssets={() => setLibrary(true)} onSubmit={() => void send()} onPasteImages={files => void upload(files)}
         onCancel={busy && !controlling ? () => void control(() => client.cancel(id)) : undefined} />
     </Card>
+    {revisions.length > 0 && <CadRevisionPanel revisions={revisions} actions={actions}
+      onShowHistory={itemId => setHistoryReveal(current => ({ id: itemId, request: (current?.request ?? 0) + 1 }))} />}
+    </div>
     {editingImage && <DraftImageEditor key={editingImage.id} image={editingImage} edit={draft.edits?.[editingImage.id]}
       onClose={() => setEditingImage(null)} onSave={edit => onDraftChange(current => ({ ...current,
         edits: { ...current.edits, [editingImage.id]: edit } }))} />}
