@@ -177,6 +177,26 @@ test("CAD STEP opens inline automatically, survives progress, downloads and rele
   await expect(card.locator('.chat-inline-model')).toHaveAttribute("data-state", "ready", { timeout: 30_000 });
   await card.locator('.chat-interaction-toggle').click();
   await expect(card.locator('canvas')).toHaveCount(0);
+  // The final reply can follow many image/tool records; keep the real model at
+  // the end of the conversation without asking the agent to republish anything.
+  app.emit("a", "record", { type: "message", id: "model-ready", author: "crafty", origin: "agent",
+    text: "The existing model is ready.", imageIds: [] });
+  const viewer = page.getByRole("article", { name: "3D model", exact: true });
+  await expect(viewer.locator('.chat-inline-model')).toHaveAttribute("data-state", "ready", { timeout: 30_000 });
+  await expect(page.getByRole("list", { name: "Chat history", exact: true }).locator(':scope > li').last()).toContainText("3D model");
+  await expect(viewer.getByRole("link", { name: "Download STEP", exact: true })).toHaveAttribute("download", file.filename);
+  const canvas = viewer.locator('canvas');
+  const initialView = await canvas.screenshot();
+  await viewer.getByRole("button", { name: "Side", exact: true }).click();
+  await expect.poll(async () => (await canvas.screenshot()).equals(initialView)).toBe(false);
+  const sideView = await canvas.screenshot();
+  const bounds = (await canvas.boundingBox())!;
+  await page.mouse.move(bounds.x + bounds.width * .45, bounds.y + bounds.height * .5);
+  await page.mouse.down();
+  await page.mouse.move(bounds.x + bounds.width * .65, bounds.y + bounds.height * .7, { steps: 8 });
+  await page.mouse.up();
+  await expect.poll(async () => (await canvas.screenshot()).equals(sideView)).toBe(false);
+  expect(app.commands.filter(command => command.action === "messages")).toHaveLength(0);
 });
 
 test("per-image CAD publication keeps distinct cards and cancellation uses its operation", async ({ page }) => {

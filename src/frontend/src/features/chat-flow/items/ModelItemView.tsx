@@ -6,8 +6,11 @@ const InlineModelPreview = lazy(() => import("./InlineModelPreview").then((modul
 
 function ModelItemView({ item, actions }: { item: ModelItem; actions: ItemActions }) {
   return (
-    <div className="chat-model-item">
-      <p className="chat-item-intro">{item.caption}</p>
+    <div className="chat-model-item" data-artifact-id={item.model.id}>
+      <div className="cad-downloads">
+        <p className="chat-item-intro">{item.caption}</p>
+        <a className="button button--small" href={item.model.url} download={item.model.name}>Download {item.model.format.toUpperCase()}</a>
+      </div>
       <Suspense fallback={<p className="chat-item-intro" role="status">Opening the 3D view…</p>}>
         <InlineModelPreview model={item.model} onSnapshot={(snapshot) => actions.snapshot(item, snapshot)} />
       </Suspense>
@@ -16,6 +19,6 @@ function ModelItemView({ item, actions }: { item: ModelItem; actions: ItemAction
 }
 
 export const modelItemEntry = defineItemRenderer(
-  { type: "model", label: "3D model", icon: "grid", variant: "interaction", initiallyExpanded: true },
+  { type: "model", label: "3D model", icon: "cube", variant: "interaction", initiallyExpanded: true },
   (item, actions) => <ModelItemView item={item} actions={actions} />,
 );

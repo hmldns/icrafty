@@ -1,4 +1,4 @@
-import type { HistoryRecord } from "../chat-flow/historyTypes";
+import type { HistoryItem, HistoryRecord } from "../chat-flow/historyTypes";
 import { projectHistory, readToolResult } from "../chat-flow/projectHistory";
 import { snapshotVersion, type ChatAsset, type PhotoAttachment } from "../chat-flow/types";
 import type { AgentEvent, AgentImage, AgentSnapshot } from "./types";
@@ -23,7 +23,7 @@ export function projectAgentSnapshot(snapshot: AgentSnapshot) {
       return image ? [attachment(image)] : [];
     }) }
     : record.type === "thought" ? { ...record, streaming: record === last && record.turnId === snapshot.session.activeTurnId } : record);
-  return projectHistory(records, { assets, models: [], sessionId: snapshot.session.id }).map(item => {
+  const items: HistoryItem[] = projectHistory(records, { assets, models: [], sessionId: snapshot.session.id }).map(item => {
     if (item.type === "message" || item.type === "thought") return item;
     // Keep original tool details in the record inspector; use domain titles in chat.
     if (item.type === "image") return { ...item, title: item.photo.assetTitle };
@@ -35,6 +35,16 @@ export function projectAgentSnapshot(snapshot: AgentSnapshot) {
       : item.title.length > 100 ? "Local tool activity" : item.title;
     return { ...item, title };
   });
+  const reply = items.at(-1);
+  const latest = [...items].reverse().find(item => item.type === "cad" && item.result.status === "completed" && item.result.model);
+  // Keep native evidence in its original place, and expose its validated model
+  // beside the final reply. This is a view of the existing artifact, not a tool call.
+  if (reply?.type === "message" && reply.author === "crafty" && !reply.streaming && latest?.type === "cad" && latest.result.model) {
+    items.push({ type: "model", id: `current-model-${latest.result.model.id}`, title: "3D model",
+      summary: `Revision ${latest.result.revision?.number} · Interactive STEP`,
+      caption: latest.result.model.name, model: latest.result.model, tool: latest.tool });
+  }
+  return items;
 }
 
 function upsert<T>(values: T[], value: T, key: (value: T) => string) {
