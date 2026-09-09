@@ -274,7 +274,7 @@ class Runtime:
             if reason not in {"end_turn", "cancelled", None}:
                 status, error = "failed", f"Agent stopped: {reason}"
         except asyncio.TimeoutError:
-            status, error = "interrupted", "Turn exceeded its time budget; runtime stopped."
+            status, error = "interrupted", "Turn reached the explicitly configured time limit; runtime stopped."
             await self.stop_process()
         except asyncio.CancelledError:
             status = "cancelled" if self.cancelled else "interrupted"

@@ -127,6 +127,39 @@ async def terminal(service, sid, oid):
             await asyncio.sleep(0.01)
 
 
+@pytest.mark.asyncio
+async def test_default_cad_loop_survives_old_deadline_and_manual_cancel(backend, monkeypatch):
+    service, sid, actor, _ = backend
+    oid = await start(backend)
+    clock = asyncio.get_running_loop().time
+    with monkeypatch.context() as patch:
+        patch.setattr(asyncio.get_running_loop(), "time", lambda: clock() + 3600)
+        await asyncio.sleep(.02)
+        assert service.cad.public(sid, oid)["status"] == "running"
+        assert not service.cad.tasks[oid].done()
+        await service.cad.cancel(sid, oid)
+        assert service.cad.public(sid, oid)["status"] == "cancelled"
+    budget = service.cad.public(sid, oid)["budget"]
+    assert budget["maxSeconds"] is None and budget["maxEvaluations"] is None
+
+
+@pytest.mark.asyncio
+async def test_default_cad_loop_allows_more_than_eight_native_attempts(backend):
+    service, sid, actor, _ = backend
+    oid = await start(backend)
+    operation = service.cad.store.operation(sid, oid)
+    source = bundle(actor, operation, source="def build(parameters, inputs):\n    raise RuntimeError('model needs another revision')\n")
+    for attempt in range(9):
+        accepted = await service.cad.submit(sid, oid, "cad_ensure",
+            {"request_path": "request.json", "idempotency_key": f"attempt-{attempt}"}, source)
+        result = await service.cad.wait_evaluation(sid, accepted["evaluationId"])
+        assert result["status"] == "failed"
+    public = service.cad.public(sid, oid)
+    assert public["budget"]["evaluations"] == public["reuse"]["sourceExecutions"] == 9
+    assert public["status"] == "running"
+    Draft202012Validator(json.loads((EXAMPLES / "application-result-v1.schema.json").read_text())).validate(public)
+
+
 def test_cad_schemas_and_nonfinite_inputs():
     for schema in SCHEMAS.values():
         Draft202012Validator.check_schema(schema)

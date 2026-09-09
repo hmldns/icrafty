@@ -58,7 +58,7 @@ function CadItemView({ item, actions }: { item: CadItem; actions: ItemActions })
     <div className="cad-progress" role="status">
       {active && <span className="spinner" aria-hidden="true" />}
       <span><strong>{cadStatusLabels[result.status]}</strong> · {phaseText(result.phase)}
-        {result.budget && <span className="cad-budget"> · {result.budget.evaluations} / {result.budget.maxEvaluations} evaluations</span>}</span>
+        {result.budget && <span className="cad-budget"> · {result.budget.evaluations}{result.budget.maxEvaluations !== null ? ` / ${result.budget.maxEvaluations}` : ""} evaluations</span>}</span>
       {active && actions.cancelCad && <Button size="small" variant="ghost" disabled={cancelling} onClick={() => void cancel()}>{cancelling ? "Stopping…" : "Stop CAD"}</Button>}
     </div>
     {error && <Notice tone="error">{error}</Notice>}

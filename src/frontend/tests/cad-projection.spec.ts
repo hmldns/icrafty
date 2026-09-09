@@ -12,6 +12,15 @@ const model = { ...file, revisionId: "revision-1", geometryDigest: "c".repeat(64
 const base = cadResult({ status: "completed", model, downloads: [file],
   requestedOutputs: [{ id: "solid", kind: "step", parts: ["body"] }], outputs: [{ id: "solid", kind: "step", status: "ready", file }] });
 
+test("CAD progress accepts unlimited and explicitly bounded agent loops", () => {
+  for (const limits of [{ maxEvaluations: null, maxSeconds: null }, { maxEvaluations: 8, maxSeconds: 1200 }]) {
+    const budget = { evaluations: 9, elapsedSeconds: 3600, ...limits };
+    const item = projectToolCall(cadRecord({ ...base, budget }), catalog);
+    expect(item.type === "cad" && item.result.budget).toEqual(budget);
+    expect(item.type === "cad" && item.result.model?.url).toBe(file.url);
+  }
+});
+
 test("CAD models require requested ready STEP bytes from the same session and revision", () => {
   const good = projectToolCall(cadRecord(base), catalog);
   expect(good.type === "cad" && good.result.model?.url).toBe(file.url);

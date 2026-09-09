@@ -267,7 +267,7 @@ class CadService:
             return self.evaluation_status(sid, previous["id"])
         if operation["public"]["status"] != "running":
             raise ValueError("This CAD operation no longer accepts evaluations")
-        if operation["public"]["budget"]["evaluations"] >= self.settings.max_evaluations:
+        if self.settings.max_evaluations is not None and operation["public"]["budget"]["evaluations"] >= self.settings.max_evaluations:
             raise ValueError("CAD evaluation budget exhausted")
         folder = self.store.root / "operations" / oid / "inputs" / identifier()
         request_path = unpack(bundle, folder, self.settings.input_bytes)
@@ -284,7 +284,7 @@ class CadService:
         previous = self.store.prior_evaluation(oid, key, fingerprint)
         if previous:
             return self.evaluation_status(sid, previous["id"])
-        if operation["public"]["budget"]["evaluations"] >= self.settings.max_evaluations:
+        if self.settings.max_evaluations is not None and operation["public"]["budget"]["evaluations"] >= self.settings.max_evaluations:
             raise ValueError("CAD evaluation budget exhausted")
         evaluation = self.new_evaluation(operation, key, fingerprint, "ensure" if name == "cad_ensure" else "evaluate", request_path)
         self.evaluation_tasks[evaluation["id"]] = asyncio.create_task(self.run_evaluation(sid, evaluation["id"]))

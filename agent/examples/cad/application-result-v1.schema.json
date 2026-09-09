@@ -1006,7 +1006,7 @@
           "minimum": 0
         },
         "maxEvaluations": {
-          "type": "integer",
+          "type": ["integer", "null"],
           "minimum": 1
         },
         "elapsedSeconds": {
@@ -1014,7 +1014,7 @@
           "minimum": 0
         },
         "maxSeconds": {
-          "type": "number",
+          "type": ["number", "null"],
           "exclusiveMinimum": 0
         }
       },

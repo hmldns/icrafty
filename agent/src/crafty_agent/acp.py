@@ -55,7 +55,7 @@ class AcpConnection:
             self.process.stdin.write(data)
             await self.process.stdin.drain()
 
-    async def request(self, method: str, params: dict, timeout: float = 90) -> Any:
+    async def request(self, method: str, params: dict, timeout: float | None = 90) -> Any:
         self.counter += 1
         request_id = f"client-{self.counter}"
         future = asyncio.get_running_loop().create_future()

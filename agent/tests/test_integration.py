@@ -26,7 +26,7 @@ from crafty_agent.store import Store
 @pytest.fixture
 def settings(tmp_path):
     return Settings(data=tmp_path / "state", adapter=(sys.executable, str(Path(__file__).with_name("fake_acp.py"))),
-                    auth_source=None, startup_timeout=5, turn_timeout=10, cancel_timeout=1)
+                    auth_source=None, startup_timeout=5, cancel_timeout=1)
 
 
 def png(color="red"):
@@ -40,6 +40,51 @@ async def settled(service, sid):
         while service.store.session(sid)["activeTurnId"]:
             await asyncio.sleep(0.01)
     return service.store.snapshot(sid)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("action", ["finish", "stop"])
+async def test_default_turn_has_no_deadline_and_remains_controllable(settings, monkeypatch, action):
+    service = AgentService(settings, "http://127.0.0.1:1")
+    sid = service.store.create_session()["id"]
+    try:
+        await service.prompt(sid, "long-turn", "stream", [])
+        runtime = service.runtime(sid)
+        async with asyncio.timeout(5):
+            while not any(r.get("text") == "First chunk" for r in service.store.records(sid)):
+                await asyncio.sleep(.01)
+        # Advance beyond both former 10/20 minute limits without a slow test.
+        loop = asyncio.get_running_loop()
+        clock = loop.time
+        with monkeypatch.context() as patch:
+            patch.setattr(loop, "time", lambda: clock() + 3600)
+            await asyncio.sleep(.02)
+            assert service.store.session(sid)["turnStatus"] == "running"
+            assert not runtime.turn_task.done()
+            if action == "stop":
+                await runtime.cancel()
+            else:
+                await runtime.connection.notify("test/continue", {})
+            snapshot = await settled(service, sid)
+            assert snapshot["session"]["turnStatus"] == ("cancelled" if action == "stop" else "completed")
+            assert snapshot["session"]["runtime"] == "ready"
+            assert any("First chunk" in r.get("text", "") for r in snapshot["records"])
+    finally:
+        await service.close()
+
+
+@pytest.mark.asyncio
+async def test_explicit_turn_deadline_is_opt_in(settings):
+    service = AgentService(replace(settings, turn_timeout=.05), "http://127.0.0.1:1")
+    sid = service.store.create_session()["id"]
+    try:
+        await service.prompt(sid, "bounded-turn", "stream", [])
+        snapshot = await settled(service, sid)
+        assert snapshot["session"]["turnStatus"] == "interrupted"
+        assert "explicitly configured time limit" in snapshot["session"]["error"]
+        assert any("First chunk" in r.get("text", "") for r in snapshot["records"])
+    finally:
+        await service.close()
 
 
 def test_immutable_images_and_session_scope(settings):

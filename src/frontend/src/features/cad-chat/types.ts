@@ -32,7 +32,7 @@ export interface CadResult {
   model: (ChatModel & { downloadUrl: string; sha256: string; sizeBytes: number }) | null;
   downloads: CadFile[]; metrics: CadMetric[];
   interpretation: string; error: string | null;
-  budget: { evaluations: number; maxEvaluations: number; elapsedSeconds: number; maxSeconds: number } | null;
+  budget: { evaluations: number; maxEvaluations: number | null; elapsedSeconds: number; maxSeconds: number | null } | null;
   reuse: Record<string, number>;
   presentation: { messageMode: "together" | "per_image"; index: number; count: number };
 }

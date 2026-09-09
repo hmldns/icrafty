@@ -76,8 +76,8 @@ export function projectCad(call: ToolCallRecord, raw: ObjectValue, catalog: Proj
       method: string(metric.method) ? metric.method : "", frame: string(metric.frame) ? metric.frame : "",
       axis: string(metric.axis) ? metric.axis : undefined, criterion: metric.criterion, difference: metric.difference }];
   });
-  const budget = object(raw.budget) && number(raw.budget.evaluations) && number(raw.budget.maxEvaluations)
-    && number(raw.budget.elapsedSeconds) && number(raw.budget.maxSeconds)
+  const budget = object(raw.budget) && number(raw.budget.evaluations) && (raw.budget.maxEvaluations === null || number(raw.budget.maxEvaluations))
+    && number(raw.budget.elapsedSeconds) && (raw.budget.maxSeconds === null || number(raw.budget.maxSeconds))
     ? { evaluations: raw.budget.evaluations, maxEvaluations: raw.budget.maxEvaluations,
       elapsedSeconds: raw.budget.elapsedSeconds, maxSeconds: raw.budget.maxSeconds } : null;
   const downloads = objects(raw.downloads).flatMap(value => {

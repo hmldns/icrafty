@@ -4,9 +4,17 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 import json
+import math
 import os
 import shutil
 import tomllib
+
+
+def optional_seconds(name: str) -> float | None:
+    value = float(os.environ.get(name, "0"))
+    if not math.isfinite(value) or value < 0:
+        raise ValueError(f"{name} must be zero (unlimited) or a positive number of seconds")
+    return value or None
 
 
 @dataclass(frozen=True)
@@ -19,7 +27,7 @@ class Settings:
     reasoning: str | None = None
     codex_transport: str = "https"
     startup_timeout: float = 90
-    turn_timeout: float = 600
+    turn_timeout: float | None = None
     cancel_timeout: float = 8
     max_image_bytes: int = 20 * 1024 * 1024
     max_pixels: int = 25_000_000
@@ -27,8 +35,10 @@ class Settings:
     origins: tuple[str, ...] = tuple(f"http://{host}:{port}" for host in ("localhost", "127.0.0.1") for port in (5187, 5217, 5287, 5317, 4187, 4217))
 
     def __post_init__(self):
-        if min(self.startup_timeout, self.turn_timeout, self.cancel_timeout, self.max_image_bytes, self.max_pixels, self.max_frame_bytes) <= 0:
+        if min(self.startup_timeout, self.cancel_timeout, self.max_image_bytes, self.max_pixels, self.max_frame_bytes) <= 0:
             raise ValueError("Agent time and size limits must be positive")
+        if self.turn_timeout is not None and (not math.isfinite(self.turn_timeout) or self.turn_timeout <= 0):
+            raise ValueError("Agent turn timeout must be positive or None (unlimited)")
         if self.codex_transport not in {"https", "auto"}:
             raise ValueError("CRAFTY_CODEX_TRANSPORT must be https or auto")
 
@@ -71,7 +81,7 @@ class Settings:
             reasoning=os.environ.get("CRAFTY_AGENT_REASONING") or preferences.get("model_reasoning_effort"),
             codex_transport=os.environ.get("CRAFTY_CODEX_TRANSPORT", "https"),
             startup_timeout=float(os.environ.get("CRAFTY_AGENT_STARTUP_TIMEOUT", "90")),
-            turn_timeout=float(os.environ.get("CRAFTY_AGENT_TURN_TIMEOUT", "600")),
+            turn_timeout=optional_seconds("CRAFTY_AGENT_TURN_TIMEOUT"),
             cancel_timeout=float(os.environ.get("CRAFTY_AGENT_CANCEL_TIMEOUT", "8")),
             max_image_bytes=int(os.environ.get("CRAFTY_AGENT_IMAGE_LIMIT", str(20 * 1024 * 1024))),
             max_pixels=int(os.environ.get("CRAFTY_AGENT_PIXEL_LIMIT", "25000000")),

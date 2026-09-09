@@ -41,8 +41,10 @@ When ready, result_publish selects actual output IDs, reports inspected PNG IDs 
 interpretation. A completed evaluation may have failed checks; report them honestly. PNGs do not
 imply STEP exists. STEP is allowed only when requested and validated by the service.
 Available presets: isometric, top, bottom, front, right. No GLB, threads or general fit claims.
-Keep every modeling attempt within the supplied evaluation/time budget. If information is missing,
-explain the question in your final response for the parent conversation. Do not wait indefinitely.
+Continue modeling and verification until you can publish the requested result, need clarification,
+or are cancelled. There is no default time or attempt limit for your modeling loop. Honor an
+explicit operator budget when supplied. If information is missing, explain the question in your
+final response for the parent conversation.
 """ + SELECTOR_GUIDE
 
 
@@ -133,8 +135,14 @@ class CadReasoner:
             source = Path(revision["snapshotPath"]).parent / "frozen/model.py"
             if source.is_file():
                 atomic(folder / "parent-model.py", source.read_bytes())
+        limits = []
+        if self.owner.settings.max_evaluations is not None:
+            limits.append(f"{self.owner.settings.max_evaluations} evaluations")
+        if self.owner.settings.seconds is not None:
+            limits.append(f"{self.owner.settings.seconds} seconds")
+        budget = "Operator limit: " + ", ".join(limits) + ". " if limits else "No time or attempt limit is configured. "
         text = (f"Modeling task {operation['id']}. Read {folder / 'task.json'} and the adjacent request-template.json. "
-                f"Work in {folder}. Maximum {self.owner.settings.max_evaluations} evaluations and {self.owner.settings.seconds} seconds. "
+                f"Work in {folder}. " + budget +
                 "Write and evaluate your model, inspect actual PNGs and metrics, then explicitly publish selected evidence. "
                 "Use the requested part and feature names exactly. Return clarification if necessary. Brief: " + task["brief"])
         state = self.owner.store.session(self.sid)
