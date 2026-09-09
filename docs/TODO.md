@@ -7,6 +7,7 @@
  - [ ]
 - [x] Mount the full-height repair app at `/`, with logo/list on the left and workspace on the right.
 - [x] Show a brief camera shutter flash and keep the capture button label steady.
-- [ ] Integrate distinct chat item icons (local implementation ready).
+- [x] Integrate distinct chat item icons.
 - [ ] Integrate labelled measurement guides and source-photo reference links; run the real mug sample with blank fields.
 - [ ] Verify the single live CAD-agent run, then integrate its backend and actual preview/download path into the main app.
+- [ ] Reload the older mug repair with current MCP tools while preserving its photos, submitted dimensions and history; prevent local modeling fallbacks when CAD is unavailable.
