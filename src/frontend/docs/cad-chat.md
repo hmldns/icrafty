@@ -48,6 +48,23 @@ checks reject foreign-session URLs and mismatched revisions/files. These are exp
 application fixtures. Actual CAD-agent generation and artifact delivery require
 the backend's separate native acceptance run against these mounted components.
 
+**CAD-UI-7 — Native inspection checkpoint.** The coordinated saved cap chat was
+inspected with the real backend on 9 September 2026. Four native PNGs, their
+annotation links and all nine passing checks rendered in the same operation card.
+Its first publication correctly had no STEP action. A later query of the retained
+revision supplied a STEP that opened in the 3D viewer; the actual browser download
+was 5,177 bytes with SHA-256
+`b720f7a98e079cf9f3832e49c06ff1b83e31f9ac81bc40451b735c8b7f892da7`.
+This is evidence for that cap and its retained export, not arbitrary imported-file,
+thread-fit or container acceptance. Local records are retained under
+`agent/runs/native-cad-ui-first/` and `agent/runs/native-cad-ui-step/`.
+
+**CAD-UI-8 — Development worker loading.** Prebundle both OCCT and the STL loader
+at Vite startup because they are imported inside a model worker. Give the browser
+test server its own dependency cache so it cannot invalidate a running development
+server's optimized worker URLs. A multi-view image spans the available card width
+to keep its combined panels and labels readable.
+
 Implementation lives in `src/features/cad-chat/`; transport remains in
 `src/features/agent-chat/`, and shared timeline/viewer components remain in
 `src/features/chat-flow/` and `src/features/models/`.
