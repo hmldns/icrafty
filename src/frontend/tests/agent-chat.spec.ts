@@ -133,7 +133,7 @@ test("CAD progress stays in place, preserves failed checks and resolves late ima
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
 });
 
-test("CAD STEP preview uses recorded bytes, survives progress, downloads and releases on collapse", async ({ page }) => {
+test("CAD STEP opens inline automatically, survives progress, downloads and releases on collapse", async ({ page }) => {
   const app = await harness(page);
   const bytes = await readFile("tooling/models/rounded-cube.step");
   const file = { id: "step-1", url: "/api/agent/sessions/a/cad/artifacts/step-1", downloadUrl: "/api/agent/sessions/a/cad/artifacts/step-1?download=true",
@@ -149,9 +149,8 @@ test("CAD STEP preview uses recorded bytes, survives progress, downloads and rel
   app.emit("a", "record", cadRecord(result));
   await page.goto("/");
   const card = page.getByRole("article", { name: "Cylinder evidence", exact: true });
-  expect(loads).toBe(0);
-  await card.getByRole("button", { name: "Open 3D preview", exact: true }).click();
   await expect(card.locator('.chat-inline-model')).toHaveAttribute("data-state", "ready", { timeout: 30_000 });
+  await expect(card.getByRole("button", { name: "Close 3D preview", exact: true })).toHaveAttribute("aria-expanded", "true");
   const initialLoads = loads; // React StrictMode may abort and remount the initial effect.
   await card.locator('canvas').evaluate(canvas => canvas.setAttribute('data-retained', 'yes'));
   app.emit("a", "record", cadRecord({ ...result, operationVersion: 2, interpretation: "Added a note." }));
@@ -169,6 +168,13 @@ test("CAD STEP preview uses recorded bytes, survives progress, downloads and rel
     return Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", data)), value => value.toString(16).padStart(2, "0")).join("");
   }, file.downloadUrl);
   expect(downloadHash).toBe(file.sha256);
+  await card.getByRole("button", { name: "Close 3D preview", exact: true }).click();
+  await expect(card.locator('canvas')).toHaveCount(0);
+  app.emit("a", "record", cadRecord({ ...result, operationVersion: 3, interpretation: "Preview stays closed by choice." }));
+  await expect(card.getByText("Preview stays closed by choice.", { exact: true })).toBeVisible();
+  await expect(card.locator('canvas')).toHaveCount(0);
+  await card.getByRole("button", { name: "Open 3D preview", exact: true }).click();
+  await expect(card.locator('.chat-inline-model')).toHaveAttribute("data-state", "ready", { timeout: 30_000 });
   await card.locator('.chat-interaction-toggle').click();
   await expect(card.locator('canvas')).toHaveCount(0);
 });

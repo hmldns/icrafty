@@ -42,7 +42,7 @@ function CadItemView({ item, actions }: { item: CadItem; actions: ItemActions })
   const { result } = item;
   const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showModel, setShowModel] = useState(false);
+  const [showModel, setShowModel] = useState(true);
   const active = result.status === "queued" || result.status === "running";
   const first = result.presentation.index === 0;
   const images = result.outputs.filter(output => output.kind === "png");
@@ -63,21 +63,21 @@ function CadItemView({ item, actions }: { item: CadItem; actions: ItemActions })
     </div>
     {error && <Notice tone="error">{error}</Notice>}
     {result.error && <Notice tone="error">{result.error}</Notice>}
+    {first && model && <div className="cad-model">
+      <div className="cad-downloads">
+        <Button size="small" icon="cube" aria-expanded={showModel} onClick={() => setShowModel(value => !value)}>{showModel ? "Close 3D preview" : "Open 3D preview"}</Button>
+        <a className="button button--small button--primary" href={model.downloadUrl} download={model.name}>Download STEP <span className="cad-file-size">{sizeText(model.sizeBytes)}</span></a>
+      </div>
+      {showModel && <Suspense fallback={<p className="cad-output-state" role="status">Opening the 3D viewer…</p>}>
+        <InlineModelPreview model={model} onSnapshot={snapshot => actions.snapshot({ ...item, type: "model", model, caption: `CAD revision ${result.revision?.number}` }, snapshot)} />
+      </Suspense>}
+    </div>}
     {!!images.length && <div className="cad-images">{images.map(output => <CadImage key={output.id} output={output} actions={actions} />)}</div>}
     {first && <>
       {result.outputs.filter(output => output.kind === "step" && (output.status !== "ready" || !output.file)).map(output =>
         <p key={output.id} className="cad-output-state">STEP · {output.status === "pending" ? "Preparing export…" : output.reason ?? "Export unavailable"}</p>)}
       <CadMetrics metrics={result.metrics} />
       {result.interpretation && <section className="cad-interpretation" aria-label="CAD agent interpretation"><h3>CAD agent notes</h3><ChatMarkdown text={result.interpretation} /></section>}
-      {model && <div className="cad-model">
-        <div className="cad-downloads">
-          <Button size="small" icon="cube" aria-expanded={showModel} onClick={() => setShowModel(value => !value)}>{showModel ? "Close 3D preview" : "Open 3D preview"}</Button>
-          <a className="button button--small button--primary" href={model.downloadUrl} download={model.name}>Download STEP <span className="cad-file-size">{sizeText(model.sizeBytes)}</span></a>
-        </div>
-        {showModel && <Suspense fallback={<p className="cad-output-state" role="status">Opening the 3D viewer…</p>}>
-          <InlineModelPreview model={model} onSnapshot={snapshot => actions.snapshot({ ...item, type: "model", model, caption: `CAD revision ${result.revision?.number}` }, snapshot)} />
-        </Suspense>}
-      </div>}
       {result.downloads.some(file => file.id !== model?.id) && <div className="cad-downloads">{result.downloads.filter(file => file.id !== model?.id).map(file => <Download key={file.id} file={file} />)}</div>}
       {(result.revision || result.geometry) && <details className="cad-provenance"><summary>Revision & geometry details</summary>
         <dl>
