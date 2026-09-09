@@ -1,0 +1,1003 @@
+{
+  "schema_version": 1,
+  "status": "implemented",
+  "tools": {
+    "crafty_cad.request_part": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "outputs": {
+          "items": {
+            "oneOf": [
+              {
+                "additionalProperties": false,
+                "oneOf": [
+                  {
+                    "required": [
+                      "view"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "grid"
+                    ]
+                  }
+                ],
+                "properties": {
+                  "annotations": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "inline": {
+                        "type": "boolean"
+                      },
+                      "json": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "json",
+                      "inline"
+                    ],
+                    "type": "object"
+                  },
+                  "grid": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "columns": {
+                        "maximum": 8,
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      "views": {
+                        "items": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "height": {
+                              "maximum": 4096,
+                              "minimum": 240,
+                              "type": "integer"
+                            },
+                            "id": {
+                              "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+                              "type": "string"
+                            },
+                            "preset": {
+                              "enum": [
+                                "isometric",
+                                "top",
+                                "bottom",
+                                "front",
+                                "right"
+                              ]
+                            },
+                            "span_mm": {
+                              "exclusiveMinimum": 0,
+                              "type": "number"
+                            },
+                            "title": {
+                              "maxLength": 48,
+                              "pattern": "^[^\\n\\r\\t]*$",
+                              "type": "string"
+                            },
+                            "width": {
+                              "maximum": 4096,
+                              "minimum": 320,
+                              "type": "integer"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "preset",
+                            "width",
+                            "height"
+                          ],
+                          "type": "object"
+                        },
+                        "maxItems": 16,
+                        "minItems": 1,
+                        "type": "array"
+                      }
+                    },
+                    "required": [
+                      "columns",
+                      "views"
+                    ],
+                    "type": "object"
+                  },
+                  "id": {
+                    "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+                    "type": "string"
+                  },
+                  "kind": {
+                    "const": "png"
+                  },
+                  "parts": {
+                    "items": {
+                      "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+                      "type": "string"
+                    },
+                    "minItems": 1,
+                    "type": "array",
+                    "uniqueItems": true
+                  },
+                  "view": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "height": {
+                        "maximum": 4096,
+                        "minimum": 240,
+                        "type": "integer"
+                      },
+                      "preset": {
+                        "enum": [
+                          "isometric",
+                          "top",
+                          "bottom",
+                          "front",
+                          "right"
+                        ]
+                      },
+                      "span_mm": {
+                        "exclusiveMinimum": 0,
+                        "type": "number"
+                      },
+                      "title": {
+                        "maxLength": 48,
+                        "pattern": "^[^\\n\\r\\t]*$",
+                        "type": "string"
+                      },
+                      "width": {
+                        "maximum": 4096,
+                        "minimum": 320,
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "preset",
+                      "width",
+                      "height"
+                    ],
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "id",
+                  "kind",
+                  "parts"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+                    "type": "string"
+                  },
+                  "kind": {
+                    "const": "step"
+                  },
+                  "parts": {
+                    "items": {
+                      "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+                      "type": "string"
+                    },
+                    "minItems": 1,
+                    "type": "array",
+                    "uniqueItems": true
+                  }
+                },
+                "required": [
+                  "id",
+                  "parts",
+                  "kind"
+                ],
+                "type": "object"
+              }
+            ]
+          },
+          "maxItems": 32,
+          "type": "array"
+        },
+        "metrics": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "axis": {
+                "enum": [
+                  "x",
+                  "y",
+                  "z"
+                ]
+              },
+              "criterion": {
+                "additionalProperties": false,
+                "oneOf": [
+                  {
+                    "not": {
+                      "anyOf": [
+                        {
+                          "required": [
+                            "min"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "max"
+                          ]
+                        }
+                      ]
+                    },
+                    "required": [
+                      "equals"
+                    ]
+                  },
+                  {
+                    "anyOf": [
+                      {
+                        "required": [
+                          "min"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "max"
+                        ]
+                      }
+                    ],
+                    "not": {
+                      "anyOf": [
+                        {
+                          "required": [
+                            "equals"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "absolute_tolerance"
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "properties": {
+                  "absolute_tolerance": {
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "equals": {
+                    "type": [
+                      "number",
+                      "boolean"
+                    ]
+                  },
+                  "max": {
+                    "type": "number"
+                  },
+                  "min": {
+                    "type": "number"
+                  }
+                },
+                "required": [],
+                "type": "object"
+              },
+              "evidence_artifact_ids": {
+                "items": {
+                  "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+                  "type": "string"
+                },
+                "type": "array",
+                "uniqueItems": true
+              },
+              "id": {
+                "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+                "type": "string"
+              },
+              "kind": {
+                "enum": [
+                  "validity",
+                  "solid_count",
+                  "bbox_extent",
+                  "volume",
+                  "surface_area",
+                  "centroid",
+                  "cylinder_diameter",
+                  "distance"
+                ]
+              },
+              "other_target": {
+                "additionalProperties": false,
+                "properties": {
+                  "feature": {
+                    "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+                    "type": "string"
+                  },
+                  "part": {
+                    "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "part"
+                ],
+                "type": "object"
+              },
+              "target": {
+                "additionalProperties": false,
+                "properties": {
+                  "feature": {
+                    "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+                    "type": "string"
+                  },
+                  "part": {
+                    "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "part"
+                ],
+                "type": "object"
+              },
+              "unit": {
+                "enum": [
+                  "1",
+                  "mm",
+                  "mm^2",
+                  "mm^3"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "target",
+              "unit"
+            ],
+            "type": "object"
+          },
+          "maxItems": 128,
+          "type": "array"
+        },
+        "brief": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20000
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "image_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "maxItems": 8,
+          "uniqueItems": true
+        },
+        "parent_revision_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "idempotency_key",
+        "brief",
+        "title",
+        "outputs",
+        "metrics"
+      ]
+    },
+    "crafty_cad.request_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "outputs": {
+          "items": {
+            "oneOf": [
+              {
+                "additionalProperties": false,
+                "oneOf": [
+                  {
+                    "required": [
+                      "view"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "grid"
+                    ]
+                  }
+                ],
+                "properties": {
+                  "annotations": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "inline": {
+                        "type": "boolean"
+                      },
+                      "json": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "json",
+                      "inline"
+                    ],
+                    "type": "object"
+                  },
+                  "grid": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "columns": {
+                        "maximum": 8,
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      "views": {
+                        "items": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "height": {
+                              "maximum": 4096,
+                              "minimum": 240,
+                              "type": "integer"
+                            },
+                            "id": {
+                              "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+                              "type": "string"
+                            },
+                            "preset": {
+                              "enum": [
+                                "isometric",
+                                "top",
+                                "bottom",
+                                "front",
+                                "right"
+                              ]
+                            },
+                            "span_mm": {
+                              "exclusiveMinimum": 0,
+                              "type": "number"
+                            },
+                            "title": {
+                              "maxLength": 48,
+                              "pattern": "^[^\\n\\r\\t]*$",
+                              "type": "string"
+                            },
+                            "width": {
+                              "maximum": 4096,
+                              "minimum": 320,
+                              "type": "integer"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "preset",
+                            "width",
+                            "height"
+                          ],
+                          "type": "object"
+                        },
+                        "maxItems": 16,
+                        "minItems": 1,
+                        "type": "array"
+                      }
+                    },
+                    "required": [
+                      "columns",
+                      "views"
+                    ],
+                    "type": "object"
+                  },
+                  "id": {
+                    "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+                    "type": "string"
+                  },
+                  "kind": {
+                    "const": "png"
+                  },
+                  "parts": {
+                    "items": {
+                      "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+                      "type": "string"
+                    },
+                    "minItems": 1,
+                    "type": "array",
+                    "uniqueItems": true
+                  },
+                  "view": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "height": {
+                        "maximum": 4096,
+                        "minimum": 240,
+                        "type": "integer"
+                      },
+                      "preset": {
+                        "enum": [
+                          "isometric",
+                          "top",
+                          "bottom",
+                          "front",
+                          "right"
+                        ]
+                      },
+                      "span_mm": {
+                        "exclusiveMinimum": 0,
+                        "type": "number"
+                      },
+                      "title": {
+                        "maxLength": 48,
+                        "pattern": "^[^\\n\\r\\t]*$",
+                        "type": "string"
+                      },
+                      "width": {
+                        "maximum": 4096,
+                        "minimum": 320,
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "preset",
+                      "width",
+                      "height"
+                    ],
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "id",
+                  "kind",
+                  "parts"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+                    "type": "string"
+                  },
+                  "kind": {
+                    "const": "step"
+                  },
+                  "parts": {
+                    "items": {
+                      "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+                      "type": "string"
+                    },
+                    "minItems": 1,
+                    "type": "array",
+                    "uniqueItems": true
+                  }
+                },
+                "required": [
+                  "id",
+                  "parts",
+                  "kind"
+                ],
+                "type": "object"
+              }
+            ]
+          },
+          "maxItems": 32,
+          "type": "array"
+        },
+        "metrics": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "axis": {
+                "enum": [
+                  "x",
+                  "y",
+                  "z"
+                ]
+              },
+              "criterion": {
+                "additionalProperties": false,
+                "oneOf": [
+                  {
+                    "not": {
+                      "anyOf": [
+                        {
+                          "required": [
+                            "min"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "max"
+                          ]
+                        }
+                      ]
+                    },
+                    "required": [
+                      "equals"
+                    ]
+                  },
+                  {
+                    "anyOf": [
+                      {
+                        "required": [
+                          "min"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "max"
+                        ]
+                      }
+                    ],
+                    "not": {
+                      "anyOf": [
+                        {
+                          "required": [
+                            "equals"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "absolute_tolerance"
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "properties": {
+                  "absolute_tolerance": {
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "equals": {
+                    "type": [
+                      "number",
+                      "boolean"
+                    ]
+                  },
+                  "max": {
+                    "type": "number"
+                  },
+                  "min": {
+                    "type": "number"
+                  }
+                },
+                "required": [],
+                "type": "object"
+              },
+              "evidence_artifact_ids": {
+                "items": {
+                  "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+                  "type": "string"
+                },
+                "type": "array",
+                "uniqueItems": true
+              },
+              "id": {
+                "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+                "type": "string"
+              },
+              "kind": {
+                "enum": [
+                  "validity",
+                  "solid_count",
+                  "bbox_extent",
+                  "volume",
+                  "surface_area",
+                  "centroid",
+                  "cylinder_diameter",
+                  "distance"
+                ]
+              },
+              "other_target": {
+                "additionalProperties": false,
+                "properties": {
+                  "feature": {
+                    "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+                    "type": "string"
+                  },
+                  "part": {
+                    "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "part"
+                ],
+                "type": "object"
+              },
+              "target": {
+                "additionalProperties": false,
+                "properties": {
+                  "feature": {
+                    "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+                    "type": "string"
+                  },
+                  "part": {
+                    "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "part"
+                ],
+                "type": "object"
+              },
+              "unit": {
+                "enum": [
+                  "1",
+                  "mm",
+                  "mm^2",
+                  "mm^3"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "target",
+              "unit"
+            ],
+            "type": "object"
+          },
+          "maxItems": 128,
+          "type": "array"
+        },
+        "revision_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        }
+      },
+      "required": [
+        "idempotency_key",
+        "revision_id",
+        "outputs",
+        "metrics"
+      ]
+    },
+    "crafty_cad.restore_geometry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "revision_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        }
+      },
+      "required": [
+        "idempotency_key",
+        "revision_id"
+      ]
+    },
+    "crafty_cad.status": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        }
+      },
+      "required": [
+        "operation_id"
+      ]
+    },
+    "crafty_cad.wait": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "after_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "timeout_seconds": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 20
+        }
+      },
+      "required": [
+        "operation_id"
+      ]
+    },
+    "crafty_cad.cancel": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        }
+      },
+      "required": [
+        "operation_id"
+      ]
+    },
+    "crafty_cad_model.cad_ensure": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "request_path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        }
+      },
+      "required": [
+        "request_path",
+        "idempotency_key"
+      ]
+    },
+    "crafty_cad_model.cad_evaluate": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "request_path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        }
+      },
+      "required": [
+        "request_path",
+        "idempotency_key"
+      ]
+    },
+    "crafty_cad_model.cad_status": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "evaluation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        }
+      },
+      "required": [
+        "evaluation_id"
+      ]
+    },
+    "crafty_cad_model.cad_wait": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "evaluation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "timeout_seconds": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 20
+        }
+      },
+      "required": [
+        "evaluation_id"
+      ]
+    },
+    "crafty_cad_model.cad_release": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "handle": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        }
+      },
+      "required": [
+        "handle"
+      ]
+    },
+    "crafty_cad_model.fetch_image": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "asset_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        }
+      },
+      "required": [
+        "asset_id"
+      ]
+    },
+    "crafty_cad_model.result_publish": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "evaluation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "artifact_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "uniqueItems": true
+        },
+        "interpretation": {
+          "type": "string",
+          "maxLength": 4000
+        },
+        "inspected_image_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "uniqueItems": true
+        },
+        "message_mode": {
+          "enum": [
+            "together",
+            "per_image"
+          ]
+        }
+      },
+      "required": [
+        "evaluation_id",
+        "artifact_ids",
+        "interpretation",
+        "inspected_image_ids"
+      ]
+    }
+  }
+}

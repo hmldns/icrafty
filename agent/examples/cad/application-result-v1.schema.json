@@ -1,0 +1,1112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "view": {
+      "const": "cad"
+    },
+    "operationId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "operationVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "operationKind": {
+      "enum": [
+        "model",
+        "evidence",
+        "restore"
+      ]
+    },
+    "status": {
+      "enum": [
+        "queued",
+        "running",
+        "completed",
+        "failed",
+        "cancelled",
+        "interrupted"
+      ]
+    },
+    "phase": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "revision": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            },
+            "number": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "parentRevisionId": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "sourceDigest": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "buildKey": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "id",
+            "number",
+            "parentRevisionId",
+            "sourceDigest",
+            "buildKey"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "geometry": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "snapshotId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            },
+            "availability": {
+              "enum": [
+                "live",
+                "snapshot",
+                "unavailable"
+              ]
+            },
+            "units": {
+              "const": "mm"
+            },
+            "frame": {
+              "const": "right-handed-z-up"
+            }
+          },
+          "required": [
+            "id",
+            "digest",
+            "snapshotId",
+            "availability",
+            "units",
+            "frame"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "evaluationId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "publicationId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "requestedOutputs": {
+      "items": {
+        "oneOf": [
+          {
+            "additionalProperties": false,
+            "oneOf": [
+              {
+                "required": [
+                  "view"
+                ]
+              },
+              {
+                "required": [
+                  "grid"
+                ]
+              }
+            ],
+            "properties": {
+              "annotations": {
+                "additionalProperties": false,
+                "properties": {
+                  "inline": {
+                    "type": "boolean"
+                  },
+                  "json": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "json",
+                  "inline"
+                ],
+                "type": "object"
+              },
+              "grid": {
+                "additionalProperties": false,
+                "properties": {
+                  "columns": {
+                    "maximum": 8,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "views": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "height": {
+                          "maximum": 4096,
+                          "minimum": 240,
+                          "type": "integer"
+                        },
+                        "id": {
+                          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+                          "type": "string"
+                        },
+                        "preset": {
+                          "enum": [
+                            "isometric",
+                            "top",
+                            "bottom",
+                            "front",
+                            "right"
+                          ]
+                        },
+                        "span_mm": {
+                          "exclusiveMinimum": 0,
+                          "type": "number"
+                        },
+                        "title": {
+                          "maxLength": 48,
+                          "pattern": "^[^\\n\\r\\t]*$",
+                          "type": "string"
+                        },
+                        "width": {
+                          "maximum": 4096,
+                          "minimum": 320,
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "preset",
+                        "width",
+                        "height"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 16,
+                    "minItems": 1,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "columns",
+                  "views"
+                ],
+                "type": "object"
+              },
+              "id": {
+                "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+                "type": "string"
+              },
+              "kind": {
+                "const": "png"
+              },
+              "parts": {
+                "items": {
+                  "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+                  "type": "string"
+                },
+                "minItems": 1,
+                "type": "array",
+                "uniqueItems": true
+              },
+              "view": {
+                "additionalProperties": false,
+                "properties": {
+                  "height": {
+                    "maximum": 4096,
+                    "minimum": 240,
+                    "type": "integer"
+                  },
+                  "preset": {
+                    "enum": [
+                      "isometric",
+                      "top",
+                      "bottom",
+                      "front",
+                      "right"
+                    ]
+                  },
+                  "span_mm": {
+                    "exclusiveMinimum": 0,
+                    "type": "number"
+                  },
+                  "title": {
+                    "maxLength": 48,
+                    "pattern": "^[^\\n\\r\\t]*$",
+                    "type": "string"
+                  },
+                  "width": {
+                    "maximum": 4096,
+                    "minimum": 320,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "preset",
+                  "width",
+                  "height"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "parts"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+                "type": "string"
+              },
+              "kind": {
+                "const": "step"
+              },
+              "parts": {
+                "items": {
+                  "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+                  "type": "string"
+                },
+                "minItems": 1,
+                "type": "array",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "id",
+              "parts",
+              "kind"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "maxItems": 32,
+      "type": "array"
+    },
+    "outputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "kind": {
+            "enum": [
+              "png",
+              "step"
+            ]
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "ready",
+              "unavailable",
+              "error"
+            ]
+          },
+          "image": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "assetId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120
+              },
+              "versionId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "assetId",
+              "versionId"
+            ]
+          },
+          "file": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120
+              },
+              "url": {
+                "type": "string",
+                "pattern": "^/api/agent/sessions/[^/]+/cad/artifacts/[^/?]+$"
+              },
+              "downloadUrl": {
+                "type": "string",
+                "pattern": "^/api/agent/sessions/[^/]+/cad/artifacts/[^/?]+\\?download=true$"
+              },
+              "filename": {
+                "type": "string",
+                "pattern": "^[^/\\\\]+$"
+              },
+              "format": {
+                "const": "step"
+              },
+              "mediaType": {
+                "const": "model/step"
+              },
+              "sizeBytes": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "revisionId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120
+              },
+              "geometryDigest": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "units": {
+                "const": "mm"
+              },
+              "frame": {
+                "const": "right-handed-z-up"
+              }
+            },
+            "required": [
+              "id",
+              "url",
+              "downloadUrl",
+              "filename",
+              "format",
+              "mediaType",
+              "sizeBytes",
+              "sha256",
+              "revisionId",
+              "geometryDigest",
+              "units",
+              "frame"
+            ]
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "mediaType": {
+            "type": "string"
+          },
+          "views": {
+            "type": "array"
+          },
+          "annotations": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "status": {
+                "enum": [
+                  "ready",
+                  "error",
+                  "not_requested",
+                  "unavailable"
+                ]
+              },
+              "inline": {
+                "type": "boolean"
+              },
+              "file": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "url": {
+                    "type": "string",
+                    "pattern": "^/api/agent/sessions/[^/]+/cad/artifacts/[^/?]+$"
+                  },
+                  "downloadUrl": {
+                    "type": "string",
+                    "pattern": "^/api/agent/sessions/[^/]+/cad/artifacts/[^/?]+\\?download=true$"
+                  },
+                  "filename": {
+                    "type": "string",
+                    "pattern": "^[^/\\\\]+$"
+                  },
+                  "format": {
+                    "enum": [
+                      "step",
+                      "json"
+                    ]
+                  },
+                  "mediaType": {
+                    "enum": [
+                      "model/step",
+                      "application/json"
+                    ]
+                  },
+                  "sizeBytes": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  }
+                },
+                "required": [
+                  "id",
+                  "url",
+                  "downloadUrl",
+                  "filename",
+                  "format",
+                  "mediaType",
+                  "sizeBytes",
+                  "sha256"
+                ]
+              },
+              "reason": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "message": {
+                    "type": "string",
+                    "maxLength": 1000
+                  }
+                },
+                "required": [
+                  "code",
+                  "message"
+                ]
+              }
+            },
+            "required": [
+              "status",
+              "inline"
+            ]
+          },
+          "reason": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "type": "string",
+                "maxLength": 100
+              },
+              "message": {
+                "type": "string",
+                "maxLength": 1000
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "status"
+        ]
+      }
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "assetId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "versionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          }
+        },
+        "required": [
+          "assetId",
+          "versionId"
+        ]
+      }
+    },
+    "model": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            },
+            "url": {
+              "type": "string",
+              "pattern": "^/api/agent/sessions/[^/]+/cad/artifacts/[^/?]+$"
+            },
+            "downloadUrl": {
+              "type": "string",
+              "pattern": "^/api/agent/sessions/[^/]+/cad/artifacts/[^/?]+\\?download=true$"
+            },
+            "filename": {
+              "type": "string",
+              "pattern": "^[^/\\\\]+$"
+            },
+            "format": {
+              "const": "step"
+            },
+            "mediaType": {
+              "const": "model/step"
+            },
+            "sizeBytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "revisionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            },
+            "geometryDigest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "units": {
+              "const": "mm"
+            },
+            "frame": {
+              "const": "right-handed-z-up"
+            }
+          },
+          "required": [
+            "id",
+            "url",
+            "downloadUrl",
+            "filename",
+            "format",
+            "mediaType",
+            "sizeBytes",
+            "sha256",
+            "revisionId",
+            "geometryDigest",
+            "units",
+            "frame"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "downloads": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "url": {
+            "type": "string",
+            "pattern": "^/api/agent/sessions/[^/]+/cad/artifacts/[^/?]+$"
+          },
+          "downloadUrl": {
+            "type": "string",
+            "pattern": "^/api/agent/sessions/[^/]+/cad/artifacts/[^/?]+\\?download=true$"
+          },
+          "filename": {
+            "type": "string",
+            "pattern": "^[^/\\\\]+$"
+          },
+          "format": {
+            "const": "step"
+          },
+          "mediaType": {
+            "const": "model/step"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "revisionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "geometryDigest": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "units": {
+            "const": "mm"
+          },
+          "frame": {
+            "const": "right-handed-z-up"
+          }
+        },
+        "required": [
+          "id",
+          "url",
+          "downloadUrl",
+          "filename",
+          "format",
+          "mediaType",
+          "sizeBytes",
+          "sha256",
+          "revisionId",
+          "geometryDigest",
+          "units",
+          "frame"
+        ]
+      }
+    },
+    "metrics": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "axis": {
+            "enum": [
+              "x",
+              "y",
+              "z"
+            ]
+          },
+          "criterion": {
+            "oneOf": [
+              {
+                "additionalProperties": false,
+                "oneOf": [
+                  {
+                    "not": {
+                      "anyOf": [
+                        {
+                          "required": [
+                            "min"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "max"
+                          ]
+                        }
+                      ]
+                    },
+                    "required": [
+                      "equals"
+                    ]
+                  },
+                  {
+                    "anyOf": [
+                      {
+                        "required": [
+                          "min"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "max"
+                        ]
+                      }
+                    ],
+                    "not": {
+                      "anyOf": [
+                        {
+                          "required": [
+                            "equals"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "absolute_tolerance"
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "properties": {
+                  "absolute_tolerance": {
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "equals": {
+                    "type": [
+                      "number",
+                      "boolean"
+                    ]
+                  },
+                  "max": {
+                    "type": "number"
+                  },
+                  "min": {
+                    "type": "number"
+                  }
+                },
+                "required": [],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "difference": {
+            "type": "number"
+          },
+          "evidence_artifact_ids": {
+            "items": {
+              "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "frame": {
+            "const": "world"
+          },
+          "id": {
+            "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "validity",
+              "solid_count",
+              "bbox_extent",
+              "volume",
+              "surface_area",
+              "centroid",
+              "cylinder_diameter",
+              "distance"
+            ]
+          },
+          "method": {
+            "type": "string"
+          },
+          "other_target": {
+            "additionalProperties": false,
+            "properties": {
+              "feature": {
+                "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+                "type": "string"
+              },
+              "part": {
+                "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+                "type": "string"
+              }
+            },
+            "required": [
+              "part"
+            ],
+            "type": "object"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "measured",
+              "pass",
+              "fail",
+              "unavailable",
+              "error"
+            ]
+          },
+          "target": {
+            "additionalProperties": false,
+            "properties": {
+              "feature": {
+                "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+                "type": "string"
+              },
+              "part": {
+                "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,79}$",
+                "type": "string"
+              }
+            },
+            "required": [
+              "part"
+            ],
+            "type": "object"
+          },
+          "unit": {
+            "enum": [
+              "1",
+              "mm",
+              "mm^2",
+              "mm^3"
+            ]
+          },
+          "value": {
+            "oneOf": [
+              {
+                "type": [
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              },
+              {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 3,
+                "minItems": 3,
+                "type": "array"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "target",
+          "unit",
+          "method",
+          "frame",
+          "criterion",
+          "value",
+          "status"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "interpretation": {
+      "type": "string"
+    },
+    "error": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "message": {
+              "type": "string",
+              "maxLength": 1000
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "evaluations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maxEvaluations": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "elapsedSeconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maxSeconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "required": [
+        "evaluations",
+        "maxEvaluations",
+        "elapsedSeconds",
+        "maxSeconds"
+      ]
+    },
+    "reuse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sourceExecutions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "builds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "loads": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "restores": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "queries": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "sourceExecutions",
+        "builds",
+        "loads",
+        "restores",
+        "queries"
+      ]
+    },
+    "presentation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "messageMode": {
+          "enum": [
+            "together",
+            "per_image"
+          ]
+        },
+        "index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "messageMode",
+        "index",
+        "count"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "view",
+    "operationId",
+    "operationVersion",
+    "operationKind",
+    "status",
+    "phase",
+    "title",
+    "revision",
+    "geometry",
+    "evaluationId",
+    "publicationId",
+    "requestedOutputs",
+    "outputs",
+    "images",
+    "model",
+    "downloads",
+    "metrics",
+    "interpretation",
+    "error",
+    "budget",
+    "reuse",
+    "presentation"
+  ]
+}

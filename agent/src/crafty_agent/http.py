@@ -15,6 +15,7 @@ from .config import Settings
 from .service import AgentService, BusyError
 from .measurements import install_routes as install_measurements
 from .samples import router as sample_routes
+from .cad_http import install_cad
 
 
 class Prompt(BaseModel):
@@ -131,6 +132,8 @@ def create_app(settings: Settings | None = None, *, base_url="http://127.0.0.1:8
 
     @app.post("/api/agent/sessions/{sid}/permissions/{pid}")
     async def permission(sid: str, pid: str, body: PermissionAnswer):
+        if service().cad.permission_owner(sid, pid):
+            return service().cad.answer_permission(sid, pid, body.optionId)
         runtime = service().runtime(sid)
         current = next((p for p in service().store.session(sid)["permissions"] if p["id"] == pid), None)
         future = runtime.permissions.get(pid)
@@ -252,4 +255,5 @@ def create_app(settings: Settings | None = None, *, base_url="http://127.0.0.1:8
 
     install_measurements(app, service, scoped)
     app.include_router(sample_routes)
+    install_cad(app, service, scoped)
     return app
