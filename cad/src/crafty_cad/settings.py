@@ -22,6 +22,7 @@ class Settings:
     idle_seconds: float = 300.0
     lifetime_seconds: float = 1800.0
     tessellation_mm: float = 0.12
+    angular_deflection_radians: float = 0.5
     title_height: int = 112
     grid_padding: int = 12
     builder_uid: int | None = None

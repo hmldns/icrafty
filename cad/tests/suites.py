@@ -211,6 +211,35 @@ def sleeve(ctx):
     ctx.expect(all(m["status"] == "pass" for m in result["metrics"]), "Sleeve dimensions and aggregates pass")
 
 
+@case("geometry", "nurbs-bounds-serial-mesh")
+def nurbs_bounds(ctx):
+    folder, request = ctx.input("nurbs-cap")
+    request["metrics"] = [scalar("valid", "validity", "cap", "1", True),
+        scalar("solids", "solid_count", "cap", "1", 1),
+        *[scalar("extent_" + axis, "bbox_extent", "cap", "mm", value, axis=axis)
+          for axis, value in (("x", 70), ("y", 70), ("z", 16))],
+        scalar("volume", "volume", "cap", "mm^3", (35**2 * 16 - 33**2 * 14) * math.pi)]
+    runtime = ctx.runtime()
+    first, code = ctx.evaluate(runtime, folder, request, "nurbs-built")
+    ready(ctx, first, code)
+    handle = first["geometry"]["handle"]
+    before = runtime.inspect_geometry(handle)
+    ctx.expect(all(m["status"] == "pass" for m in first["metrics"]),
+               "B-spline bounds use geometric extrema, not control-pole enclosure")
+    ctx.expect(all(m["method"] == "bbox_extent@2" for m in first["metrics"] if m["kind"] == "bbox_extent"),
+               "Corrected bound method is explicitly versioned")
+    query = {**request, "geometry": {"handle": handle}, "outputs": [png(), {"id": "nurbs", "kind": "step", "parts": ["cap"]}]}
+    query.pop("source")
+    result, code = ctx.evaluate(runtime, folder, query, "nurbs-warm")
+    ready(ctx, result, code)
+    ctx.expect(before == runtime.inspect_geometry(handle), "Serial meshing/export cannot mutate retained NURBS")
+    ctx.expect(runtime.counts["source_executions"] == 1 and runtime.counts["loads"] == 1,
+               "NURBS evidence/export reuses the ensured shape")
+    ctx.expect(all(m["status"] == "pass" for m in result["metrics"]), "Independent NURBS criteria pass after rendering")
+    ctx.expect(result["provenance"]["effective_settings"]["memory_bytes"] == 1024**3,
+               "Serial meshing preserves the 1 GiB memory limit")
+
+
 for identity, parameters, intended in [("cap", {}, {}), ("wrong-bore", {"bore_radius": 17}, {"bore": "fail", "volume": "fail"}),
         ("missing-roof", {"roof": 0}, {"roof": "unavailable", "cavity": "fail", "volume": "fail"}),
         ("extra-solid", {"extra_solid": True}, {"solids": "fail", "width": "fail", "volume": "fail"})]:
