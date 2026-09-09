@@ -1,4 +1,4 @@
-import type { HistoryItem, HistoryRecord } from "../chat-flow/historyTypes";
+import type { CadItem, HistoryItem, HistoryRecord } from "../chat-flow/historyTypes";
 import { projectHistory, readToolResult } from "../chat-flow/projectHistory";
 import { snapshotVersion, type ChatAsset, type PhotoAttachment } from "../chat-flow/types";
 import type { AgentEvent, AgentImage, AgentSnapshot } from "./types";
@@ -35,16 +35,31 @@ export function projectAgentSnapshot(snapshot: AgentSnapshot) {
       : item.title.length > 100 ? "Local tool activity" : item.title;
     return { ...item, title };
   });
-  const reply = items.at(-1);
-  const latest = [...items].reverse().find(item => item.type === "cad" && item.result.status === "completed" && item.result.model);
-  // Keep native evidence in its original place, and expose its validated model
-  // beside the final reply. This is a view of the existing artifact, not a tool call.
-  if (reply?.type === "message" && reply.author === "crafty" && !reply.streaming && latest?.type === "cad" && latest.result.model) {
-    items.push({ type: "model", id: `current-model-${latest.result.model.id}`, title: "3D model",
+  const withModels = items.filter((item): item is CadItem => item.type === "cad" && item.result.status === "completed" && !!item.result.model);
+  const geometryKey = (item: CadItem) => `${item.result.revision?.id}:${item.result.geometry?.digest}`;
+  const modeled = new Set(withModels.map(geometryKey));
+  const evidence = items.filter((item): item is CadItem => item.type === "cad" && modeled.has(geometryKey(item)));
+  const rasterRefs = new Set(evidence.flatMap(item => item.result.outputs.flatMap(output =>
+    output.image ? [`${output.image.assetId}:${output.image.versionId}`] : [])));
+  // Raster evidence remains in durable records for agents. Once its exact
+  // revision has a validated STEP, the chat presents the interactive model.
+  const visible: HistoryItem[] = items.flatMap((item): HistoryItem[] => {
+    if (item.type === "image" && rasterRefs.has(`${item.photo.assetId}:${item.photo.versionId}`)) return [];
+    if (item.type === "cad" && modeled.has(geometryKey(item))) {
+      if (item.result.presentation.index > 0) return [];
+      return [{ ...item, result: { ...item.result, outputs: item.result.outputs.filter(output => output.kind !== "png") } }];
+    }
+    return [item];
+  });
+  const latest = withModels.at(-1);
+  // Keep the existing model accessible at the end while the agent works too.
+  // This is a view of a published artifact, not another submission/tool call.
+  if (latest?.result.model) {
+    visible.push({ type: "model", id: `current-model-${latest.result.model.id}`, title: "3D model",
       summary: `Revision ${latest.result.revision?.number} · Interactive STEP`,
       caption: latest.result.model.name, model: latest.result.model, tool: latest.tool });
   }
-  return items;
+  return visible;
 }
 
 function upsert<T>(values: T[], value: T, key: (value: T) => string) {

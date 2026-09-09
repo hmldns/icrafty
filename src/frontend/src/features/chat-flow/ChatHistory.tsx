@@ -12,17 +12,17 @@ export function ChatHistory({ items, itemRenderer, actions }: {
   actions: ItemActions;
 }) {
   const scroll = useRef<HTMLDivElement>(null);
-  const lastId = useRef(items.at(-1)?.id);
+  const lastUserMessage = [...items].reverse().find(item => item.type === "message" && item.author === "you");
+  const lastUserId = useRef(lastUserMessage?.id);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [awayFromEnd, setAwayFromEnd] = useState(false);
   const jumpToEnd = () => {
     if (scroll.current) scroll.current.scrollTop = scroll.current.scrollHeight;
   };
   useEffect(() => {
-    const latest = items.at(-1);
-    if (!awayFromEnd || (latest?.id !== lastId.current && latest?.type === "message" && latest.author === "you")) jumpToEnd();
-    lastId.current = latest?.id;
-  }, [items, awayFromEnd]);
+    if (!awayFromEnd || lastUserMessage?.id !== lastUserId.current) jumpToEnd();
+    lastUserId.current = lastUserMessage?.id;
+  }, [items, awayFromEnd, lastUserMessage?.id]);
 
   function expandAll(value: boolean) {
     setExpanded(Object.fromEntries(items.map((item) => [item.id, value])));

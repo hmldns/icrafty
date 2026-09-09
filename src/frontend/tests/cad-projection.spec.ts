@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { projectToolCall } from "../src/features/chat-flow/projectHistory";
+import { projectAgentSnapshot } from "../src/features/agent-chat/projection";
+import type { AgentSnapshot } from "../src/features/agent-chat/types";
 import { cadRecord, cadResult } from "./cad-fixture";
 
 const catalog = { assets: [], models: [], sessionId: "chat-a" };
@@ -40,4 +42,36 @@ test("CAD preserves publication order, unavailable outputs and explicit unsuppor
   expect(item.type === "cad" && item.result.outputs.map(output => output.id)).toEqual(["top", "iso", "solid"]);
   expect(item.type === "cad" && item.result.outputs[0]?.photo).toBeNull();
   expect(projectToolCall(cadRecord({ ...result, schema_version: 99 }), catalog).type).toBe("tool");
+});
+
+test("ready STEP replaces only matching raster projections while preserving agent evidence", () => {
+  const ref = { assetId: "raster", versionId: "1" };
+  const raster = cadRecord(cadResult({ operationId: "early-png", status: "completed", images: [ref],
+    outputs: [{ id: "iso", kind: "png", status: "ready", image: ref }] }));
+  const other = cadRecord(cadResult({ operationId: "other-revision", status: "completed", images: [ref],
+    revision: { id: "revision-2", number: 2 },
+    outputs: [{ id: "iso", kind: "png", status: "ready", image: ref }] }));
+  const snapshot: AgentSnapshot = { schemaVersion: 1, cursor: 0, interactions: [],
+    session: { id: "chat-a", title: "Cap", runtime: "ready", activeTurnId: "next-turn", turnStatus: "running",
+      error: null, model: null, updatedAt: "", permissions: [] },
+    assets: ["raster", "sketch"].map(id => ({ id, versionId: "1", title: id, width: 32, height: 32,
+      mimeType: "image/png", size: 100, digest: "image", origin: "cad", url: `/api/agent/sessions/chat-a/images/${id}` })),
+    records: [raster, other, ...["raster", "sketch"].map(id => ({ type: "tool_call" as const,
+      toolCallId: `show-${id}`, name: "images.show", title: id, status: "completed" as const,
+      rawOutput: { view: "image", caption: id, image: { assetId: id, versionId: "1" } } })),
+      cadRecord(base), { type: "message", id: "follow-up", author: "you", origin: "agent", text: "Refine the cap.", imageIds: ["raster"] }] };
+  const original = JSON.stringify(snapshot);
+  const items = projectAgentSnapshot(snapshot);
+  const early = items.find(item => item.type === "cad" && item.result.operationId === "early-png");
+  const another = items.find(item => item.type === "cad" && item.result.operationId === "other-revision");
+  expect(early?.type === "cad" && early.result.outputs).toEqual([]);
+  expect(another?.type === "cad" && another.result.outputs[0]?.kind).toBe("png");
+  expect(items.filter(item => item.type === "image").map(item => item.title)).toEqual(["sketch"]);
+  const user = items.find(item => item.type === "message");
+  expect(user?.type === "message" && user.attachments).toHaveLength(1);
+  expect(items.at(-1)?.type).toBe("model"); // Remains reviewable during the next turn.
+  expect(JSON.stringify(snapshot)).toBe(original);
+  const pngOnly = projectAgentSnapshot({ ...snapshot, records: snapshot.records.filter(item => item !== snapshot.records[4]) });
+  expect(pngOnly.filter(item => item.type === "image")).toHaveLength(2);
+  expect(pngOnly.some(item => item.type === "model")).toBe(false);
 });
