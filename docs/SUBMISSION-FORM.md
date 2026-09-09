@@ -11,9 +11,12 @@ The app redefines "broken" to include things that no longer fit your needs: a
 missing cap, an awkward grip, or a design you want to upgrade.
 
 Capture photos live from your camera or import existing images, then draw and add
-annotations to show what needs fixing or changing. The AI analyzes that evidence,
-asks for missing measurements, and refines the proposed design with you in a saved
-conversation. The first demonstration focuses on a replacement mug cap.
+annotations to show what needs fixing or changing. The AI analyzes the original
+photos and your markings, asks for missing measurements, and uses Codex's native
+image-generation tools to sketch possible solutions. Inspect or annotate a
+generated sketch and send it back to refine the design in the same saved
+conversation. Original photos and generated concepts remain available throughout
+the discussion. The first demonstration focuses on a replacement mug cap.
 
 The CAD workflow uses FreeCAD to build solid geometry, render views, compute
 geometric checks, and export STEP files for print preparation. The app combines
@@ -47,8 +50,27 @@ repair UI. MCP tools provide image access, camera requests, and structured
 measurement questions. The [live acceptance record](../agent/LIVE-ACCEPTANCE.md)
 reports `gpt-6-astra[max]`.
 
-Astra handles request processing, image and annotation analysis, and design
-reasoning. For CAD work, the Codex agent writes FreeCAD Python, runs the evaluator,
+Astra analyzes the actual pixels of original photographs sent through ACP,
+including live camera captures and annotated versions. It examines multiple
+views and user markings, reasons about the part's fit and function, and asks for
+missing dimensions. In our live mug-cap run, it inspected all four supplied
+original photos, then requested five dimensions and two fit/use answers, with
+hints explaining where to place the calipers. Exact dimensions come from the
+user's measurements.
+
+Astra also invokes Codex's native `Image generation` tool to create concept
+sketches and visual explanations. Codex publishes the completed image files
+through `crafty_images.publish_image` as saved chat assets that users can inspect,
+annotate, download, and attach to later messages. Astra can then examine a
+proposed design alongside the original photos and the user's feedback. We
+verified a real pale-blue mug-cap concept with a finger tab, including its
+generation, publication, download, and later reanalysis after the conversation
+was restored. The measurement workflow also instructs Astra to generate labelled
+schematics showing caliper placement, with labels tied to the measurement fields.
+Original photos, generated concepts, and verified CAD renders retain their own
+identities in the workflow.
+
+For CAD work, the Codex agent writes FreeCAD Python, runs the evaluator,
 inspects actual rendered images and numerical measurements, and revises its
 design. FreeCAD builds and verifies the geometry and exports STEP; the AI owns
 the design decisions and revision loop. Our
