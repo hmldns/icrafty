@@ -7,8 +7,9 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 from mcp.server import Server
+from mcp.server.lowlevel.helper_types import ReadResourceContents
 from mcp.server.stdio import stdio_server
-from mcp.types import Tool
+from mcp.types import Resource, Tool
 
 from .cad_files import atomic, canonical, capture_request, contained, digest, read
 from .cad_protocol import DESCRIPTIONS, SCHEMAS, validate_tool
@@ -91,7 +92,19 @@ async def main():
         return [Tool(name=key.split(".")[1], description=DESCRIPTIONS[key.split(".")[1]], inputSchema=value)
                 for key, value in SCHEMAS.items() if key.startswith(prefix + ".")]
 
-    @server.call_tool()
+    @server.list_resources()
+    async def list_resources():
+        return [Resource(name="cad-contract-v1", uri="crafty-cad://contract/v1", mimeType="application/json",
+                         description="Exact CAD v1 tool input schemas; PNG views/grids and immutable metric criteria")]
+
+    @server.read_resource()
+    async def read_resource(uri):
+        if str(uri) != "crafty-cad://contract/v1":
+            raise ValueError("Unknown CAD resource")
+        return [ReadResourceContents(canonical({"schema_version": 1, "tools": SCHEMAS}).decode(), "application/json")]
+
+    # Use our identical strict validator so nested-selector errors include usable guidance.
+    @server.call_tool(validate_input=False)
     async def call_tool(name, arguments):
         return await asyncio.to_thread(dispatch, name, arguments)
 

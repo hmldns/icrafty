@@ -9,7 +9,7 @@ import time
 from .cad_bridge import CadFailure, NativeBridge
 from .cad_config import CadSettings
 from .cad_files import atomic, canonical, capture_request, contained, decode, digest, read, unpack
-from .cad_protocol import validate_tool
+from .cad_protocol import SELECTOR_GUIDE, install_context, validate_tool
 from .cad_publication import publish
 from .cad_reasoner import CadReasoner
 from .cad_store import CadStore, TERMINAL
@@ -31,7 +31,7 @@ restore_geometry, wait, then request evidence again. A design change uses reques
 parent_revision_id and creates a separate revision. Do not use image generation as CAD evidence.
 The tools accept M-CAD output/metric selectors in their schemas. PNG view presets are isometric,
 top, bottom, front, right. STEP is optional and validated; GLB and thread families are unsupported.
-"""
+""" + SELECTOR_GUIDE
 
 
 class CadService:
@@ -55,6 +55,7 @@ class CadService:
         return self.agents[sid]
 
     def mcp_server(self, sid, token, workspace, role="chat"):
+        install_context(workspace)
         return {"name": "crafty_cad" if role == "chat" else "crafty_cad_model", "command": sys.executable,
                 "args": ["-m", "crafty_agent.cad_mcp"], "env": [{"name": k, "value": v} for k, v in {
                     "CRAFTY_CAD_URL": self.app.base_url, "CRAFTY_CAD_SESSION": sid, "CRAFTY_CAD_TOKEN": token,

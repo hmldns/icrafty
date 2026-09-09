@@ -9,6 +9,7 @@ import sys
 
 from .acp import AcpConnection, AcpError
 from .cad_files import atomic, canonical
+from .cad_protocol import SELECTOR_GUIDE
 from .normalize import compact
 from .store import identifier, now
 
@@ -36,7 +37,7 @@ imply STEP exists. STEP is allowed only when requested and validated by the serv
 Available presets: isometric, top, bottom, front, right. No GLB, threads or general fit claims.
 Keep every modeling attempt within the supplied evaluation/time budget. If information is missing,
 explain the question in your final response for the parent conversation. Do not wait indefinitely.
-"""
+""" + SELECTOR_GUIDE
 
 
 class CadReasoner:

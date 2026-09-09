@@ -23,6 +23,17 @@ Tests also preserved available evidence when another output was unavailable.
 **The full live chat gate has not yet run.** A real MCP/native transport test and explicit fake ACP lifecycle tests
 do not establish a live Codex modeling session or mounted browser acceptance.
 
+The first actual UI request reached the conversational agent and its real
+`crafty_cad.request_part` tool, but invalid selectors (`png_grid`, a string view,
+`abs_tol`) were rejected before any CAD operation/native execution. That dedicated
+turn was cancelled and retained at
+`.builders/cad-chat-acceptance/first-selector-failures.json`. This exposed inadequate
+agent-facing schema discovery. The unchanged strict schemas now also appear in
+both workspaces and a read-only MCP resource, with actionable validation errors.
+Four targeted transport/schema/scope checks passed in 3.20 seconds; report
+`agent/runs/cad-contract-guidance.xml`. The same saved chat will resume after the
+dedicated backend restart; rejected inputs are not native evidence.
+
 The dedicated runtime uses port 8807 and private data in this worker checkout's
 `.builders/cad-chat-state`; it never uses the main backend's saved chats. Setup,
 the accepted protocol, schemas and sample prompts are in

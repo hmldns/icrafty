@@ -75,6 +75,11 @@ unfinished CAD work for its work request. Existing snapshot/events remain the
 normal browser transport; no polling or new route component is required.
 
 Exact input schemas are in [tool-schemas-v1.json](examples/cad/tool-schemas-v1.json).
+Both product workspaces receive these exact schemas as `cad-tools-v1.schema.json`
+and concise syntax guidance as `cad-selector-guide.md`. Both MCP servers expose
+the same read-only `crafty-cad://contract/v1` resource. Strict input errors include
+the invalid location and usable view/grid/criterion syntax. This adds contract
+discovery without changing tool inputs or relaxing validation.
 The conversational session gets a separate `crafty_cad` MCP server exposing
 `request_part`, `request_evidence`, `restore_geometry`, `status`, bounded `wait`
 (at most 20 seconds), and `cancel`. Request acceptance is durable/idempotent and
@@ -194,3 +199,16 @@ UI implementation remain outside this module. The previously accepted determinis
 evaluator Docker option remains unchanged; this adapter currently selects local
 processes only. Final live acceptance requires the mounted renderer and actual
 conversational/CAD Codex sessions; see the separate acceptance record.
+
+The read-only live collector retains one session's public snapshot, CAD operations,
+verified downloaded images/sidecars/STEP and optional native operation directories:
+
+```bash
+uv run --script agent/tests/cad_collect.py --session ACTUAL_SESSION_ID \
+  --base-url http://127.0.0.1:8807 --output .builders/cad-chat-acceptance/FRESH_NAME \
+  --state-root .builders/cad-chat-state
+```
+
+Run it from the repository root. It never submits work, copies credential homes,
+or claims that collected bytes establish the entire live gate. Empty CAD history
+is rejected. Operation outcomes and image inspection remain separate evidence.

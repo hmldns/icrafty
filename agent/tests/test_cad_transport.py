@@ -49,6 +49,13 @@ async def test_cad_real_stdio_mcp_native_ensure_materialize_publish(backend):
         async with mcp(service, sid, actor, "chat") as chat:
             listing = await chat.list_tools()
             assert {"crafty_cad." + t.name: t.inputSchema for t in listing.tools} == {k: v for k, v in SCHEMAS.items() if k.startswith("crafty_cad.")}
+            resources = await chat.list_resources()
+            resource = await chat.read_resource(resources.resources[0].uri)
+            assert json.loads(resource.contents[0].text)["tools"] == SCHEMAS
+            bad = task(outputs=[{"id": "invalid", "kind": "png_grid", "views": ["front"]}])
+            rejected = await chat.call_tool("request_part", bad)
+            assert rejected.isError and "absolute_tolerance" in rejected.content[0].text
+            assert service.cad.store.operations(sid) == []
             accepted = await chat.call_tool("request_part", task())
             assert not accepted.isError, accepted
             oid = accepted.structuredContent["operationId"]
@@ -85,6 +92,16 @@ async def test_cad_real_stdio_mcp_native_ensure_materialize_publish(backend):
                 actor.finished.set()
             result = await chat.call_tool("status", {"operation_id": oid})
             assert result.structuredContent["images"] and "snapshot_path" not in json.dumps(result.structuredContent)
+            collected = service.settings.data.parent / "collected"
+            process = await asyncio.create_subprocess_exec(sys.executable, str(Path(__file__).with_name("cad_collect.py")),
+                "--session", sid, "--base-url", service.base_url, "--output", str(collected), "--state-root", str(service.settings.data),
+                stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+            stdout, stderr = await asyncio.wait_for(process.communicate(), 10)
+            assert process.returncode == 0, stderr.decode()
+            report = json.loads((collected / "report.json").read_text())
+            assert report["downloadCount"] == 2 and report["allDownloadsVerified"]
+            assert report["operations"][0]["reuse"]["sourceExecutions"] == 1
+            assert not any("auth.json" in item["path"] for item in report["files"])
     finally:
         server.should_exit = True
         await serving
