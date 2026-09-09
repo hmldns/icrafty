@@ -1,4 +1,5 @@
 import asyncio
+from dataclasses import replace
 from io import BytesIO
 import json
 import os
@@ -110,6 +111,47 @@ async def test_real_stdio_lifecycle_images_idempotency_and_resume(settings):
         assert service.materialize(sid, image["id"]).read_bytes() == png()
     finally:
         await service.close()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("transport", ["https", "auto"])
+async def test_chat_and_cad_transport_survive_resume(settings, monkeypatch, transport):
+    monkeypatch.setenv("MODEL_PROVIDER", "unrelated-operator-provider")
+    service = AgentService(replace(settings, codex_transport=transport, model="test-model", reasoning="high"), "http://127.0.0.1:1")
+    sid = service.store.create_session()["id"]
+    try:
+        chat, cad = service.runtime(sid), service.cad.agent(sid)
+        identities = None
+        for resumed in (False, True):
+            await service.open(sid)
+            await cad.ensure()
+            current = (service.store.session(sid)["acpSessionId"], service.cad.store.session(sid)["acpSessionId"])
+            if resumed:
+                assert current == identities
+            identities = current
+            for actor, images in ((chat, True), (cad, False)):
+                launch = await actor.connection.request("test/runtime-config", {})
+                config = launch["config"]
+                assert config["features"]["image_generation"] is images
+                assert config["model"] == "test-model" and config["model_reasoning_effort"] == "high"
+                if transport == "https":
+                    provider = config["model_provider"]
+                    assert launch["provider"] == provider and provider != "openai"
+                    assert config["model_providers"][provider]["supports_websockets"] is False
+                    assert config["model_providers"][provider]["requires_openai_auth"] is True
+                    assert "base_url" not in config["model_providers"][provider]
+                else:
+                    assert launch["provider"] is None and "model_provider" not in config
+            await chat.stop_process()
+            await cad.close()
+        assert service.store.records(sid) == []
+    finally:
+        await service.close()
+
+
+def test_invalid_transport_is_rejected_before_launch(settings):
+    with pytest.raises(ValueError, match="CRAFTY_CODEX_TRANSPORT"):
+        replace(settings, codex_transport="wss")
 
 
 @pytest.mark.asyncio

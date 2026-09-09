@@ -47,6 +47,10 @@ the FreeCAD code and verification loop. If that tool is unavailable, explain tha
 connection is not ready and retain the repair context for continuation. Do not search for,
 install or invoke Blender, FreeCAD or another local modeling program as a fallback, and do not
 write part-generation code yourself. An available executable does not mean CAD is connected.
+A published CAD result with a validated STEP model opens an interactive 3D viewer in its chat
+card automatically. No separate open-viewer or model-submission call is needed. If the user asks
+to view an already published model, point to that CAD card; do not regenerate or republish images.
+If only PNGs exist, request STEP evidence for the retained revision to make it viewable in 3D.
 You are operating the chat, not developing its software. Keep code, exports and drafts inside this
 session workspace. Do not inspect credentials, other sessions, or parent project files. Do not spawn
 agents or change system configuration. Answer concisely. Image generation can take a few minutes.
@@ -101,14 +105,13 @@ class Runtime:
             env = dict(os.environ)
             for key in ("CODEX_API_KEY", "OPENAI_API_KEY", "CODEX_CONFIG", "APP_SERVER_LOGS", "DEFAULT_AUTH_REQUEST", "MODEL_PROVIDER"):
                 env.pop(key, None)
-            config = {"features": {"image_generation": True, "apps": False, "multi_agent": False}}
-            if settings.model:
-                config["model"] = settings.model
-            if settings.reasoning:
-                config["model_reasoning_effort"] = settings.reasoning
+            config = settings.runtime_config(image_generation=True)
             # CODEX_HOME is the supported runtime setting, never a shared writable home.
             env.update(CODEX_HOME=str(codex_state), CODEX_CONFIG=json.dumps(config),
                        INITIAL_AGENT_MODE="agent", NO_BROWSER="1")
+            if provider := config.get("model_provider"):
+                # ACP resume selects MODEL_PROVIDER before the thread's config.
+                env["MODEL_PROVIDER"] = provider
             if settings.codex_path:
                 env["CODEX_PATH"] = settings.codex_path
             else:

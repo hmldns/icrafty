@@ -17,6 +17,7 @@ class Settings:
     codex_path: str | None = None
     model: str | None = None
     reasoning: str | None = None
+    codex_transport: str = "https"
     startup_timeout: float = 90
     turn_timeout: float = 600
     cancel_timeout: float = 8
@@ -28,6 +29,24 @@ class Settings:
     def __post_init__(self):
         if min(self.startup_timeout, self.turn_timeout, self.cancel_timeout, self.max_image_bytes, self.max_pixels, self.max_frame_bytes) <= 0:
             raise ValueError("Agent time and size limits must be positive")
+        if self.codex_transport not in {"https", "auto"}:
+            raise ValueError("CRAFTY_CODEX_TRANSPORT must be https or auto")
+
+    def runtime_config(self, *, image_generation: bool) -> dict:
+        config = {"features": {"image_generation": image_generation, "apps": False, "multi_agent": False}}
+        if self.model:
+            config["model"] = self.model
+        if self.reasoning:
+            config["model_reasoning_effort"] = self.reasoning
+        if self.codex_transport == "https":
+            # Built-in provider IDs are reserved. Use the same OpenAI auth/default
+            # endpoint with streaming HTTPS, avoiding repeated WebSocket fallback.
+            provider = "crafty-openai-https"
+            config.update(model_provider=provider, model_providers={provider: {
+                "name": "OpenAI", "wire_api": "responses", "requires_openai_auth": True,
+                "supports_websockets": False,
+            }})
+        return config
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -50,6 +69,7 @@ class Settings:
             codex_path=os.environ.get("CRAFTY_CODEX_PATH"),
             model=os.environ.get("CRAFTY_AGENT_MODEL") or preferences.get("model"),
             reasoning=os.environ.get("CRAFTY_AGENT_REASONING") or preferences.get("model_reasoning_effort"),
+            codex_transport=os.environ.get("CRAFTY_CODEX_TRANSPORT", "https"),
             startup_timeout=float(os.environ.get("CRAFTY_AGENT_STARTUP_TIMEOUT", "90")),
             turn_timeout=float(os.environ.get("CRAFTY_AGENT_TURN_TIMEOUT", "600")),
             cancel_timeout=float(os.environ.get("CRAFTY_AGENT_CANCEL_TIMEOUT", "8")),

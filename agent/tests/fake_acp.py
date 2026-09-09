@@ -31,6 +31,8 @@ for line in sys.stdin:
             session = params["sessionId"]
             update({"sessionUpdate": "agent_message_chunk", "content": {"type": "text", "text": "REPLAY MUST NOT DUPLICATE"}})
         reply(rid, {"sessionId": session, "models": {"currentModelId": "test-fixture"}})
+    elif method == "test/runtime-config":
+        reply(rid, {"config": json.loads(os.environ["CODEX_CONFIG"]), "provider": os.environ.get("MODEL_PROVIDER")})
     elif method == "session/prompt":
         text = " ".join(block.get("text", "") for block in params["prompt"])
         if text == "crash":

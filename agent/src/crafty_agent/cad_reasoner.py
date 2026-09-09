@@ -77,12 +77,10 @@ class CadReasoner:
         env = dict(os.environ)
         for name in ("CODEX_API_KEY", "OPENAI_API_KEY", "CODEX_CONFIG", "APP_SERVER_LOGS", "DEFAULT_AUTH_REQUEST", "MODEL_PROVIDER"):
             env.pop(name, None)
-        config = {"features": {"image_generation": False, "apps": False, "multi_agent": False}}
-        if settings.model:
-            config["model"] = settings.model
-        if settings.reasoning:
-            config["model_reasoning_effort"] = settings.reasoning
+        config = settings.runtime_config(image_generation=False)
         env.update(CODEX_HOME=str(home), CODEX_CONFIG=json.dumps(config), INITIAL_AGENT_MODE="agent", NO_BROWSER="1")
+        if provider := config.get("model_provider"):
+            env["MODEL_PROVIDER"] = provider
         if settings.codex_path:
             env["CODEX_PATH"] = settings.codex_path
         else:
