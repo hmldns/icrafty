@@ -7,6 +7,8 @@ The first core passed [77 local checks](LOCAL-GATE.md), the separate correction
 trial with [independent tool evidence](TRIAL-GATE.md), and
 [83 executed Docker checks](DOCKER-GATE.md). MCP/ACP, chat, printing and product
 agent sessions are outside this module.
+The subsequent [native import fix](NATIVE-IMPORT-FIX.md) passed 78 local and 84
+Docker cases, including rational B-spline measurements and serial meshing.
 
 Read the canonical [M-CAD contract](../docs/M-CAD.md),
 [implementation brief](../docs/CAD-IMPLEMENTATION.md),
@@ -22,6 +24,7 @@ From the repository root:
 
 ```sh
 make -C cad sync
+make -C cad native-setup
 uv run --directory cad --cache-dir .uv-cache --locked python -m crafty_cad evaluate \
   --request examples/cylinder/request.json --output runs/cylinder-001
 ```
@@ -44,11 +47,21 @@ Changing native versions changes build identity; snapshots require a compatible
 FreeCAD/OCCT/ABI identity. Installed package details and the first actual native
 roundtrip are retained in the milestone document.
 
+`native-setup` explicitly compiles the service-owned adaptive measurement bridge.
+It requires a C++17 compiler, matching OCCT development headers and native Python
+headers. Its separate uv script lock pins SWIG 4.4.1; the accepted compiler is
+GCC 16.2.1. No compiler or package download runs during evaluation. Startup checks
+the built bytes, source digest, Python ABI and OCCT version, with an actionable
+setup error on mismatch. See [native/README.md](native/README.md).
+
 Rendering uses FreeCAD/OCCT tessellation and a software depth buffer in a separate,
 limited process using locked uv NumPy/Pillow. No display server, Xvfb, GUI, OpenGL
 context or GPU is required. The accepted font is Liberation Sans 2.1.5 at
 `/usr/share/fonts/liberation/LiberationSans-Regular.ttf`; its bytes/digest and
 Pillow/NumPy/FreeType versions appear in each PNG evaluation's provenance.
+Rendering uses MeshPart's standard serial mesher on a disposable geometry copy,
+with 0.12 mm linear and 0.5 rad angular deflection. Its mesh stores float32 vertex
+coordinates; authoritative dimensions use native BRep geometry, not this mesh.
 
 ## Request, source and result
 
@@ -86,6 +99,11 @@ surface area, volume-weighted centroid, diameter of an identified cylindrical fa
 and minimum distance between actual selected subshapes. Reports include unit,
 world frame, versioned method, target(s), actual value, criterion, signed difference,
 and `measured`, `pass`, `fail`, `unavailable` or `error`. Vectors are measurement-only.
+`bbox_extent@2` uses geometric extrema instead of B-spline control-pole bounds.
+`volume@2`, `surface_area@2` and `centroid@2` use OCCT adaptive integration through
+the retained native shape. These are numerical methods with documented fixture
+tolerances, not exact symbolic results. Their implementation and retained
+accuracy regressions are in [NATIVE-IMPORT-FIX.md](NATIVE-IMPORT-FIX.md).
 Count/boolean equality is exact; scalar equality requires an explicit absolute
 tolerance; inclusive ranges use min/max. Unsupported methods, views, GLB and
 unknown fields reject explicitly. A bbox never claims to measure a bore or roof.

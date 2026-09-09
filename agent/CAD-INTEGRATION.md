@@ -82,14 +82,14 @@ the invalid location and usable view/grid/criterion syntax. This adds contract
 discovery without changing tool inputs or relaxing validation.
 The conversational session gets a separate `crafty_cad` MCP server exposing
 `request_part`, `request_evidence`, `restore_geometry`, `status`, bounded `wait`
-(at most 20 seconds), and `cancel`. Request acceptance is durable/idempotent and
+(at most 20 seconds), `cancel`, and `attach_input_file`. Request acceptance is durable/idempotent and
 returns promptly. `request_part` takes an explicit brief, title, scoped image IDs,
-optional parent revision, requested outputs and fixed metric criteria. See
+optional parent revision/input file IDs, requested outputs and fixed metric criteria. See
 [request-part-v1.json](examples/cad/request-part-v1.json). Request keys are scoped
 to the chat and operation kind; changed bytes under a reused key conflict.
 
 A separate product CAD ACP session gets `crafty_cad_model`: `cad_ensure`,
-`cad_evaluate`, `cad_status`, bounded `cad_wait`, `cad_release`, `fetch_image`,
+`cad_evaluate`, `cad_status`, bounded `cad_wait`, `cad_release`, `fetch_image`, `fetch_input_file`,
 and explicit `result_publish`. These tools transfer completed files from its own
 workspace and return materialized evaluator evidence there. The CAD agent writes
 the model, inspects real PNGs/metrics and revises within 8 evaluations/1200 seconds.
@@ -124,12 +124,13 @@ separation; product per-session Docker orchestration remains a later stage.
 
 ## Run the dedicated backend
 
-From the assigned checkout, prepare the existing locks (no new dependency versions):
+From the assigned checkout, prepare the module locks and explicit native bridge:
 
 ```bash
 env -u VIRTUAL_ENV uv sync --directory agent --locked
 npm ci --prefix agent
 env -u VIRTUAL_ENV uv sync --directory cad --locked
+make -C cad native-setup
 ```
 
 The existing [native setup](../cad/README.md) is required. The application launches
@@ -182,6 +183,7 @@ preserves the application revision and geometry identity.
 ```bash
 env -u VIRTUAL_ENV uv run --directory agent --locked pytest -q \
   tests/test_cad_backend.py tests/test_cad_transport.py tests/test_integration.py \
+  tests/test_cad_inputs.py tests/test_cad_input_transport.py \
   --basetemp runs/cad-backend-acceptance --junitxml runs/cad-backend-acceptance.xml
 ```
 
@@ -195,8 +197,8 @@ distinct ACP identities, permissions and resume. Native prerequisites must be
 installed; these tests do not silently skip them.
 
 Product per-session Docker orchestration, printing, bolt/thread families and the
-UI implementation remain outside this module. The previously accepted deterministic
-evaluator Docker option remains unchanged; this adapter currently selects local
+UI implementation remain outside this module. The deterministic evaluator's
+[updated Docker option](../cad/NATIVE-IMPORT-FIX.md) remains available; this adapter currently selects local
 processes only. Final live acceptance requires the mounted renderer and actual
 conversational/CAD Codex sessions; see the separate acceptance record.
 
@@ -213,14 +215,15 @@ Run it from the repository root. It never submits work, copies credential homes,
 or claims that collected bytes establish the entire live gate. Empty CAD history
 is rejected. Operation outcomes and image inspection remain separate evidence.
 
-## Proposed existing-file handoff
+## Existing-file handoff
 
 The additive [file-handoff-v1 proposal](examples/cad/file-handoff-v1-proposal.json)
-is **not installed** and awaits shared-interface coordination. The accepted v1
-result/renderer contract and its thirteen tools remain unchanged. This proposal
-addresses an existing STEP or original Python file already in the conversational
-workspace, and a future browser upload of the same bytes. It does not depend on,
-or replace, the ongoing live cap generation and export acceptance.
+was approved and is implemented. Its exact installed tool schemas are in
+[tool-schemas-v1.json](examples/cad/tool-schemas-v1.json); returned metadata uses
+[input-file-v1.schema.json](examples/cad/input-file-v1.schema.json). There are now
+fifteen CAD tools. The accepted `cad.result` v1 renderer contract is unchanged.
+Existing STEP and original Python files can be attached from the conversational
+workspace or uploaded as bounded raw bytes. Their provenance remains unverified.
 
 `crafty_cad.attach_input_file({idempotency_key, path, kind})` captures a completed
 regular file inside the calling conversational workspace. `path` is a relative
@@ -234,7 +237,7 @@ provenance retains the originating session, runtime generation, turn, relative
 path, capture time, kind, size and SHA256. Browser records expose only the schema's
 safe metadata, with `validation: "unverified_input"`.
 
-`request_part` gains optional `input_file_ids: []` (at most eight unique IDs).
+`request_part` accepts optional `input_file_ids: []` (at most eight unique IDs).
 It resolves only that chat's immutable files, freezes their IDs/bytes/digests into
 the operation task, and includes that manifest in idempotency comparison.
 `crafty_cad_model.fetch_input_file({input_file_id})` accepts only IDs explicitly
@@ -256,11 +259,21 @@ Named features are available only when actual imported subshapes can be identifi
 No imported file is presented as a validated output STEP. A downloadable model
 still requires an explicit requested export and the existing clean reopen check.
 
-For direct user selection, the proposal includes a bounded raw-byte
+For direct user selection, the backend includes a bounded raw-byte
 `POST /api/agent/sessions/{sid}/cad/inputs?filename=...&kind=...`, returning the
 same immutable input record. It follows the existing local application's session
 authority; this is not a new multi-user authentication claim. The UI owner owns
 file selection and durable user-message references. No browser filesystem path,
-new general Store hook, image MCP change, CAD core change or dependency is needed.
-Application implementation would stay in `cad_*`, adding only this CAD route and
-the two separate CAD MCP tools after the exact schema is coordinated.
+new general Store hook or image MCP change is involved. Application implementation
+stays in `cad_*`. CAD-native imported-file accuracy/meshing fixes are documented
+separately in [NATIVE-IMPORT-FIX.md](../cad/NATIVE-IMPORT-FIX.md).
+
+The upload requires `Content-Type: application/octet-stream` and a 1–120 character
+`Idempotency-Key`. It returns only safe metadata, never a model/download URL. A
+typical agent flow is `attach_input_file({idempotency_key:"cap-input-1",
+path:"output/mug_cap.step",kind:"step"})`, then `request_part` with the returned
+`inputFileId` in `input_file_ids`, an explicit brief and requested evidence.
+The CAD agent calls `fetch_input_file` and writes an explicit adapter. Fetching a
+changed local copy fails instead of overwriting it. A different file under a reused
+attachment key conflicts. Source plus all declared evaluator inputs still share
+the existing 16 MiB aggregate limit; attaching files does not bypass that limit.

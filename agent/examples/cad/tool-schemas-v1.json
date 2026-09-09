@@ -396,6 +396,16 @@
               "type": "null"
             }
           ]
+        },
+        "input_file_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{32}$"
+          },
+          "maxItems": 8,
+          "uniqueItems": true,
+          "default": []
         }
       },
       "required": [
@@ -997,6 +1007,46 @@
         "artifact_ids",
         "interpretation",
         "inspected_image_ids"
+      ]
+    },
+    "crafty_cad.attach_input_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "kind": {
+          "enum": [
+            "step",
+            "python_source"
+          ]
+        }
+      },
+      "required": [
+        "idempotency_key",
+        "path",
+        "kind"
+      ]
+    },
+    "crafty_cad_model.fetch_input_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "input_file_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{32}$"
+        }
+      },
+      "required": [
+        "input_file_id"
       ]
     }
   }

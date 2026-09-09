@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "inputFileId": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32}$"
+    },
+    "sessionId": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32}$"
+    },
+    "kind": {
+      "enum": [
+        "step",
+        "python_source"
+      ]
+    },
+    "filename": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,119}$"
+    },
+    "mediaType": {
+      "enum": [
+        "model/step",
+        "text/x-python"
+      ]
+    },
+    "sizeBytes": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 16777216
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "validation": {
+      "const": "unverified_input"
+    },
+    "origin": {
+      "enum": [
+        "conversation_workspace",
+        "user_upload"
+      ]
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "schema_version",
+    "inputFileId",
+    "sessionId",
+    "kind",
+    "filename",
+    "mediaType",
+    "sizeBytes",
+    "sha256",
+    "validation",
+    "origin",
+    "createdAt"
+  ]
+}

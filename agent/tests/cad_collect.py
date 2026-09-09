@@ -8,7 +8,9 @@ uv run --script agent/tests/cad_collect.py --session ID --output FRESH_DIRECTORY
 Optional --state-root retains that session's native operations, not Codex homes.
 """
 import argparse
+import base64
 import hashlib
+from html import escape
 import json
 from pathlib import Path
 import re
@@ -18,6 +20,33 @@ from urllib.request import urlopen
 
 def sha(data):
     return hashlib.sha256(data).hexdigest()
+
+
+def gallery(root, session, operations):
+    sections = []
+    for operation in operations:
+        oid = operation["operationId"]
+        fields = {key: operation.get(key) for key in ("status", "phase", "revision", "geometry", "reuse", "budget", "error")}
+        blocks = ["<h2>" + escape(operation.get("title", oid)) + "</h2>",
+                  "<p>" + escape(oid) + "</p><pre>" + escape(json.dumps(fields, indent=2)) + "</pre>"]
+        for output in operation["outputs"]:
+            blocks.append("<p>" + escape(output["id"] + ": " + output["status"]) + "</p>")
+            if output["status"] == "ready" and output["kind"] == "png":
+                data = (root / "artifacts" / oid / (output["id"] + ".png")).read_bytes()
+                blocks.append('<img alt="' + escape(output["id"], quote=True) + '" src="data:image/png;base64,' + base64.b64encode(data).decode() + '">')
+            for item in (output.get("file"), output.get("annotations", {}).get("file")):
+                if item:
+                    data = (root / "artifacts" / oid / item["filename"]).read_bytes()
+                    blocks.append('<p><a download="' + escape(item["filename"], quote=True) + '" href="data:application/octet-stream;base64,'
+                                  + base64.b64encode(data).decode() + '">' + escape(item["filename"]) + '</a> · SHA-256 '
+                                  + escape(item["sha256"]) + '</p>')
+        blocks.append("<pre>" + escape(json.dumps(operation["metrics"], indent=2)) + "</pre>")
+        sections.append("<section>" + "".join(blocks) + "</section>")
+    return ('<!doctype html><meta charset="utf-8"><title>CAD chat evidence</title>'
+            '<style>body{max-width:1100px;margin:32px auto;font:16px sans-serif;padding:0 16px}img{max-width:100%}'
+            'pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f2f5f8;padding:16px}section{border-top:1px solid #abc;padding:24px 0}</style>'
+            '<h1>Collected CAD evidence</h1><p>Saved session ' + escape(session) + '</p>'
+            '<p>Actual downloaded bytes. Collection alone does not establish agent behavior or image inspection.</p>' + "".join(sections)).encode()
 
 
 def main():
@@ -107,6 +136,7 @@ def main():
                     if total > 256 * 1024 * 1024:
                         raise ValueError("Native operation evidence exceeds collector budget")
                     write("native/" + oid + "/" + str(path.relative_to(source)), data)
+    write("gallery.html", gallery(args.output, args.session, operations))
     report = {"schema_version": 1, "sessionId": args.session, "conversationAcpSessionId": state["session"]["acpSessionId"],
               "activeTurnId": state["session"]["activeTurnId"], "backend": args.base_url, "operations": operations,
               "files": files, "allDownloadsVerified": downloads > 0, "downloadCount": downloads,

@@ -9,6 +9,7 @@ import time
 from .cad_bridge import CadFailure, NativeBridge
 from .cad_config import CadSettings
 from .cad_files import atomic, canonical, capture_request, contained, decode, digest, read, unpack
+from .cad_inputs import CadInputs
 from .cad_protocol import SELECTOR_GUIDE, install_context, validate_tool
 from .cad_publication import publish
 from .cad_reasoner import CadReasoner
@@ -25,6 +26,10 @@ checks can be requested without STEP. Use crafty_cad.wait/status for durable pro
 results. Pass the last operationVersion as after_version to wait so it blocks for new progress.
 The backend's CAD card shows work/results in this same chat. Keep filesystem paths and
 native handles out of replies. Distinguish measured values from estimates and failed checks.
+To submit an EXISTING STEP or Python file, use attach_input_file with its relative path inside
+this conversational workspace, then pass returned input_file_ids to request_part. Uploaded
+input IDs are also allowed. Inputs are unverified material, not validated results. Do not run
+or adapt part source here; the CAD agent must write an explicit adapter/copy in its own workspace.
 For more views/checks or STEP of an existing revision, use request_evidence and the revision ID;
 this reuses geometry without rebuilding. If geometry_unavailable is reported, explicitly call
 restore_geometry, wait, then request evidence again. A design change uses request_part with
@@ -38,6 +43,7 @@ class CadService:
     def __init__(self, app, settings=None):
         self.app, self.settings = app, settings or CadSettings.from_env()
         self.store = CadStore(app.store)
+        self.inputs = CadInputs(self.store, self.settings.input_bytes)
         self.store.recover()
         self.bridges, self.agents, self.tasks, self.evaluation_tasks = {}, {}, {}, {}
         self.agent_locks, self.watchers = {}, {}
@@ -109,6 +115,8 @@ class CadService:
             return self.public(sid, oid)
         kind = {"request_part": "model", "request_evidence": "evidence", "restore_geometry": "restore"}[name]
         task = dict(arguments)
+        if task.get("input_file_ids"):
+            task["input_files"] = self.inputs.freeze(sid, task["input_file_ids"])
         previous = self.store.prior(sid, kind, task["idempotency_key"], digest(canonical(task)))
         if previous:
             return previous["public"]

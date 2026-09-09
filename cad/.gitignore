@@ -4,3 +4,5 @@ dist/
 runs/
 .pytest_cache/
 .ruff_cache/
+native/build/
+native/.build-*/
