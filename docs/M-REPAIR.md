@@ -22,15 +22,23 @@ user input follow the same ACP path. Do not invent dimensions from the photos.
 
 **REPAIR-3 — Requested measurements.** The `crafty_forms.request_dimensions` MCP
 tool submits a bounded typed form with a title, explanation, named number/text
-fields, units and optional references to this session's images. The application
+fields, units and optional references to this session's images. For photo-based
+measurement requests, first generate one to three instructional sketches showing
+caliper placement and letter labels matching the questions. The separate
+`crafty_forms.publish_measurement_guide` tool stores each guide without a duplicate
+standalone image card. Map each guide to its field IDs; keep originals as source
+references. The application
 stores a first-class interaction and returns a `measurements` view. It returns
 immediately; the agent finishes its turn while the user measures the object.
 
 **REPAIR-4 — Inline answers.** Render the form in an expandable chat item with
-its referenced images, measurement hints and explicit units. Answers remain
+its instructional guides, measurement hints and explicit units. Original photos
+remain compact reference links instead of repeated previews. Answers remain
 editable until submitted. Blank fields are allowed when the user cannot measure
 them; require at least one answer and preserve missing values as unknown. Reject
 unknown field IDs, nonfinite/out-of-range numbers and foreign image/request IDs.
+Submitting answers preserves source/guide references in the form without attaching
+the same images again to the answer message.
 The user may still send an ordinary message asking to proceed with assumptions.
 
 **REPAIR-5 — Durable submission.** Submit with an idempotent client message ID.

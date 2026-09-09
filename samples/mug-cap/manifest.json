@@ -2,7 +2,7 @@
   "id": "mug-cap",
   "title": "A cap for my mug",
   "description": "Four views of a mug with its lid missing. Start with the fit and the measurements.",
-  "prompt": "I lost the lid for this mug and want to make a replacement cap. Here are four photos of the mug, rim, and inner grooves. I have a caliper with me. Look at the photos and ask me for the key dimensions and how the cap should fit. Please give me a short measurement form linked to these photos, with hints for where to measure. I have not supplied any dimensions yet.",
+  "prompt": "I lost the lid for this mug and want to make a replacement cap. Here are four photos of the mug, rim, and inner grooves. I have a caliper with me and have not supplied any dimensions. Inspect the photos, then create one clear technical line-sketch sheet on a plain background (up to three labelled schematic views), showing exactly where to place the caliper to measure the opening, lip and seating depth. Do not recreate, restyle or reimagine the original photo. Mark the measurements A, B, C, etc.; do not invent numbers or scale. Publish it with crafty_forms.publish_measurement_guide and give me a short request_dimensions form with guides mapping the sketch to its fields, matching letter labels and caliper hints, plus fit/use questions. Keep the original photos only as source references, without repeating them in the measurement request. Leave all measurements blank for me.",
   "photos": [
     {
       "id": "side",
