@@ -17,11 +17,12 @@ export function collectCadRevisions(items: readonly HistoryItem[]): CadRevision[
     const { revision } = item.result;
     const previous = revisions.get(revision.id);
     const model = item.result.status === "completed" ? item.result.model : null;
+    const keepPublished = !model && previous?.model;
     revisions.set(revision.id, {
       id: revision.id, number: revision.number,
-      title: item.result.operationKind === "model" || !previous ? item.title : previous.title,
+      title: keepPublished ? previous.title : item.result.operationKind === "model" || !previous ? item.title : previous.title,
       // A later PNG-only or failed query must not discard an already usable STEP.
-      item: model || !previous?.model ? item : previous.item,
+      item: keepPublished ? previous.item : item,
       model: model ?? previous?.model ?? null,
     });
   }

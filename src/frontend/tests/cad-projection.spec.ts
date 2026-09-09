@@ -82,12 +82,14 @@ test("ready STEP replaces only matching raster projections while preserving agen
   expect(pngOnly.some(item => item.type === "model")).toBe(false);
 });
 
-test("revision list retains its STEP across evidence-only and failed follow-ups", () => {
+test("revision list retains its STEP and title across evidence and a pending redesign", () => {
   const items = [cadRecord(base), cadRecord(cadResult({ operationId: "later-query", operationKind: "evidence", status: "completed" })),
-    cadRecord(cadResult({ operationId: "failed-query", operationKind: "evidence", status: "failed" }))]
+    cadRecord(cadResult({ operationId: "failed-query", operationKind: "evidence", status: "failed" })),
+    cadRecord(cadResult({ operationId: "next-design", operationKind: "model", status: "running", title: "Proposed threaded cap" }))]
     .map(record => projectToolCall(record, catalog));
   const revisions = collectCadRevisions(items);
   expect(revisions).toHaveLength(1);
   expect(revisions[0]?.model?.id).toBe(file.id);
+  expect(revisions[0]?.title).toBe(base.title);
   expect(revisions[0]?.item.id).toBe(`tool-cad:${base.operationId}`);
 });
