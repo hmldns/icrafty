@@ -139,7 +139,7 @@ def validate_request(value: Any, *, max_pixels: int = 16_000_000, padding: int =
 
 def compare(metric: dict, measurement: dict) -> dict:
     result = {**metric, "criterion": metric.get("criterion"), "frame": "world",
-              "method": metric["kind"] + "@1", **measurement}
+              "method": metric["kind"] + ("@2" if metric["kind"] == "bbox_extent" else "@1"), **measurement}
     if measurement["status"] != "measured" or "criterion" not in metric:
         return result
     criterion, value = metric["criterion"], measurement["value"]

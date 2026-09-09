@@ -32,11 +32,13 @@ PANEL = (225, 234, 243)
 
 def versions(settings: Settings) -> dict:
     import PIL
-    return {"renderer": "freecad-tessellation-software-zbuffer@2", "numpy": np.__version__,
+    return {"renderer": "freecad-tessellation-software-zbuffer@3", "numpy": np.__version__,
             "pillow": PIL.__version__, "freetype": features.version("freetype2"),
             "font": settings.font, "font_sha256": digest(Path(settings.font).read_bytes()),
             "background": BACKGROUND, "title_height": settings.title_height,
             "tessellation_mm": settings.tessellation_mm, "display": "none", "opengl": "none",
+            "mesher": "MeshPart-standard-serial", "mesh_coordinate_storage": "float32",
+            "angular_deflection_radians": settings.angular_deflection_radians,
             "edge_style": "silhouette-and-depth-discontinuity"}
 
 

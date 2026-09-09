@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "status": "proposal; not installed",
+  "tools": {
+    "crafty_cad.attach_input_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {"type": "string", "minLength": 1, "maxLength": 120},
+        "path": {"type": "string", "minLength": 1, "maxLength": 512},
+        "kind": {"enum": ["step", "python_source"]}
+      },
+      "required": ["idempotency_key", "path", "kind"]
+    },
+    "crafty_cad_model.fetch_input_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "input_file_id": {"type": "string", "pattern": "^[a-f0-9]{32}$"}
+      },
+      "required": ["input_file_id"]
+    }
+  },
+  "request_part_optional_properties": {
+    "input_file_ids": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^[a-f0-9]{32}$"},
+      "maxItems": 8,
+      "uniqueItems": true,
+      "default": []
+    }
+  },
+  "input_file_record_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "schema_version": {"const": 1},
+      "inputFileId": {"type": "string", "pattern": "^[a-f0-9]{32}$"},
+      "sessionId": {"type": "string", "pattern": "^[a-f0-9]{32}$"},
+      "kind": {"enum": ["step", "python_source"]},
+      "filename": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,119}$"},
+      "mediaType": {"enum": ["model/step", "text/x-python"]},
+      "sizeBytes": {"type": "integer", "minimum": 1, "maximum": 16777216},
+      "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+      "validation": {"const": "unverified_input"},
+      "origin": {"enum": ["conversation_workspace", "user_upload"]},
+      "createdAt": {"type": "string", "format": "date-time"}
+    },
+    "required": ["schema_version", "inputFileId", "sessionId", "kind", "filename", "mediaType", "sizeBytes", "sha256", "validation", "origin", "createdAt"]
+  },
+  "browser_upload": {
+    "method": "POST",
+    "path": "/api/agent/sessions/{sid}/cad/inputs",
+    "query": {
+      "filename": "safe basename; .step/.stp or .py matching kind",
+      "kind": "step | python_source"
+    },
+    "headers": {"Idempotency-Key": "1..120 characters", "Content-Type": "application/octet-stream"},
+    "body": "raw completed file bytes; at most 16777216 bytes",
+    "response": "input_file_record_schema",
+    "note": "Proposed registration in cad_http.py only; no filesystem path parameter. Browser upload UI remains the UI owner's work."
+  },
+  "examples": {
+    "attach": {"idempotency_key": "existing-cap-step-1", "path": "output/mug_cap_v1/mug_cap.step", "kind": "step"},
+    "request_part_addition": {"input_file_ids": ["11111111111111111111111111111111"]},
+    "fetch": {"input_file_id": "11111111111111111111111111111111"}
+  }
+}

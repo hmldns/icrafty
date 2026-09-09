@@ -413,7 +413,8 @@ class GeometryRuntime:
                             selection = tuple(wanted["parts"])
                             if selection not in meshes:
                                 meshes[selection] = self.native.call({"op": "mesh", "key": handle,
-                                    "parts": wanted["parts"], "deflection": self.settings.tessellation_mm},
+                                    "parts": wanted["parts"], "deflection": self.settings.tessellation_mm,
+                                    "angular_deflection": self.settings.angular_deflection_radians},
                                     cancel, started+self.settings.wall_seconds)
                             faults = {}
                             view_ids = [v["id"] for v in wanted["grid"]["views"]] if "grid" in wanted else [wanted["id"]]

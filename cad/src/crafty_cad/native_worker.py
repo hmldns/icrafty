@@ -37,7 +37,9 @@ def versions():
 
 
 def baseline(shape):
-    box = shape.BoundBox
+    # OCCT's ordinary BoundBox can enclose B-spline control poles, substantially
+    # overstating actual dimensions. Exclude triangulation and tolerance padding.
+    box = shape.optimalBoundingBox(False, False)
     solids = shape.Solids
     volume = sum(s.Volume for s in solids)
     center = ([sum(s.CenterOfMass[i] * s.Volume for s in solids) / volume
@@ -177,7 +179,7 @@ def measure(geometry, request):
         elif kind == "solid_count":
             value = len(shape.Solids)
         elif kind == "bbox_extent":
-            value = getattr(shape.BoundBox, request["axis"].upper() + "Length")
+            value = getattr(shape.optimalBoundingBox(False, False), request["axis"].upper() + "Length")
         elif kind == "surface_area":
             if not shape.Faces:
                 raise Unavailable("requires_faces")
@@ -233,7 +235,13 @@ def serve():
                 answer = {"metrics": [measure(geometries[job["key"]], m) for m in job["metrics"]]}
             elif op == "mesh":
                 shape = selected_shape(geometries[job["key"]], job["parts"])
-                vertices, triangles = shape.tessellate(job["deflection"])
+                # TopoShape.tessellate forces OCCT parallel meshing and can
+                # exhaust address space allocating its machine-sized pool.
+                # MeshPart's standard mesher is serial, on this disposable copy.
+                import MeshPart
+                mesh = MeshPart.meshFromShape(Shape=shape, LinearDeflection=job["deflection"],
+                    AngularDeflection=job.get("angular_deflection", 0.5), Relative=False)
+                vertices, triangles = mesh.Topology
                 if len(triangles) > 250_000:
                     raise ValueError("tessellation triangle limit")
                 answer = {"vertices": [[v.x, v.y, v.z] for v in vertices], "triangles": triangles,

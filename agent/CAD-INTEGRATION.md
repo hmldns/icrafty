@@ -212,3 +212,55 @@ uv run --script agent/tests/cad_collect.py --session ACTUAL_SESSION_ID \
 Run it from the repository root. It never submits work, copies credential homes,
 or claims that collected bytes establish the entire live gate. Empty CAD history
 is rejected. Operation outcomes and image inspection remain separate evidence.
+
+## Proposed existing-file handoff
+
+The additive [file-handoff-v1 proposal](examples/cad/file-handoff-v1-proposal.json)
+is **not installed** and awaits shared-interface coordination. The accepted v1
+result/renderer contract and its thirteen tools remain unchanged. This proposal
+addresses an existing STEP or original Python file already in the conversational
+workspace, and a future browser upload of the same bytes. It does not depend on,
+or replace, the ongoing live cap generation and export acceptance.
+
+`crafty_cad.attach_input_file({idempotency_key, path, kind})` captures a completed
+regular file inside the calling conversational workspace. `path` is a relative
+POSIX path; absolute paths, traversal, symlinks, special files, mismatched
+extensions and unsupported kinds are rejected. The MCP process reads bounded
+bytes with the existing stable-file checks and sends bytes/digest to the backend;
+the backend never opens an agent-supplied local path. It verifies the digest and
+atomically retains immutable bytes under the calling session. A changed file at
+the same path needs a new idempotency key and receives a new input ID. Private
+provenance retains the originating session, runtime generation, turn, relative
+path, capture time, kind, size and SHA256. Browser records expose only the schema's
+safe metadata, with `validation: "unverified_input"`.
+
+`request_part` gains optional `input_file_ids: []` (at most eight unique IDs).
+It resolves only that chat's immutable files, freezes their IDs/bytes/digests into
+the operation task, and includes that manifest in idempotency comparison.
+`crafty_cad_model.fetch_input_file({input_file_id})` accepts only IDs explicitly
+included in its active operation. It materializes digest-checked bytes into that
+CAD session's private `inputs/cad/<id>/<safe-filename>` and returns local paths
+only to the CAD agent. Expired runtime credentials, another session's ID, or an
+input omitted from the operation cannot authorize a fetch. Total task input bytes
+remain bounded to 16 MiB, in addition to per-file limits.
+
+The CAD agent owns interpretation of these untrusted inputs. For STEP it writes
+an explicit import adapter implementing the existing M-CAD `build(parameters,
+inputs)` contract and declares the copied STEP as a frozen input. Original Python
+is read as source material and may be adapted to that same contract; attachment
+alone never executes it. The deterministic evaluator remains unaware of chat,
+HTTP and input IDs. Its existing frozen source/input digests form the build key;
+the clean native verifier computes geometry evidence. Imported units, validity,
+solid count, bounds and measurements must be reported from the evaluated result.
+Named features are available only when actual imported subshapes can be identified.
+No imported file is presented as a validated output STEP. A downloadable model
+still requires an explicit requested export and the existing clean reopen check.
+
+For direct user selection, the proposal includes a bounded raw-byte
+`POST /api/agent/sessions/{sid}/cad/inputs?filename=...&kind=...`, returning the
+same immutable input record. It follows the existing local application's session
+authority; this is not a new multi-user authentication claim. The UI owner owns
+file selection and durable user-message references. No browser filesystem path,
+new general Store hook, image MCP change, CAD core change or dependency is needed.
+Application implementation would stay in `cad_*`, adding only this CAD route and
+the two separate CAD MCP tools after the exact schema is coordinated.
