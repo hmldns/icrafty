@@ -101,6 +101,8 @@ async def test_cad_real_stdio_mcp_native_ensure_materialize_publish(backend):
             report = json.loads((collected / "report.json").read_text())
             assert report["downloadCount"] == 2 and report["allDownloadsVerified"]
             assert report["operations"][0]["reuse"]["sourceExecutions"] == 1
+            gallery = (collected / "gallery.html").read_text()
+            assert "data:image/png;base64," in gallery and oid in gallery and "volume" in gallery
             assert not any("auth.json" in item["path"] for item in report["files"])
     finally:
         server.should_exit = True

@@ -218,14 +218,19 @@ def nurbs_bounds(ctx):
         scalar("solids", "solid_count", "cap", "1", 1),
         *[scalar("extent_" + axis, "bbox_extent", "cap", "mm", value, axis=axis)
           for axis, value in (("x", 70), ("y", 70), ("z", 16))],
-        scalar("volume", "volume", "cap", "mm^3", (35**2 * 16 - 33**2 * 14) * math.pi)]
+        scalar("volume", "volume", "cap", "mm^3", (35**2 * 16 - 33**2 * 14) * math.pi),
+        scalar("area", "surface_area", "cap", "mm^2", (2*35*16 + 2*33*14 + 2*35**2) * math.pi),
+        scalar("center", "centroid", "cap", "mm")]
     runtime = ctx.runtime()
     first, code = ctx.evaluate(runtime, folder, request, "nurbs-built")
     ready(ctx, first, code)
     handle = first["geometry"]["handle"]
     before = runtime.inspect_geometry(handle)
-    ctx.expect(all(m["status"] == "pass" for m in first["metrics"]),
-               "B-spline bounds use geometric extrema, not control-pole enclosure")
+    ctx.expect(all(m["status"] == "pass" for m in first["metrics"] if m["criterion"]),
+               "B-spline geometric extrema, volume and surface area match independent analytic criteria")
+    expected_center = [0, 0, (35**2*16*8 - 33**2*14*7)/(35**2*16 - 33**2*14)]
+    ctx.expect(all(abs(a-b) < 1e-8 for a,b in zip(first["metrics"][-1]["value"], expected_center)),
+               "Adaptive volume integration preserves the symmetric analytic centroid")
     ctx.expect(all(m["method"] == "bbox_extent@2" for m in first["metrics"] if m["kind"] == "bbox_extent"),
                "Corrected bound method is explicitly versioned")
     query = {**request, "geometry": {"handle": handle}, "outputs": [png(), {"id": "nurbs", "kind": "step", "parts": ["cap"]}]}
@@ -235,7 +240,7 @@ def nurbs_bounds(ctx):
     ctx.expect(before == runtime.inspect_geometry(handle), "Serial meshing/export cannot mutate retained NURBS")
     ctx.expect(runtime.counts["source_executions"] == 1 and runtime.counts["loads"] == 1,
                "NURBS evidence/export reuses the ensured shape")
-    ctx.expect(all(m["status"] == "pass" for m in result["metrics"]), "Independent NURBS criteria pass after rendering")
+    ctx.expect(all(m["status"] == "pass" for m in result["metrics"] if m["criterion"]), "Independent NURBS criteria pass after rendering")
     ctx.expect(result["provenance"]["effective_settings"]["memory_bytes"] == 1024**3,
                "Serial meshing preserves the 1 GiB memory limit")
 

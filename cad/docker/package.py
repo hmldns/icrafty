@@ -67,8 +67,18 @@ def main():
     copy(native_python, '/usr/bin/python3')
     native_stdlib = subprocess.check_output([str(native_python), '-I', '-c', 'import sysconfig; print(sysconfig.get_path("stdlib"))'],text=True).strip()
     copy(native_stdlib)
-    for name in ('FreeCAD.so', 'Part.so'):
+    for name in ('FreeCAD.so', 'Part.so', 'MeshPart.so', 'Mesh.so'):
         copy('/usr/lib/freecad/lib/'+name)
+    bridge = json.loads((CAD/'native/build/manifest.json').read_bytes())
+    for name, expected in bridge['files'].items():
+        source = CAD/'native/build'/name
+        if sha(source.read_bytes()) != expected:
+            raise SystemExit('Native measurement bridge changed; run make -C cad native-setup')
+        copy(source, '/opt/cad/native/build/'+name, native=False)
+    copy(CAD/'native/build/manifest.json', '/opt/cad/native/build/manifest.json', native=False)
+    copy(CAD/'native/properties.i', '/opt/cad/native/properties.i', native=False)
+    for name in ('build.py', 'build.py.lock'):
+        copy(CAD/'native'/name, '/opt/cad/native/'+name, native=False)
     # Part.makeCompound lazily imports this Python helper from the FreeCAD
     # module directory; ELF-only dependency discovery cannot discover it.
     copy('/usr/lib/freecad/Mod/Part/PartEnums.py','/usr/lib/freecad/lib/PartEnums.py')
@@ -113,7 +123,8 @@ def main():
     manifest = {'schema_version':1,'platform':'linux/amd64','packages':packages,
                 'native_tree_sha256':sha(canonical(native_files)),
                 'native_files':len(native_files),'uv_lock_sha256':sha((CAD/'uv.lock').read_bytes()),
-                'supervisor_python':sys.version,'packager_uv':subprocess.check_output(['uv','--version'],text=True).strip()}
+                'supervisor_python':sys.version,'packager_uv':subprocess.check_output(['uv','--version'],text=True).strip(),
+                'properties_bridge': {'abi':bridge['abi'], 'files':bridge['files'], 'source_sha256':bridge['source_sha256']}}
     lock = CAD/'docker/runtime-lock.json'
     if args.refresh_lock:
         lock.write_text(json.dumps(manifest,indent=2,sort_keys=True)+'\n')

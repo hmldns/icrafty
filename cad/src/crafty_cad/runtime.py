@@ -513,7 +513,8 @@ class GeometryRuntime:
                                 for a, b in zip(original["bounds"], actual["bounds"])),
                   "volume": abs(actual["volume"]-original["volume"]) <= tolerance["volume_absolute_mm3"] +
                             tolerance["relative"]*abs(original["volume"])}
-        report = {"schema_version": 1, "method": "clean-step-reopen@1", "expected": original,
+        report = {"schema_version": 1, "method": "clean-step-reopen@2", "expected": original,
+                  "export_settings": {"write.surfacecurve.mode": 1},
                   "actual": actual, "length_units": reopened["length_units"], "tolerances": tolerance,
                   "checks": checks, "passed": all(checks.values()),
                   "limitations": "Sanity gate only; no topology identity, thread fit or physical fit guarantee."}

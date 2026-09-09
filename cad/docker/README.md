@@ -13,6 +13,7 @@ From the repository root, using the accepted Linux/amd64 native setup in
 
 ```sh
 uv sync --directory cad --cache-dir .uv-cache --locked
+make -C cad native-setup
 make -C cad image-docker
 make -C cad verify-docker
 uv run --directory cad --cache-dir .uv-cache --locked python -m crafty_cad.docker evaluate \
@@ -59,6 +60,10 @@ explicit dependency closure into a fresh image context. This includes the native
 CPython 3.14.7/FreeCAD 1.1.3/OCCT 7.9.3 libraries, the accepted CPython 3.13.9 uv
 runtime with locked NumPy/Pillow/Rich/jsonschema packages, Liberation Sans, and
 licenses. FreeCAD's lazily imported `PartEnums.py` is included explicitly.
+The subsequent import fix also includes `MeshPart.so`, `Mesh.so` and their ELF
+closure, plus the precompiled service-owned adaptive properties bridge. Its
+source/ABI/binary digests are separately pinned in the runtime lock. SWIG and the
+compiler are build-time dependencies and are not installed in the image.
 Relocatable build objects are excluded; any failed ELF dependency inspection is
 an error, so an incomplete dependency closure cannot be accepted.
 
@@ -75,6 +80,8 @@ tree fails the byte lock. A maintainer can deliberately review a new native setu
 with `uv run --directory cad --cache-dir .uv-cache --locked python docker/package.py
 --output runs/docker/reviewed-update --refresh-lock`, then rebuild and rerun all
 gates. This flag is a lock update, never a fallback used by normal builds.
+The current executed update is recorded in [NATIVE-IMPORT-FIX.md](../NATIVE-IMPORT-FIX.md);
+the original [DOCKER-GATE.md](../DOCKER-GATE.md) remains historical evidence.
 
 ## Isolation and bounded evidence retention
 

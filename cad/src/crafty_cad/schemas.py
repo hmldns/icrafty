@@ -39,7 +39,8 @@ METRIC = obj({"id": NAME, "kind": REQUEST_SCHEMA["properties"]["metrics"]["items
     "reason": {"type": "string"}, "evidence_artifact_ids": {"type": "array", "items": NAME}},
     ["id", "kind", "target", "unit", "method", "frame", "criterion", "value", "status"])
 NATIVE = obj({"freecad": {"type": "array", "items": {"type": "string"}}, "occt": {"type": "string"},
-    "abi": {"type": "string"}, "executable": {"type": "string"}, "freecad_module": {"type": "string"}, "python": {"type": "string"}})
+    "abi": {"type": "string"}, "executable": {"type": "string"}, "freecad_module": {"type": "string"}, "python": {"type": "string"},
+    "properties_bridge": {"type": "object"}}, ["freecad", "occt", "abi", "executable", "freecad_module", "python"])
 FEATURE = {"oneOf": [obj({"status": {"const": "ready"}, "type": {"enum": ["Face", "Edge", "Vertex", "Wire", "Shell", "Solid"]},
     "index": {"type": "integer", "minimum": 0}, "sha256": SHA}),
     obj({"status": {"const": "unavailable"}, "reason": {"type": "string"}})]}

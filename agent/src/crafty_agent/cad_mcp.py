@@ -12,6 +12,7 @@ from mcp.server.stdio import stdio_server
 from mcp.types import Resource, Tool
 
 from .cad_files import atomic, canonical, capture_request, contained, digest, read
+from .cad_inputs import capture
 from .cad_protocol import DESCRIPTIONS, SCHEMAS, validate_tool
 
 
@@ -64,12 +65,29 @@ def dispatch(name, arguments):
     validate_tool(server, name, arguments)
     sid = os.environ["CRAFTY_CAD_SESSION"]
     prefix = f"/internal/cad/{role}/{sid}"
+    if role == "chat" and name == "attach_input_file":
+        payload = capture(os.environ["CRAFTY_CAD_WORKSPACE"], arguments["path"], arguments["kind"])
+        return http(prefix + "/" + name, {"arguments": arguments, "file": payload})
     if role == "model" and name in {"cad_evaluate", "cad_ensure"}:
         bundle = capture_request(os.environ["CRAFTY_CAD_WORKSPACE"], arguments["request_path"])
         return http(prefix + "/" + name, {"arguments": arguments, "bundle": bundle})
     result = http(prefix + "/" + name, {"arguments": arguments})
     if role == "model" and name in {"cad_status", "cad_wait"}:
         return materialize(result)
+    if role == "model" and name == "fetch_input_file":
+        metadata = result["input"]
+        data = http(result.pop("fetchUrl"), binary=True, maximum=metadata["sizeBytes"])
+        if len(data) != metadata["sizeBytes"] or digest(data) != metadata["sha256"]:
+            raise ValueError("Fetched CAD input digest mismatch")
+        path = contained(Path(os.environ["CRAFTY_CAD_WORKSPACE"]),
+                         "inputs/cad/" + metadata["inputFileId"] + "/" + metadata["filename"])
+        if path.exists():
+            if read(path, metadata["sizeBytes"]) != data:
+                raise ValueError("Local input copy changed; preserve it and use an explicit adapter/copy")
+        else:
+            atomic(path, data)
+            path.chmod(0o444)
+        result["local_path"] = str(path)
     if role == "model" and name == "fetch_image":
         metadata = result.pop("asset")
         data = http(result.pop("fetchUrl"), binary=True, maximum=20 * 1024 * 1024)

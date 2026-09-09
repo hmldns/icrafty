@@ -30,6 +30,9 @@ def service_digest():
     for name in ('src','tests','fixtures','examples','schemas'):
         files.extend(p for p in (CAD/name).rglob('*') if p.is_file() and '__pycache__' not in p.parts)
     files.extend([CAD/'uv.lock',CAD/'pyproject.toml',CAD/'.python-version'])
+    files.extend([CAD/'native/properties.i', CAD/'native/build.py', CAD/'native/build.py.lock'])
+    bridge = load_json(CAD/'native/build/manifest.json')
+    files.extend(CAD/'native/build'/name for name in bridge['files'])
     return digest(canonical({p.relative_to(CAD).as_posix():digest(read_bytes(p)) for p in sorted(files)}))
 
 

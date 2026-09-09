@@ -31,22 +31,27 @@ def write_json(path, value):
 
 
 def versions():
-    return {"freecad": FreeCAD.Version(), "occt": Part.OCC_VERSION,
+    result = {"freecad": FreeCAD.Version(), "occt": Part.OCC_VERSION,
             "python": sys.version, "abi": sysconfig.get_config_var("SOABI"),
             "executable": sys.executable, "freecad_module": FreeCAD.__file__}
+    if PROPERTIES is not None:
+        result["properties_bridge"] = PROPERTIES_VERSION
+    return result
 
 
-def baseline(shape):
+def bounds(shape):
     # OCCT's ordinary BoundBox can enclose B-spline control poles, substantially
     # overstating actual dimensions. Exclude triangulation and tolerance padding.
     box = shape.optimalBoundingBox(False, False)
+    return [box.XMin, box.YMin, box.ZMin, box.XMax, box.YMax, box.ZMax]
+
+
+def baseline(shape):
     solids = shape.Solids
-    volume = sum(s.Volume for s in solids)
-    center = ([sum(s.CenterOfMass[i] * s.Volume for s in solids) / volume
-               for i in range(3)] if volume > 0 else None)
+    properties = native_properties.measure(PROPERTIES, Part, shape)
     return {"validity": shape.isValid(), "solid_count": len(solids),
-            "bounds": [box.XMin, box.YMin, box.ZMin, box.XMax, box.YMax, box.ZMax],
-            "volume": volume, "surface_area": shape.Area, "centroid": center,
+            "bounds": bounds(shape),
+            **properties,
             "memory_bytes": shape.MemSize}
 
 
@@ -170,7 +175,7 @@ def select(geometry, target):
     return shape
 
 
-def measure(geometry, request):
+def measure(geometry, request, properties_cache):
     try:
         shape = select(geometry, request["target"])
         kind = request["kind"]
@@ -183,12 +188,17 @@ def measure(geometry, request):
         elif kind == "surface_area":
             if not shape.Faces:
                 raise Unavailable("requires_faces")
-            value = shape.Area
+            key = tuple(sorted(request["target"].items()))
+            if key not in properties_cache:
+                properties_cache[key] = native_properties.measure(PROPERTIES, Part, shape)
+            value = properties_cache[key]["surface_area"]
         elif kind in ("volume", "centroid"):
             if not shape.Solids or not shape.isValid() or not shape.isClosed():
                 raise Unavailable("requires_valid_closed_solid_geometry")
-            data = baseline(shape)
-            value = data[kind]
+            key = tuple(sorted(request["target"].items()))
+            if key not in properties_cache:
+                properties_cache[key] = native_properties.measure(PROPERTIES, Part, shape)
+            value = properties_cache[key][kind]
         elif kind == "cylinder_diameter":
             if shape.ShapeType != "Face" or not isinstance(shape.Surface, Part.Cylinder):
                 raise Unavailable("requires_identified_cylindrical_face")
@@ -232,7 +242,8 @@ def serve():
                 answer = {}
             elif op == "metrics":
                 counts["queries"] += 1
-                answer = {"metrics": [measure(geometries[job["key"]], m) for m in job["metrics"]]}
+                properties_cache = {}
+                answer = {"metrics": [measure(geometries[job["key"]], m, properties_cache) for m in job["metrics"]]}
             elif op == "mesh":
                 shape = selected_shape(geometries[job["key"]], job["parts"])
                 # TopoShape.tessellate forces OCCT parallel meshing and can
@@ -245,9 +256,12 @@ def serve():
                 if len(triangles) > 250_000:
                     raise ValueError("tessellation triangle limit")
                 answer = {"vertices": [[v.x, v.y, v.z] for v in vertices], "triangles": triangles,
-                          "baseline": baseline(shape)}
+                          "baseline": {"bounds": bounds(shape)}}
             elif op == "export":
                 shape = selected_shape(geometries[job["key"]], job["parts"])
+                # Preserve exact trimming curves. The default omits p-curves;
+                # STEP reopen then approximates their projection on NURBS faces.
+                Part.setStaticValue("write.surfacecurve.mode", 1)
                 shape.exportStep(job["path"])
                 answer = {"baseline": baseline(shape)}
             elif op == "inspect":
@@ -280,9 +294,15 @@ def main():
     resource.setrlimit(resource.RLIMIT_FSIZE, (args.output_limit, args.output_limit))
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
     sys.path.insert(0, args.lib)
-    global FreeCAD, Part
+    global FreeCAD, Part, PROPERTIES, PROPERTIES_VERSION, native_properties
     import FreeCAD
     import Part
+    PROPERTIES = None
+    if args.mode != "build":
+        spec = importlib.util.spec_from_file_location("native_properties", Path(__file__).with_name("native_properties.py"))
+        native_properties = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(native_properties)
+        PROPERTIES, PROPERTIES_VERSION = native_properties.load(Part.OCC_VERSION)
     if args.mode == "serve":
         serve()
     else:
