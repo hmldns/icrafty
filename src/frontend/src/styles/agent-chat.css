@@ -1,5 +1,7 @@
 .agent-page { display: grid; gap: var(--space-6); }
 .app-shell--agent { --content-width: 100%; }
+.chat-interaction-icon { position: relative; width: 20px; height: 20px; align-items: center; justify-content: center; border-radius: var(--radius-sm); color: var(--color-accent); background: var(--color-accent-soft); }
+.chat-interaction-icon .spinner { position: absolute; right: -3px; bottom: -2px; width: 9px; height: 9px; background: var(--color-paper); }
 .chat-streaming-label { color: var(--color-muted); font-size: var(--text-small); font-weight: 400; }
 .chat-streaming-caret { display: inline-block; width: .45em; height: 1em; margin-left: .2em; background: var(--color-accent); vertical-align: text-bottom; animation: chat-caret-blink 1s step-end infinite; }
 @keyframes chat-caret-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }

@@ -15,7 +15,18 @@ repair directly, independently of the browser's last selected conversation.
 
 `crafty_forms.request_dimensions` creates an inline `MeasurementItemView`. Its
 number/text inputs, caliper hints, units and referenced photos come from a validated
-durable interaction. Collapse preserves its draft. **Send measurements** atomically
+durable interaction. Source photographs appear as compact inspect links, since
+their previews already belong to the user's message. Optional `guides` pair up to
+three generated measurement sketches with `fieldIds`; the backend publishes each
+sketch through `crafty_forms.publish_measurement_guide` and supplies its immutable
+`image: { assetId, versionId }` reference in the form. Each sketch opens in the
+existing image inspector and sits beside or above its associated questions.
+A question appears once even when multiple views explain it. Unassociated
+questions follow the guides, and legacy forms without guides remain usable.
+If a guide's asset event arrives after its form, a loading placeholder preserves
+the questions and any entered answers until the image resolves.
+
+Collapse preserves its draft. **Send measurements** atomically
 stores answers and creates the next user turn, with idempotent retries and normal
 busy/Stop handling. Submitted answers become a read-only summary and survive reload;
 leaving the conversation discards unsent field edits. Blank values remain unknown.

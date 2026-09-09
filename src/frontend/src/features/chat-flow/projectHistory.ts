@@ -1,7 +1,7 @@
 import { snapshotVersion, type ChatAsset, type VersionRef } from "./types";
 import { projectCad } from "../cad-chat/projectCad";
 import type {
-  ChatModel, DimensionField, HistoryItem, HistoryRecord, ToolCallRecord,
+  ChatModel, DimensionField, HistoryItem, HistoryRecord, MeasurementGuide, ToolCallRecord,
 } from "./historyTypes";
 
 type ObjectValue = Record<string, unknown>;
@@ -54,8 +54,23 @@ const toolProjectors: Readonly<Record<string, ToolProjector>> = {
       || typeof field.id !== "string" || typeof field.label !== "string" || !["number", "text"].includes(String(field.kind)))) return null;
     const refs = result.photos.map(imageRef);
     if (refs.some(ref => ref === null)) return null;
+    const fields = result.fields as DimensionField[];
+    const resolvePhoto = (ref: VersionRef) => {
+      try { return snapshotVersion(catalog.assets, ref); }
+      catch { return null; }
+    };
+    const guides: MeasurementGuide[] = Array.isArray(result.guides) ? result.guides.slice(0, 3).flatMap(guide => {
+      if (!object(guide)) return [];
+      const image = imageRef(guide.image);
+      if (!image || !Array.isArray(guide.fieldIds) || guide.fieldIds.length === 0
+        || guide.fieldIds.some(id => typeof id !== "string" || !fields.some(field => field.id === id))) return [];
+      return [{ image, photo: resolvePhoto(image), fieldIds: [...new Set(guide.fieldIds as string[])] }];
+    }) : [];
     return { ...base(call), title: result.title, type: "measurements", requestId: result.requestId,
-      caption: result.caption, fields: result.fields as DimensionField[], photos: refs.map(ref => snapshotVersion(catalog.assets, ref!)),
+      caption: result.caption, fields, guides, photos: refs.flatMap(ref => {
+        const photo = resolvePhoto(ref!);
+        return photo ? [photo] : [];
+      }),
       answers: Object.fromEntries(Object.entries(result.answers).filter(([, value]) => typeof value === "string" || typeof value === "number")) as Record<string, string | number>,
       status: result.status as "awaiting_answers" | "answered", summary: result.status === "answered" ? "Answered" : "Your measurements" };
   },

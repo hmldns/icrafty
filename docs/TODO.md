@@ -5,3 +5,8 @@
  - [ ] grab testing images in advance for eval running that then we can observe and validate running new blind start with these images to refine primpts tools, as test+eval that should have additional py + rich surface to run inside terminal and tmux session
  - [ ] build this to the moment when we can generete python script for freecad
  - [ ]
+- [x] Mount the full-height repair app at `/`, with logo/list on the left and workspace on the right.
+- [x] Show a brief camera shutter flash and keep the capture button label steady.
+- [ ] Integrate distinct chat item icons (local implementation ready).
+- [ ] Integrate labelled measurement guides and source-photo reference links; run the real mug sample with blank fields.
+- [ ] Verify the single live CAD-agent run, then integrate its backend and actual preview/download path into the main app.

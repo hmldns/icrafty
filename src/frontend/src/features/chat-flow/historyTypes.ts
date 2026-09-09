@@ -1,4 +1,4 @@
-import type { ChatInput, PhotoAttachment } from "./types";
+import type { ChatInput, PhotoAttachment, VersionRef } from "./types";
 import type { CadResult } from "../cad-chat/types";
 
 export interface MessageRecord extends ChatInput {
@@ -91,12 +91,20 @@ export interface DimensionField {
   readonly hint?: string;
 }
 
+export interface MeasurementGuide {
+  readonly image: VersionRef;
+  /** An asset event can follow its form record; keep the fields usable meanwhile. */
+  readonly photo: PhotoAttachment | null;
+  readonly fieldIds: readonly string[];
+}
+
 export interface MeasurementItem extends ToolItemBase {
   readonly type: "measurements";
   readonly requestId: string;
   readonly caption: string;
   readonly fields: readonly DimensionField[];
   readonly photos: readonly PhotoAttachment[];
+  readonly guides: readonly MeasurementGuide[];
   readonly status: "awaiting_answers" | "answered";
   readonly answers: Readonly<Record<string, string | number>>;
 }
