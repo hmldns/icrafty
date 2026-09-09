@@ -21,9 +21,7 @@ the discussion. The first demonstration focuses on a replacement mug cap.
 The CAD workflow uses FreeCAD to build solid geometry, render views, compute
 geometric checks, and export STEP files for print preparation. The app combines
 live Codex chat, camera capture, editable annotations, inline measurement forms,
-and an interactive STEP/STL viewer. The CAD agent has passed a separate correction
-trial; integration with the main conversation and printer-specific preparation
-remain ongoing.
+and an interactive STEP/STL viewer.
 
 # Public Project GitHub Repository
 
